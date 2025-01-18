@@ -32,12 +32,38 @@ impl ElementDesc {
         return None
     }
 
-    pub fn dump(&self, indent: usize) {
-        print!("{}", "   ".to_string().repeat(indent));
-        println!("{}", self.name);
-        for n in self.allowable_subelements {
-            n.dump(indent + 1);
+    fn fmt_no_circular(&self, f: &mut fmt::Formatter<'_>, active: &mut Vec<&String>) -> fmt::Result {
+        let mut sep_subelem = "";
+
+        write!(f, "{}:\n", self.name)?;
+        write!(f, "   [")?;
+
+        for element in self.allowable_subelements {
+            for name in &mut *active {
+                if *name == element.name {
+                    eprintln!("Circular dependency starting at {}", name);
+                    std::process::exit(1);
+                }
+            }
+
+            write!(f, "{}{}", sep_subelem, element.name)?;
+            sep_subelem = ", ";
         }
+
+        write!(f, "]\n");
+       
+        for element in self.allowable_subelements {
+            write!(f, "{}", element)?;
+        }
+
+        Ok(())
+    }
+}
+
+impl fmt::Display for ElementDesc {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut active = Vec::<&String>::new();
+        self.fmt_no_circular(f, &mut active)
     }
 }
 
