@@ -7,11 +7,11 @@ use xml::name::OwnedName;
 use xml::namespace::Namespace;
 use xml::reader::XmlEvent;
 
-mod parser;
-mod xml_tree_error;
+pub mod parser;
+pub mod xml_tree_error;
 
-use crate::parser::{LineNumber, Parser};
-use crate::xml_tree_error::XmlTreeError;
+pub use crate::parser::{LineNumber, Parser};
+pub use crate::xml_tree_error::XmlTreeError;
 
 pub struct ElementDesc {
     pub name:                   &'static str, 
@@ -124,16 +124,16 @@ const XXX: ElementDesc = ElementDesc {
 */
 
 #[derive(Debug)]
-pub struct XtceDocument {
+pub struct XmlTree {
     version:        XmlVersion,
     encoding:       String,
     standalone:     Option<bool>,
     pub root:       Element,
 }
 
-impl XtceDocument {
+impl XmlTree {
     pub fn new(path: String, root: &ElementDesc) ->
-        Result<XtceDocument, XmlTreeError> {
+        Result<XmlTree, XmlTreeError> {
         let file = match File::open(path) {
             Err(e) => return Err(XmlTreeError::XmlError(0, Box::new(e))),
             Ok(f) => f,
@@ -142,7 +142,7 @@ impl XtceDocument {
         Self::new_from_reader(buf_reader, root)
     }
 
-    pub fn new_from_reader<R: Read>(buf_reader: BufReader<R>, root: &ElementDesc) -> Result<XtceDocument, XmlTreeError> {
+    pub fn new_from_reader<R: Read>(buf_reader: BufReader<R>, root: &ElementDesc) -> Result<XmlTree, XmlTreeError> {
         let mut parser = Parser::<R>::new(buf_reader);
         let (lineno, version, encoding, standalone) =
             Self::parse_start_document(&mut parser)?;
@@ -195,7 +195,7 @@ impl XtceDocument {
      */
     fn parse_end_document<R: Read>(parser: &mut Parser<R>, desc: &ElementDesc,
         info: (LineNumber, XmlVersion, String, Option<bool>)) ->
-        Result<XtceDocument, XmlTreeError> {
+        Result<XmlTree, XmlTreeError> {
 
         let mut start_name = "".to_string();
         let mut subelements = Vec::<Element>::new();
@@ -267,7 +267,7 @@ println!("Skipping processing_instruction");
 
         let root = &subelements[0];
 
-        Ok(XtceDocument {
+        Ok(XmlTree {
             version:    info.1,
             encoding:   info.2,
             standalone: info.3,
@@ -365,7 +365,7 @@ println!("Skipping processing_instruction");
 */
 }
 
-impl fmt::Display for XtceDocument {
+impl fmt::Display for XmlTree {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 println!("document:");
         write!(f, "<?xml {} {} {:?}>\n",
