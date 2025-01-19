@@ -13,19 +13,67 @@ pub mod xml_tree_error;
 pub use crate::parser::{LineNumber, Parser};
 pub use crate::xml_tree_error::XmlTreeError;
 
-pub struct ElementDesc {
-    pub name:                   &'static str, 
-    pub allowable_subelements:  &'static[ElementDesc]
+pub struct ElementDesc<'a> {
+    name:                   &'a str,
+    allowable_subelements:  &'a mut[ElementDescRef<'a>],
 }
 
-impl ElementDesc {
+#[derive(Debug)]
+pub struct ElementDescTree<'a> {
+    pub root:            ElementDescRef<'a>,
+    pub element_descs:    &'a [ElementDesc<'a>],
+}
+
+#[derive(Debug)]
+enum ElementDescRef<'a> {
+    Name(&'a str),
+    Ref(&'a ElementDesc<'a>),
+}
+
+impl<'a> ElementDescRef<'a> {
+    fn name(&self) -> &str {
+        match self {
+            ElementDescRef::Name(n) => *n,
+            ElementDescRef::Ref(r) => r.name,
+        }
+    }
+
+    fn r#ref(&self) -> Result<&ElementDesc, XmlTreeError> {
+        match self {
+            ElementDescRef::Name(n) => Err(XmlTreeError::RefNotSet(n.to_string())),
+            ElementDescRef::Ref(r) => Ok(r),
+        }
+    }
+}
+
+// FIXME: for testing only, remove me
+static test_element_desc_tree: ElementDescTree = ElementDescTree {
+    root:           ElementDescRef::Name("a1"),
+    element_descs:   &[
+        ElementDesc {
+            name:   "a1",
+            allowable_subelements: &mut [ElementDescRef::Name("a2")],
+        },
+        ElementDesc {
+            name:   "a2",
+            allowable_subelements: &mut [ElementDescRef::Name("a1")],
+        }
+    ]
+};
+
+impl<'a> ElementDesc<'a> {
     pub fn position(&self, target: &String) -> Option<usize> {
         let mut pos: usize = 0;
 
         for element in self.allowable_subelements {
-            if element.name == target {
-                return Some(pos);
-            }
+            let name = match element {
+                // FIXME: this is an internal consistency failure
+                ElementDescRef::Name(name) => *name,
+                ElementDescRef::Ref(r) => r.name,
+            };
+            if name == target.as_str() {
+                    return Some(pos);
+            };
             pos += 1;
         }
 
@@ -39,37 +87,57 @@ impl ElementDesc {
         write!(f, "   [")?;
 
         for element in self.allowable_subelements {
+            let element_name = element.name();
+
             for name in &mut *active {
-                if *name == element.name {
+                if *name == element_name {
                     eprintln!("Circular dependency starting at {}", name);
                     std::process::exit(1);
                 }
             }
 
-            write!(f, "{}{}", sep_subelem, element.name)?;
+            write!(f, "{}{}", sep_subelem, element_name)?;
             sep_subelem = ", ";
         }
 
-        write!(f, "]\n");
+        write!(f, "]\n")?;
        
         for element in self.allowable_subelements {
-            write!(f, "{}", element)?;
+            let element_name = element.name();
+            write!(f, "{:?}", element_name)?;
         }
 
         Ok(())
     }
 }
 
-impl fmt::Display for ElementDesc {
+impl<'a> fmt::Display for ElementDesc<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut active = Vec::<&String>::new();
         self.fmt_no_circular(f, &mut active)
     }
 }
 
-impl fmt::Debug for ElementDesc {
+impl<'a> fmt::Debug for ElementDesc<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{} {:?}", self.name, self.allowable_subelements)
+    }
+}
+
+#[derive(Clone, Debug)]
+struct ElementInfo {
+    lineno:                 LineNumber,
+    attributes:             Vec<OwnedAttribute>,
+    namespace:              Namespace,
+}
+
+impl ElementInfo {
+    fn new(lineno: LineNumber, attributes: Vec<OwnedAttribute>, namespace: Namespace) -> ElementInfo {
+        ElementInfo {
+            lineno:     lineno,
+            attributes: attributes,
+            namespace:  namespace,
+        }
     }
 }
 
@@ -78,25 +146,20 @@ impl fmt::Debug for ElementDesc {
  */
 #[derive(Clone, Debug)]
 pub struct Element {
+    name:                   OwnedName,
     depth:                  usize,
-    lineno:                 LineNumber,
-    pub name:               OwnedName,
-    attributes:             Vec<OwnedAttribute>,
-    namespace:              Namespace,
+    element_info:           ElementInfo,
     pub subelements:        Vec<Element>,
     before_comments:        Vec<String>,
     after_comments:         Vec<String>,
 }
 
 impl Element {
-    fn new(depth: usize, lineno: LineNumber, name: OwnedName, attributes: Vec<OwnedAttribute>,
-        namespace: Namespace) -> Element {
+    fn new(name: OwnedName, depth: usize, element_info: ElementInfo) -> Element {
         Element {
-            depth:              depth,
-            lineno:             lineno,
             name:               name,
-            attributes:         attributes,
-            namespace:          namespace,
+            depth:              depth,
+            element_info:       element_info,
             subelements:        Vec::<Element>::new(),
             before_comments:    Vec::<String>::new(),
             after_comments:     Vec::<String>::new(),
@@ -104,7 +167,7 @@ impl Element {
     }
 
     pub fn get_attribute(&self, name: &str) -> Option<&String> {
-        for attribute in &self.attributes {
+        for attribute in &self.element_info.attributes {
             if attribute.name.local_name == name {
                 return Some(&attribute.value);
             }
@@ -120,14 +183,14 @@ impl fmt::Display for Element {
         let indent_string = INDENT_STR.to_string().repeat(self.depth);
 
         write!(f, "{}<{}", indent_string, self.name.local_name)?;
-        for attribute in self.attributes.clone() {
+        for attribute in self.element_info.attributes.clone() {
             write!(f, " {}={}", attribute.name.local_name, attribute.value)?;
         }
 
         if self.subelements.len() == 0 {
-            write!(f, " /> (line {})\n", self.lineno)?;
+            write!(f, " /> (line {})\n", self.element_info.lineno)?;
         } else {
-            write!(f, "> (line {})\n", self.lineno)?;
+            write!(f, "> (line {})\n", self.element_info.lineno)?;
 
             for element in &self.subelements {
                 element.fmt(f)?;
@@ -141,39 +204,52 @@ impl fmt::Display for Element {
     }
 }
 
+#[derive(Clone, Debug)]
+struct DocumentInfo {
+    version:    XmlVersion,
+    encoding:   String,
+    standalone: Option<bool>,
+}
 
-/* FIXME: remove this
-const XXX: ElementDesc = ElementDesc {
-    name:                   "XXX",
-    allowable_subelements:  &[XXX],
-};
-*/
+impl DocumentInfo {
+    fn new(version: XmlVersion, encoding: String, standalone: Option<bool>) ->
+        DocumentInfo {
+        DocumentInfo {
+            version:    version,
+            encoding:   encoding,
+            standalone: standalone,
+        }
+    }
+}
 
 #[derive(Debug)]
 pub struct XmlTree {
-    version:        XmlVersion,
-    encoding:       String,
-    standalone:     Option<bool>,
-    pub root:       Element,
+    document_info:  DocumentInfo,
+    tree:           Element,
 }
 
 impl XmlTree {
-    pub fn new(path: String, root: &ElementDesc) ->
+    pub fn new(path: String, root: &ElementDescTree) ->
         Result<XmlTree, XmlTreeError> {
         let file = match File::open(path) {
             Err(e) => return Err(XmlTreeError::XmlError(0, Box::new(e))),
             Ok(f) => f,
         };
         let buf_reader = BufReader::new(file);
-        Self::new_from_reader(buf_reader, root)
+        Self::new_from_reader(buf_reader, &test_element_desc_tree)
     }
 
-    pub fn new_from_reader<R: Read>(buf_reader: BufReader<R>, root: &ElementDesc) -> Result<XmlTree, XmlTreeError> {
+    pub fn new_from_reader<R: Read>(buf_reader: BufReader<R>, element_desc_tree: &ElementDescTree) ->
+        Result<XmlTree, XmlTreeError> {
+        if element_desc_tree.element_descs.len() == 0 {
+            return Err(XmlTreeError::XmlNoElementDefined());
+        }
+        
         let mut parser = Parser::<R>::new(buf_reader);
-        let (lineno, version, encoding, standalone) =
-            Self::parse_start_document(&mut parser)?;
+        let document_info = Self::parse_start_document(&mut parser)?;
+        let root = element_desc_tree.root.r#ref()?;
         let xml_document = Self::parse_end_document(&mut parser, root,
-            (lineno, version, encoding, standalone));
+            document_info);
 
         xml_document
     }
@@ -182,23 +258,23 @@ impl XmlTree {
      * Parse the StartDocument event.
      */
     fn parse_start_document<R: Read>(parser: &mut Parser<R>) ->
-        Result<(LineNumber, XmlVersion, String, Option<bool>), XmlTreeError> {
+        Result<DocumentInfo, XmlTreeError> {
         let mut comments_before = Vec::<String>::new();
 
-        let (lineno, version, encoding, standalone) = loop {
+        let document_info = loop {
             let xml_element = parser.next();
 
             match xml_element {
-                Err(_) => return Err(XmlTreeError::NoXTCE()),
+                Err(e) => return Err(XmlTreeError::XmlError(0, Box::new(e))),
                 Ok(evt) => {
                     let lineno = evt.lineno;
 
                     match evt.event {
                         XmlEvent::StartDocument{version, encoding, standalone} => {
-                            break (lineno, version, encoding, standalone)
+                            break DocumentInfo::new(version, encoding, standalone);
                         },
                         XmlEvent::EndDocument => {
-                            return Err(XmlTreeError::NoXTCE());
+                            return Err(XmlTreeError::NoEndDocument());
                         },
                         XmlEvent::Comment(cmnt) => {
                             comments_before.push(cmnt);
@@ -213,18 +289,20 @@ impl XmlTree {
             };
         };
 
-        Ok((lineno, version, encoding, standalone))
+        Ok(document_info)
     }
 
     /*
      * Parse until we find an EndDocument
      */
-    fn parse_end_document<R: Read>(parser: &mut Parser<R>, desc: &ElementDesc,
-        info: (LineNumber, XmlVersion, String, Option<bool>)) ->
+    fn parse_end_document<'b, R: Read>(parser: &'b mut Parser<R>,
+        root_desc: &ElementDesc,
+        document_info: DocumentInfo) ->
         Result<XmlTree, XmlTreeError> {
 
         let mut start_name = "".to_string();
         let mut subelements = Vec::<Element>::new();
+        let mut lineno: LineNumber = 0;
 
         loop {
             let xml_element = parser.next();
@@ -234,7 +312,7 @@ impl XmlTree {
                     return Err(XmlTreeError::XmlError(0, Box::new(e))); // FIXME: line number
                 },
                 Ok(evt) => {
-                    let lineno = evt.lineno;
+                    lineno = evt.lineno;
 
                     match evt.event {
                         XmlEvent::StartDocument{..} => {
@@ -245,12 +323,14 @@ impl XmlTree {
                         },
                         XmlEvent::StartElement{name, attributes, namespace} => {
                             start_name = name.local_name.clone();
-                            match desc.allowable_subelements.iter().position(|x| x.name == start_name) {
+                            let element_info = ElementInfo::new(lineno,
+                                attributes, namespace);
+                            match root_desc.allowable_subelements.iter().position(|x| x.name() == start_name) {
                                 None => return Err(XmlTreeError::UnknownElement(lineno, start_name)),
                                 Some(pos) => {
-                                    let new_desc = &desc.allowable_subelements[pos];
+                                    let new_desc = root_desc.allowable_subelements[pos].r#ref()?;
                                     let subelement = Self::parse_subelement(0, parser,
-                                        attributes, namespace, &new_desc)?;
+                                        element_info, new_desc)?;
                                     Self::push_subelement(&mut subelements, 
                                         subelement);
                                     break;
@@ -288,22 +368,17 @@ println!("Skipping processing_instruction");
 
         // Get the root element
         if subelements.len() != 1 {
-            return Err(XmlTreeError::OnlyOneRootElement(info.0));
+            return Err(XmlTreeError::OnlyOneRootElement(lineno));
         }
 
-        let root = &subelements[0];
-
         Ok(XmlTree {
-            version:    info.1,
-            encoding:   info.2,
-            standalone: info.3,
-            root:       root.clone(),
+            document_info:  document_info,
+            tree:           subelements[0],
         })
     }
 
     fn parse_subelement<R: Read>(depth: usize, parser: &mut Parser<R>,
-        attributes: Vec<OwnedAttribute>, namespace: Namespace,
-        desc: &ElementDesc) ->
+        element_info: ElementInfo, desc: &ElementDesc) ->
         Result<Element, XmlTreeError> {
         let mut subelements = Vec::<Element>::new();
 
@@ -326,13 +401,14 @@ println!("Skipping processing_instruction");
                         },
                         XmlEvent::StartElement{name, attributes, namespace} => {
                             let start_name = name.local_name.clone();
-                            match desc.allowable_subelements.iter().position(|x| x.name == start_name) {
+                            let element_info = ElementInfo::new(lineno, attributes,
+                                namespace);
+                            match desc.allowable_subelements.iter().position(|x| x.name() == start_name) {
                                 None => return Err(XmlTreeError::UnknownElement(lineno, start_name)),
                                 Some(pos) => {
-                                    let new_desc = &desc.allowable_subelements[pos];
+                                    let new_desc = desc.allowable_subelements[pos].r#ref()?;
                                     let subelement = Self::parse_subelement(depth + 1, parser,
-                                        attributes, namespace,
-                                        &new_desc)?;
+                                        element_info, new_desc)?;
                                     Self::push_subelement(&mut subelements,
                                         subelement);
                                 }
@@ -345,7 +421,7 @@ println!("Skipping processing_instruction");
                                     name.local_name));
                             }
 
-                            let mut element = Element::new(depth, lineno, name, attributes, namespace);
+                            let mut element = Element::new(name, depth, element_info);
                             element.subelements = subelements;
                             return Ok(element)
                         },
@@ -382,20 +458,41 @@ println!("Skipping processing_instruction");
         subelements.push(element)
     }
 
-/*
-    pub fn dump(&self) {
-        println!("<?xml {} {} {:?}>",
-            self.version, self.encoding, self.standalone);
-        self.root.dump();
+    fn patch_element_desc_tree(element_desc_tree: &mut ElementDescTree) -> 
+        Result<(), XmlTreeError> {
+
+        for desc in element_desc_tree.element_descs {
+            for subelement in desc.allowable_subelements.iter_mut( ) {
+                let patch = match Self::find_element_desc(element_desc_tree,
+                    subelement.name()) {
+                    None => return Err(XmlTreeError::NoSuchElement(
+                        subelement.name().to_string(), desc.name.to_string())),
+                    Some(p) => p,
+                };
+                *subelement = ElementDescRef::Ref(patch);
+            }
+        }
+
+        Ok(())
     }
-*/
+
+    fn find_element_desc<'b>(element_desc_tree: &'b ElementDescTree, name: &'b str) ->
+        Option<&'b ElementDesc<'b>> {
+        for desc in element_desc_tree.element_descs {
+            if desc.name == name {
+                return Some(desc);
+            }
+        }
+
+        return None;
+    }
 }
 
 impl fmt::Display for XmlTree {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 println!("document:");
         write!(f, "<?xml {} {} {:?}>\n",
-            self.version, self.encoding, self.standalone)?;
-        write!(f, "{}", self.root)       
+            self.document_info.version, self.document_info.encoding, self.document_info.standalone)?;
+        write!(f, "{}", self.tree)       
     }
 }

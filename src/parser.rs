@@ -53,6 +53,11 @@ impl<R: Read> Parser<R> {
     pub fn next(&mut self) -> Result<XmlElement, XmlTreeError> {
         let xml_event = self.event_reader.next();
         let lineno = *self.lineno_ref.borrow();
+match &xml_event {
+    Ok(XmlEvent::StartElement{name, ..}) => println!("start element: {}", name.local_name),
+    Ok(XmlEvent::EndElement{name}) => println!("end element: {}", name.local_name),
+    _ => {},
+}
 
         let result = match xml_event {
             Err(e) => Err(XmlTreeError::XmlError(lineno, Box::new(e))),

@@ -5,18 +5,37 @@ use crate::parser::{LineNumber};
 
 #[derive(Error, Debug)]
 pub enum XmlTreeError {
+    #[error("Element name \"{0}\" is duplicated in ElementDefs")]
+    DuplicateElementDefsName(String),
+
     #[error("line {0}: Misplaced element end: {1}")]
     MisplacedElementEnd(LineNumber, String), 
 
     // FIXME: need to fix this
-    #[error("No XTCE elements in input")]
+    #[error("No end element in input")]
+    NoEndDocument(),
+
+    #[error("No element \"{0}\" as referenced in element description for \"{1}\"")]
+    NoSuchElement(String, String),
+
+    // FIXME: need to fix this
+    #[error("No XML elements in input")]
     NoXTCE(),
 
-    #[error("Line {0}: Only one root element is allowed\n")]
+    #[error("Line {0}: Only one root element is allowed")]
     OnlyOneRootElement(LineNumber),
+
+    #[error("ElementRef not set to reference for \"{0}\"")]
+    RefNotSet(String),
+
+    #[error("Root name \"{0}\" not in ElementDescs")]
+    RootNotInElementDescs(String),
 
     #[error("line {0}: StartDocument after StartDocument")]
     StartAfterStart(LineNumber), 
+
+    #[error("ElementDef name \"{0}\" not in ElementDescs")]
+    ElementDefNotInElementDescs(String),
 
     #[error("Unexpected XML error: {0:?}")]
     UnexpectedXml(XmlEvent),
@@ -31,4 +50,7 @@ pub enum XmlTreeError {
     // FIXME: get line number from the XmlEvent
     #[error("Line {0}: XML error: {1}")]
     XmlError(LineNumber, Box<dyn std::error::Error>),
+
+    #[error("No elements defined")]
+    XmlNoElementDefined(),
 }
