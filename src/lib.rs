@@ -1,6 +1,7 @@
 use std::fmt;
 use std::fs::File;
 use std::io::{BufReader, Read};
+//use std::ptr::addr_of_mut;
 use xml::attribute::OwnedAttribute;
 use xml::common::XmlVersion;
 use xml::name::OwnedName;
@@ -13,63 +14,80 @@ pub mod xml_tree_error;
 pub use crate::parser::{LineNumber, Parser};
 pub use crate::xml_tree_error::XmlTreeError;
 
-pub struct ElementDesc<'a> {
-    name:                   &'a str,
-    allowable_subelements:  &'a mut[ElementDescRef<'a>],
-}
-
-#[derive(Debug)]
-pub struct ElementDescTree<'a> {
-    pub root:            ElementDescRef<'a>,
-    pub element_descs:    &'a [ElementDesc<'a>],
-}
-
-#[derive(Debug)]
-enum ElementDescRef<'a> {
-    Name(&'a str),
-    Ref(&'a ElementDesc<'a>),
-}
-
-impl<'a> ElementDescRef<'a> {
-    fn name(&self) -> &str {
-        match self {
-            ElementDescRef::Name(n) => *n,
-            ElementDescRef::Ref(r) => r.name,
-        }
-    }
-
-    fn r#ref(&self) -> Result<&ElementDesc, XmlTreeError> {
-        match self {
-            ElementDescRef::Name(n) => Err(XmlTreeError::RefNotSet(n.to_string())),
-            ElementDescRef::Ref(r) => Ok(r),
-        }
-    }
-}
-
 // FIXME: for testing only, remove me
-static test_element_desc_tree: ElementDescTree = ElementDescTree {
-    root:           ElementDescRef::Name("a1"),
-    element_descs:   &[
-        ElementDesc {
+static mut test_xml_desc_tree: XmlDescTree = XmlDescTree {
+    root:           "a1",
+    xml_descs:   &mut [
+        XmlDesc {
             name:   "a1",
-            allowable_subelements: &mut [ElementDescRef::Name("a2")],
+            allowable_subelements: &mut [XmlDescRef::Name("a2")],
         },
-        ElementDesc {
+        XmlDesc {
             name:   "a2",
-            allowable_subelements: &mut [ElementDescRef::Name("a1")],
+            allowable_subelements: &mut [XmlDescRef::Name("a1")],
         }
     ]
 };
 
-impl<'a> ElementDesc<'a> {
+/*
+ * Define the data structures used to describe the XML used for parsing.
+ */
+#[derive(Debug)]
+pub struct XmlDescTree<'a> {
+    pub root:       &'a str,
+    pub xml_descs:  &'a mut [XmlDesc<'a>],
+}
+
+impl<'a> XmlDescTree<'a> {
+    fn patch_xml_desc_tree(&mut self) -> Result<(), XmlTreeError> {
+        let mut patches = Vec::<(&mut XmlDesc, &mut XmlDesc)>::new();
+
+        for desc in self.xml_descs.iter_mut() {
+            for subelement in desc.allowable_subelements.iter_mut() {
+                let name = subelement.name();
+
+                let patch = match Self::find_xml_desc(self.xml_descs, name) {
+                    None => return Err(XmlTreeError::NoSuchElement(
+                        name.to_string(), desc.name.to_string())),
+                    Some(p) => p,
+                };
+
+                let subelement_ref = match subelement {
+                    XmlDescRef::Name(n) => return Err(XmlTreeError::UnresolvedRef(n.to_string())),
+                    XmlDescRef::Ref(r) => r,
+                };
+
+                patches.push((subelement_ref, patch));
+            }
+        }
+
+        for (subelement_ref, patch) in patches {
+            subelement_ref = patch;
+        }
+
+        Ok(())
+    }
+
+    // Find an XmlDesc with the given name
+    fn find_xml_desc<'b>(xml_descs: &'b mut [XmlDesc<'a>], name: &str) -> Option<&'b mut XmlDesc<'a>> {
+        xml_descs.iter_mut().find(|desc| desc.name == name)
+    }
+}
+
+pub struct XmlDesc<'a> {
+    name:                   &'a str,
+    allowable_subelements:  &'a mut [XmlDescRef<'a>],
+}
+
+impl<'a> XmlDesc<'a> {
     pub fn position(&self, target: &String) -> Option<usize> {
         let mut pos: usize = 0;
 
-        for element in self.allowable_subelements {
+        for element in self.allowable_subelements.iter() {
             let name = match element {
                 // FIXME: this is an internal consistency failure
-                ElementDescRef::Name(name) => *name,
-                ElementDescRef::Ref(r) => r.name,
+                XmlDescRef::Name(name) => *name,
+                XmlDescRef::Ref(r) => r.name,
             };
             if name == target.as_str() {
                     return Some(pos);
@@ -86,7 +104,7 @@ impl<'a> ElementDesc<'a> {
         write!(f, "{}:\n", self.name)?;
         write!(f, "   [")?;
 
-        for element in self.allowable_subelements {
+        for element in self.allowable_subelements.iter() {
             let element_name = element.name();
 
             for name in &mut *active {
@@ -102,7 +120,7 @@ impl<'a> ElementDesc<'a> {
 
         write!(f, "]\n")?;
        
-        for element in self.allowable_subelements {
+        for element in self.allowable_subelements.iter() {
             let element_name = element.name();
             write!(f, "{:?}", element_name)?;
         }
@@ -111,16 +129,38 @@ impl<'a> ElementDesc<'a> {
     }
 }
 
-impl<'a> fmt::Display for ElementDesc<'a> {
+impl<'a> fmt::Display for XmlDesc<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut active = Vec::<&String>::new();
         self.fmt_no_circular(f, &mut active)
     }
 }
 
-impl<'a> fmt::Debug for ElementDesc<'a> {
+impl<'a> fmt::Debug for XmlDesc<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{} {:?}", self.name, self.allowable_subelements)
+    }
+}
+
+#[derive(Clone, Debug)]
+enum XmlDescRef<'a> {
+    Name(&'a str),
+    Ref(&'a XmlDesc<'a>),
+}
+
+impl<'a> XmlDescRef<'a> {
+    fn name(&self) -> &str {
+        match self {
+            XmlDescRef::Name(n) => *n,
+            XmlDescRef::Ref(r) => r.name,
+        }
+    }
+
+    fn r#ref(&self) -> Result<&'a XmlDesc, XmlTreeError> {
+        match self {
+            XmlDescRef::Name(n) => Err(XmlTreeError::UnresolvedRef(n.to_string())),
+            XmlDescRef::Ref(r) => Ok(r),
+        }
     }
 }
 
@@ -223,37 +263,54 @@ impl DocumentInfo {
 }
 
 #[derive(Debug)]
-pub struct XmlTree {
+pub struct XmlTree<'a> {
     document_info:  DocumentInfo,
-    tree:           Element,
+    root:           Option<&'a Element>,
+    tree:           Vec<Element>,
 }
 
-impl XmlTree {
-    pub fn new(path: String, root: &ElementDescTree) ->
-        Result<XmlTree, XmlTreeError> {
+impl XmlTree<'_> {
+    pub fn new<'a>(path: String, root: &'a mut XmlDescTree<'a>) ->
+        Result<XmlTree<'a>, XmlTreeError> {
         let file = match File::open(path) {
             Err(e) => return Err(XmlTreeError::XmlError(0, Box::new(e))),
             Ok(f) => f,
         };
         let buf_reader = BufReader::new(file);
-        Self::new_from_reader(buf_reader, &test_element_desc_tree)
+        Self::new_from_reader(buf_reader, root)
     }
 
-    pub fn new_from_reader<R: Read>(buf_reader: BufReader<R>, element_desc_tree: &ElementDescTree) ->
-        Result<XmlTree, XmlTreeError> {
-        if element_desc_tree.element_descs.len() == 0 {
+    pub fn new_from_reader<'a, R: Read + 'a>(buf_reader: BufReader<R>,
+        xml_desc_tree: &'a mut XmlDescTree<'a>)
+->
+        Result<XmlTree<'a>, XmlTreeError> {
+
+        XmlDescTree::patch_xml_desc_tree(xml_desc_tree);
+        return Ok(XmlTree {
+            document_info:  DocumentInfo {
+                version:    XmlVersion::Version10,
+                encoding:   "tbd".to_string(),
+                standalone: None,
+            },
+            root:   None,
+            tree:   Vec::<Element>::new(),
+        });
+
+/*
+        if xml_desc_tree.xml_descs.len() == 0 {
             return Err(XmlTreeError::XmlNoElementDefined());
         }
         
         let mut parser = Parser::<R>::new(buf_reader);
         let document_info = Self::parse_start_document(&mut parser)?;
-        let root = element_desc_tree.root.r#ref()?;
-        let xml_document = Self::parse_end_document(&mut parser, root,
-            document_info);
+        let xml_document = Self::parse_end_document(&mut parser,
+            document_info, xml_desc_tree);
 
         xml_document
+*/
     }
 
+/*
     /*
      * Parse the StartDocument event.
      */
@@ -267,8 +324,6 @@ impl XmlTree {
             match xml_element {
                 Err(e) => return Err(XmlTreeError::XmlError(0, Box::new(e))),
                 Ok(evt) => {
-                    let lineno = evt.lineno;
-
                     match evt.event {
                         XmlEvent::StartDocument{version, encoding, standalone} => {
                             break DocumentInfo::new(version, encoding, standalone);
@@ -296,13 +351,16 @@ impl XmlTree {
      * Parse until we find an EndDocument
      */
     fn parse_end_document<'b, R: Read>(parser: &'b mut Parser<R>,
-        root_desc: &ElementDesc,
-        document_info: DocumentInfo) ->
-        Result<XmlTree, XmlTreeError> {
+        document_info: DocumentInfo, xml_desc_tree: &XmlDescTree) ->
+        Result<XmlTree<'b>, XmlTreeError> {
+
+        let mut xml_tree = XmlTree {
+            document_info:  document_info,
+            root:           None,
+            tree:           Vec::<Element>::new(),
+        };
 
         let mut start_name = "".to_string();
-        let mut subelements = Vec::<Element>::new();
-        let mut lineno: LineNumber = 0;
 
         loop {
             let xml_element = parser.next();
@@ -312,8 +370,6 @@ impl XmlTree {
                     return Err(XmlTreeError::XmlError(0, Box::new(e))); // FIXME: line number
                 },
                 Ok(evt) => {
-                    lineno = evt.lineno;
-
                     match evt.event {
                         XmlEvent::StartDocument{..} => {
                             return Err(XmlTreeError::StartAfterStart(lineno));
@@ -325,14 +381,14 @@ impl XmlTree {
                             start_name = name.local_name.clone();
                             let element_info = ElementInfo::new(lineno,
                                 attributes, namespace);
-                            match root_desc.allowable_subelements.iter().position(|x| x.name() == start_name) {
+
+                            match xml_desc_tree.xml_descs.iter().position(|x| x.name == start_name) {
                                 None => return Err(XmlTreeError::UnknownElement(lineno, start_name)),
                                 Some(pos) => {
-                                    let new_desc = root_desc.allowable_subelements[pos].r#ref()?;
+                                    let new_desc = &xml_desc_tree.xml_descs[pos];
                                     let subelement = Self::parse_subelement(0, parser,
                                         element_info, new_desc)?;
-                                    Self::push_subelement(&mut subelements, 
-                                        subelement);
+                                    xml_tree.tree.push(subelement);
                                     break;
                                 }
                             };
@@ -367,18 +423,33 @@ println!("Skipping processing_instruction");
         }
 
         // Get the root element
-        if subelements.len() != 1 {
+        if xml_tree.tree.len() != 1 {
             return Err(XmlTreeError::OnlyOneRootElement(lineno));
         }
 
-        Ok(XmlTree {
-            document_info:  document_info,
-            tree:           subelements[0],
-        })
+        let root_name = xml_desc_tree.root;
+
+        xml_tree.root = match Self::find_element(&xml_tree, &root_name) {
+            None => return Err(XmlTreeError::RootNotFound(root_name.to_string())),
+            Some(r) => Some(r),
+        };
+
+        return Ok(xml_tree);
+    }
+
+    // Find an element with the given name in the XmlTree
+    fn find_element<'a>(xml_tree: &'a XmlTree,  name: &str) -> Option<&'a Element> {
+        for element in xml_tree.tree.iter() {
+            if name == element.name.local_name {
+                return Some(&element);
+            }
+        }
+
+        return None;
     }
 
     fn parse_subelement<R: Read>(depth: usize, parser: &mut Parser<R>,
-        element_info: ElementInfo, desc: &ElementDesc) ->
+        element_info: ElementInfo, desc: &XmlDesc) ->
         Result<Element, XmlTreeError> {
         let mut subelements = Vec::<Element>::new();
 
@@ -409,8 +480,7 @@ println!("Skipping processing_instruction");
                                     let new_desc = desc.allowable_subelements[pos].r#ref()?;
                                     let subelement = Self::parse_subelement(depth + 1, parser,
                                         element_info, new_desc)?;
-                                    Self::push_subelement(&mut subelements,
-                                        subelement);
+                                    subelements.push(subelement);
                                 }
                             }
                             
@@ -453,46 +523,14 @@ println!("Skipping processing_instruction");
             }
         }
     }
-
-    fn push_subelement(subelements: &mut Vec<Element>, element: Element) {
-        subelements.push(element)
-    }
-
-    fn patch_element_desc_tree(element_desc_tree: &mut ElementDescTree) -> 
-        Result<(), XmlTreeError> {
-
-        for desc in element_desc_tree.element_descs {
-            for subelement in desc.allowable_subelements.iter_mut( ) {
-                let patch = match Self::find_element_desc(element_desc_tree,
-                    subelement.name()) {
-                    None => return Err(XmlTreeError::NoSuchElement(
-                        subelement.name().to_string(), desc.name.to_string())),
-                    Some(p) => p,
-                };
-                *subelement = ElementDescRef::Ref(patch);
-            }
-        }
-
-        Ok(())
-    }
-
-    fn find_element_desc<'b>(element_desc_tree: &'b ElementDescTree, name: &'b str) ->
-        Option<&'b ElementDesc<'b>> {
-        for desc in element_desc_tree.element_descs {
-            if desc.name == name {
-                return Some(desc);
-            }
-        }
-
-        return None;
-    }
+*/
 }
 
-impl fmt::Display for XmlTree {
+impl fmt::Display for XmlTree<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 println!("document:");
         write!(f, "<?xml {} {} {:?}>\n",
             self.document_info.version, self.document_info.encoding, self.document_info.standalone)?;
-        write!(f, "{}", self.tree)       
+        write!(f, "{:?}", self.tree)       
     }
 }

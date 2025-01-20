@@ -25,8 +25,8 @@ pub enum XmlTreeError {
     #[error("Line {0}: Only one root element is allowed")]
     OnlyOneRootElement(LineNumber),
 
-    #[error("ElementRef not set to reference for \"{0}\"")]
-    RefNotSet(String),
+    #[error("ElementRef not resolved for \"{0}\"")]
+    UnresolvedRef(String),
 
     #[error("Root name \"{0}\" not in ElementDescs")]
     RootNotInElementDescs(String),
@@ -36,6 +36,9 @@ pub enum XmlTreeError {
 
     #[error("ElementDef name \"{0}\" not in ElementDescs")]
     ElementDefNotInElementDescs(String),
+
+    #[error("Root element \"{0}\" not found")]
+    RootNotFound(String),
 
     #[error("Unexpected XML error: {0:?}")]
     UnexpectedXml(XmlEvent),
