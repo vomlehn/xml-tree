@@ -22,14 +22,8 @@ pub enum XmlTreeError {
     #[error("No XML elements in input")]
     NoXTCE(),
 
-    #[error("Line {0}: Only one root element is allowed")]
-    OnlyOneRootElement(LineNumber),
-
     #[error("ElementRef not resolved for \"{0}\"")]
     UnresolvedRef(String),
-
-    #[error("Root name \"{0}\" not in ElementDescs")]
-    RootNotInElementDescs(String),
 
     #[error("line {0}: StartDocument after StartDocument")]
     StartAfterStart(LineNumber), 
