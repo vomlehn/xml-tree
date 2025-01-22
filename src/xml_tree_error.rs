@@ -5,6 +5,9 @@ use crate::parser::{LineNumber};
 
 #[derive(Error, Debug)]
 pub enum XmlTreeError {
+    #[error("Can't insert element \"{0}\", is it a duplication?")]
+    CantInsertElement(String),
+
     #[error("Element name \"{0}\" is duplicated in ElementDefs")]
     DuplicateElementDefsName(String),
 
