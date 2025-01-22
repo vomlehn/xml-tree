@@ -6,7 +6,7 @@ use std::io::{BufReader, Read};
 
 use xml::reader::{EventReader, XmlEvent};
 
-use crate::xml_tree_error::{XmlTreeError};
+use crate::xml_document_error::{XmlDocumentError};
 
 pub type LineNumber = usize;
 
@@ -50,7 +50,7 @@ impl<R: Read> Parser<R> {
     /*
      * Read the next XmlElement from the input stream, disc
      */
-    pub fn next(&mut self) -> Result<XmlElement, XmlTreeError> {
+    pub fn next(&mut self) -> Result<XmlElement, XmlDocumentError> {
         let xml_event = self.event_reader.next();
         let lineno = *self.lineno_ref.borrow();
 match &xml_event {
@@ -60,7 +60,7 @@ match &xml_event {
 }
 
         let result = match xml_event {
-            Err(e) => Err(XmlTreeError::XmlError(lineno, Box::new(e))),
+            Err(e) => Err(XmlDocumentError::XmlError(lineno, Box::new(e))),
             Ok(elem) => Ok(XmlElement::new(lineno, elem)),
         };
 

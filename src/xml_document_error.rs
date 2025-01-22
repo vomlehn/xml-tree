@@ -4,7 +4,7 @@ use xml::reader::XmlEvent;
 use crate::parser::{LineNumber};
 
 #[derive(Error, Debug)]
-pub enum XmlTreeError {
+pub enum XmlDocumentError {
     #[error("Can't insert element \"{0}\", is it a duplication?")]
     CantInsertElement(String),
 
