@@ -10,10 +10,10 @@ use xml::common::XmlVersion;
 use xml::name::OwnedName;
 use xml::namespace::Namespace;
 
+use crate::xml_document_error::XmlDocumentError;
 use crate::xml_document_factory::XmlDocumentFactory;
 use crate::parser::LineNumber;
 use crate::xml_definition::XmlDefinition;
-use crate::xml_document_error::XmlDocumentError;
 
 #[derive(Clone, Debug)]
 pub struct ElementInfo {
@@ -37,7 +37,7 @@ impl ElementInfo {
  */
 #[derive(Clone, Debug)]
 pub struct Element<'a> {
-    name:                   OwnedName,
+    pub name:               OwnedName,
     depth:                  usize,
     element_info:           ElementInfo,
     pub subelements:        Vec<&'a str>,
@@ -46,7 +46,7 @@ pub struct Element<'a> {
 }
 
 impl<'a> Element<'a> {
-    fn new(name: OwnedName, depth: usize, element_info: ElementInfo) -> Element<'a> {
+    pub fn new(name: OwnedName, depth: usize, element_info: ElementInfo) -> Element<'a> {
         Element {
             name:               name,
             depth:              depth,
@@ -113,18 +113,24 @@ impl DocumentInfo {
     }
 }
 
+/*
+ * Parsed XML document
+ *
+ * document_info    Information about the document
+ * elements         The oarsed document
+ */
 #[derive(Debug)]
 pub struct XmlDocument<'a> {
-    document_info:  DocumentInfo,
-    root_name:      &'a str,
-    elements:       Vec<Element<'a>>,
+    document_info:      DocumentInfo,
+    pub root:           Option<&'a Element<'a>>,
+    pub elements:       Vec<Element<'a>>,
 }
 
 impl<'a> XmlDocument<'a> {
     pub fn new(path: String, xml_definition: &'a XmlDefinition<'a>) ->
         Result<XmlDocument<'a>, XmlDocumentError> {
         let file = match File::open(path) {
-            Err(e) => return Err(XmlDocumentError::XmlError(0, Box::new(e))),
+            Err(e) => return Err(XmlDocumentError::Error(Box::new(e))),
             Ok(f) => f,
         };
         let reader = BufReader::new(file);
@@ -141,26 +147,15 @@ impl XmlDocument<'_> {
 
         let document_info = factory.parse_start_document()?;
         let elements = factory.parse_end_document()?;
-        let root_name = factory.get_root();
-
         let xml_document = XmlDocument {
             document_info:  document_info,
-            root_name:      root_name,
-            elements:       elements,
+            root:           None,
+            elements:       Vec::<Element>::new(),
         };
+
+        factory.set_root(&mut xml_document)?;
 
         Ok(xml_document)
-    }
-
-    fn root(&self) -> Result<&Element, XmlDocumentError> {
-        let start_name = self.root_name;
-        let pos = match self.tree.iter().
-            position(|x| x.name.local_name == start_name) {
-            None => return Err(XmlDocumentError::UnknownElement(0, start_name.to_string())),
-            Some(p) => p,
-        };
-
-        Ok(&self.tree[pos])
     }
 }
         
@@ -169,14 +164,17 @@ impl fmt::Display for XmlDocument<'_> {
 println!("document:");
         write!(f, "<?xml {} {} {:?}>\n",
             self.document_info.version, self.document_info.encoding, self.document_info.standalone)?;
-        write!(f, "{:?}", self.elements)       
+        write!(f, "{:?}", self.root)       
     }
 }
 
 #[cfg(test)]
 mod tests {
     use std::io::Cursor;
+
     use super::*;
+    use crate::xml_document_factory::Element;
+    use crate::xml_definition::ElementDefinition;
 
     static TEST_XML_DESC_TREE: XmlDefinition = XmlDefinition {
         root_name:  "a1",

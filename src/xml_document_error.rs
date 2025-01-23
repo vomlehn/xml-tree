@@ -3,7 +3,7 @@ use xml::reader::XmlEvent;
 
 use crate::parser::{LineNumber};
 
-#[derive(Error, Debug)]
+#[derive(Debug, Error)]
 pub enum XmlDocumentError {
     #[error("Can't insert element \"{0}\", is it a duplication?")]
     CantInsertElement(String),
@@ -11,12 +11,18 @@ pub enum XmlDocumentError {
     #[error("Element name \"{0}\" is duplicated in ElementDefs")]
     DuplicateElementDefsName(String),
 
+    #[error("XML parser error: {0}")]
+    Error(Box<dyn std::error::Error>),
+
     #[error("line {0}: Misplaced element end: {1}")]
     MisplacedElementEnd(LineNumber, String), 
 
     // FIXME: need to fix this
     #[error("No end element in input")]
     NoEndDocument(),
+
+    #[error("No document found in input")]
+    NoDocumentFound(),
 
     #[error("No element \"{0}\" as referenced in element description for \"{1}\"")]
     NoSuchElement(String, String),
@@ -49,7 +55,7 @@ pub enum XmlDocumentError {
 
     // FIXME: get line number from the XmlEvent
     #[error("Line {0}: XML error: {1}")]
-    XmlError(LineNumber, Box<dyn std::error::Error>),
+    XmlError(LineNumber, xml::reader::Error),
 
     #[error("No elements defined")]
     XmlNoElementDefined(),
