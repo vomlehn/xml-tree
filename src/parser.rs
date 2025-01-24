@@ -98,13 +98,10 @@ impl<R: Read> Parser<R> {
         let lineno = *self.lineno_ref.borrow();
         let event_reader = &mut self.event_reader;
 
-        let ret = match event_reader.next() {
-            Err(e) => Err(XmlDocumentError::XmlError(lineno, e)),
-            Ok(elem) => Ok(XmlElement::new(lineno, elem)),
+        match event_reader.next() {
+            Err(e) => return Err(XmlDocumentError::XmlError(lineno, e)),
+            Ok(elem) => return Ok(XmlElement::new(lineno, elem)),
         };
-
-        self.cur = Some(ret.clone());
-        ret
     }
 }
 

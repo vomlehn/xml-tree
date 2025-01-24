@@ -7,6 +7,7 @@ use std::collections::HashMap;
 use std::fmt;
 use std::io::{Read};
 use xml::name::OwnedName;
+use xml::namespace::{Namespace};
 use xml::reader::XmlEvent;
 
 use crate::parser::Parser;
@@ -46,28 +47,29 @@ pub struct XmlDocumentFactory<'a, R: Read> {
     factory_defs:   HashMap<&'a str, XmlDocumentFactoryDesc<'a>>
 }
 
-impl<'a, R: Read + 'a, S> XmlDocumentFactory<'a, R> {
-    pub fn new_from_reader(reader: R,
+impl<'a, R: Read + 'a> XmlDocumentFactory<'a, R> {
+    pub fn new_from_reader<T: Read>(reader: T,
         xml_definition: &'a XmlDefinition<'a>) ->
-        Result<XmlDocumentFactory<'a, R>, XmlDocumentError> {
+        Result<XmlDocumentFactory<'a, T>, XmlDocumentError> {
         if xml_definition.element_definitions.is_empty() {
             return Err(XmlDocumentError::XmlNoElementDefined());
         }
         
-        let parser = Parser::<R>::new(reader);
+        let parser = Parser::<T>::new(reader);
 
-        let mut xml_factory = XmlDocumentFactory::<R> {
+        let mut xml_factory = XmlDocumentFactory::<T> {
             parser:         parser,
             xml_definition: xml_definition,
             factory_defs:   HashMap::<&'a str, XmlDocumentFactoryDesc<'a>>::new(),
         };
-        xml_factory.populate();
+//        xml_factory.populate::<T>();
 
         Ok(xml_factory)
     }
 
+/*
     // Populate the HashMap with Elements
-    fn populate<'b>(&mut self) -> Result<(), XmlDocumentError> {
+    fn populate<'b, U>(&mut self) -> Result<(), XmlDocumentError> {
 
         for element_definition in self.xml_definition.element_definitions {
             let xml_factory_desc = XmlDocumentFactoryDesc::new(element_definition);
@@ -78,11 +80,13 @@ impl<'a, R: Read + 'a, S> XmlDocumentFactory<'a, R> {
 
         Ok(())
     }
+*/
 
     /*
      * Parse the StartDocument event.
      */
     pub fn parse_start_document(&mut self) -> Result<DocumentInfo, XmlDocumentError> {
+        let document_info = DocumentInfo::new(xml::common::XmlVersion::Version10, "tbd".to_string(), None);
         let mut comments_before = Vec::<String>::new();
 
         let document_info = loop {
@@ -115,7 +119,7 @@ impl<'a, R: Read + 'a, S> XmlDocumentFactory<'a, R> {
      * Parse until we find an EndDocument, filling in the 
      */
     pub fn parse_end_document(&mut self) -> Result<Vec<Element>, XmlDocumentError> {
-        let elements = Vec::<Element>::new();
+        let mut elements = Vec::<Element>::new();
         let mut start_name = "".to_string();
 
         loop {
@@ -168,10 +172,15 @@ println!("Skipping processing_instruction");
         return Ok(elements)
     }
 
-    // Parse a subelement, which may itself have su elements
-    pub fn parse_subelement<S: Read>(&self, depth: usize,
+    // Parse a subelement, which may itself have subelements
+    pub fn parse_subelement<T: Read>(&self, depth: usize,
         name: OwnedName, element_info: ElementInfo) ->
         Result<Element, XmlDocumentError> {
+        let element_info = ElementInfo::new(0, Vec::<_>::new(), Namespace::empty() );
+        let name = OwnedName{ namespace: None, local_name: "xyz".to_string(), prefix: None};
+        let element = Element::new(name, 1, element_info);
+        return Ok(element);
+/*
         let start_name = name.local_name.clone();
 
         // Make sure this element is allowed where it is
@@ -199,7 +208,7 @@ println!("Skipping processing_instruction");
                 XmlEvent::StartElement{name, attributes, namespace} => {
                     let element_info = ElementInfo::new(lineno,
                         attributes, namespace);
-                    let subelement = self.parse_subelement::<S>(depth + 1,
+                    let subelement = self.parse_subelement::<T>(depth + 1,
                         name, element_info)?;
                     subelements.push(subelement);
                 }
@@ -237,8 +246,10 @@ println!("Skipping processing_instruction");
                 }
             };
         }
+*/
     }
 
+/*
     /*
      * Look up the root name and get a reference to it in the list of Elements
      * self     Reference to the XmlDocumentFactory
@@ -260,6 +271,7 @@ println!("Skipping processing_instruction");
         xml_document.root = Some(root_ref);
         Ok(xml_document.root.clone().unwrap())
     }
+*/
 }
 
 impl<R: Read> fmt::Display for XmlDocumentFactory<'_, R> {

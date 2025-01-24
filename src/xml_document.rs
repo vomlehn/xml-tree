@@ -142,7 +142,7 @@ impl XmlDocument<'_> {
     pub fn new_from_reader<'a, R: Read + 'a>(buf_reader: BufReader<R>,
         xml_definition: &'a XmlDefinition<'a>) ->
         Result<XmlDocument<'a>, XmlDocumentError> {
-        let factory = XmlDocumentFactory::new_from_reader(buf_reader,
+        let mut factory = XmlDocumentFactory::<R>::new_from_reader(buf_reader,
             xml_definition)?;
 
         let document_info = factory.parse_start_document()?;
@@ -153,7 +153,7 @@ impl XmlDocument<'_> {
             elements:       Vec::<Element>::new(),
         };
 
-        factory.set_root(&mut xml_document)?;
+//        factory.set_root(&mut xml_document)?;
 
         Ok(xml_document)
     }
