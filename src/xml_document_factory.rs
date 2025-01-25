@@ -8,7 +8,6 @@ use std::fmt;
 use std::io::{Read};
 use std::rc::Rc;
 use xml::name::OwnedName;
-//use xml::namespace::{Namespace};
 use xml::reader::XmlEvent;
 
 use crate::parser::Parser;
@@ -49,14 +48,9 @@ pub struct XmlDocumentFactory<'a, R: Read> {
 }
 
 impl<'a, R: Read + 'a> XmlDocumentFactory<'a, R> {
-/*
     pub fn new_from_reader<T: Read + 'a>(reader: T,
         xml_definition: &'a XmlDefinition<'a>) ->
-        Result<XmlDocumentFactory<'a, T>, XmlDocumentError> {
-*/
-    pub fn new_from_reader<T: Read + 'a>(reader: T,
-        xml_definition: &'a XmlDefinition<'a>) ->
-        Result<XmlDocument<'a>, XmlDocumentError> {
+        Result<XmlDocument, XmlDocumentError> {
         if xml_definition.element_definitions.is_empty() {
             return Err(XmlDocumentError::XmlNoElementDefined());
         }
@@ -125,7 +119,7 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'a, R> {
      */
     pub fn parse_end_document(&'a mut self,
         element_definitions: &[ElementDefinition]) ->
-        Result<XmlDocument<'a>, XmlDocumentError> {
+        Result<XmlDocument, XmlDocumentError> {
         let xml_factory_defs = Self::populate(element_definitions)?;
 
         let document_info = self.parse_start_document()?;
@@ -143,11 +137,10 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'a, R> {
                 XmlEvent::EndDocument => {
                     return Err(XmlDocumentError::Unknown(0));
                 },
-                XmlEvent::StartElement{name, attributes: _,
-                    namespace: _} => {
-//                    let element_info = ElementInfo::new(lineno, attributes);
+                XmlEvent::StartElement{name, attributes, namespace} => {
+                    let element_info = ElementInfo::new(0, attributes, namespace);
                     let subelement = self.parse_subelement::<R>(0,
-                        &name.local_name)?;
+                        &xml_factory_defs, name, element_info)?;
                     elements.push(subelement);
                     break;
                 }
@@ -178,31 +171,42 @@ println!("Skipping processing_instruction");
             };
         }
 
+        let elements = Rc::new(elements);
         let root_name = self.xml_definition.root_name;
-        let root = elements
+/*
+        // May need to use pin() on elements
+        let root = match (*elements)
             .iter()
-            .find(|element| element.name.local_name == root_name)
-            .ok_or_else(|| XmlDocumentError::UnknownElement(0, root_name.to_string()))?;
+            .find(|element| element.name.local_name == root_name) {
+            None => return Err(XmlDocumentError::UnknownElement(0, root_name.to_string())),
+            Some(r) => Rc::new(r),
+        };
+*/
 
          let xml_document = XmlDocument {
             document_info:  document_info,
-            root:           Some(root),
-            elements:       Rc::new(elements),
+            root_name:      root_name.to_string(),
+            elements:       elements,
          };
          Ok(xml_document)
     }
 
-    // Parse a subelement, which may itself have subelements
+    /*
+     * Parse a subelement, which may itself have subelements
+     * depth:   Number of levels of element nesting
+     * name:    Name of the subelement
+     */
     pub fn parse_subelement<T: Read + 'a>(&mut self, depth: usize,
-        name: &str) -> Result<Element, XmlDocumentError> {
-        let element_info = ElementInfo::new(0, Vec::<_>::new());
-        let name = OwnedName{ namespace: None, local_name: "xyz".to_string(), prefix: None};
+        xml_factory_defs: &HashMap<&str, XmlDocumentFactoryDef>, name: OwnedName,
+        element_info: ElementInfo) ->
+        Result<Element, XmlDocumentError> {
         let mut element = Element::new(name.clone(), 1, element_info.clone());
         let start_name = name.local_name.clone();
 
         // Make sure this element is allowed where it is
-        let pos = match self.xml_definition.element_definitions.iter().
-            position(|x| x.name == start_name) {
+        let pos = match self
+            .xml_definition.element_definitions.iter()
+            .position(|x| x.name == start_name) {
             None => return Err(XmlDocumentError::UnknownElement(element_info.
                 lineno, start_name)),
             Some(p) => p,
@@ -222,10 +226,10 @@ println!("Skipping processing_instruction");
                 XmlEvent::EndDocument => {
                     return Err(XmlDocumentError::Unknown(0));
                 },
-                XmlEvent::StartElement{name: _, attributes: _,
-                    namespace: _} => {
+                XmlEvent::StartElement{name, attributes, namespace} => {
+                    let element_info = ElementInfo::new(0, attributes, namespace);
                     let subelement = self.parse_subelement::<T>(depth + 1,
-                        &name.local_name)?;
+                        xml_factory_defs, name, element_info)?;
                     subelements.push(subelement);
                 },
                 XmlEvent::EndElement{name} => {
@@ -287,6 +291,7 @@ println!("Skipping processing_instruction");
         Ok(root_ref)
     }
 */
+/*
      pub fn get_root<'b>(elements: &'b [Element], root_name: &str) ->
         Result<&'b Element, XmlDocumentError> {
         // Find the root element based on the XML definition's root name
@@ -296,6 +301,7 @@ println!("Skipping processing_instruction");
             .find(|element| element.name.local_name == root_name)
             .ok_or_else(|| XmlDocumentError::UnknownElement(0, root_name.to_string()))
     }
+*/
 }
 
 impl<R: Read> fmt::Display for XmlDocumentFactory<'_, R> {

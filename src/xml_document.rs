@@ -9,8 +9,7 @@ use std::io::{BufReader, Read};
 use xml::attribute::OwnedAttribute;
 use xml::common::XmlVersion;
 use xml::name::OwnedName;
-//use xml::namespace::Namespace;
-use std::vec::IntoIter;
+use xml::namespace::Namespace;
 
 use crate::xml_document_error::XmlDocumentError;
 use crate::xml_document_factory::XmlDocumentFactory;
@@ -21,15 +20,16 @@ use crate::xml_definition::XmlDefinition;
 pub struct ElementInfo {
     pub lineno:                 LineNumber,
     pub attributes:             Vec<OwnedAttribute>,
-//    pub namespace:              Namespace,
+    pub namespace:              Namespace,
 }
 
 impl ElementInfo {
-    pub fn new(lineno: LineNumber, attributes: Vec<OwnedAttribute>) -> ElementInfo {
+    pub fn new(lineno: LineNumber, attributes: Vec<OwnedAttribute>,
+    namespace: Namespace) -> ElementInfo {
         ElementInfo {
             lineno:     lineno,
             attributes: attributes,
-//            namespace:  namespace,
+            namespace:  namespace,
         }
     }
 }
@@ -123,15 +123,15 @@ impl DocumentInfo {
  * elements         The oarsed document
  */
 #[derive(Debug)]
-pub struct XmlDocument<'a> {
-    document_info:      DocumentInfo,
-    pub root:           Option<&'a Element>,
+pub struct XmlDocument {
+    pub document_info:  DocumentInfo,
+    pub root_name:      String,
     pub elements:       Rc<Vec<Element>>,
 }
 
-impl<'a> XmlDocument<'a> {
-    pub fn new(path: String, xml_definition: &'a XmlDefinition<'a>) ->
-        Result<XmlDocument<'a>, XmlDocumentError> {
+impl XmlDocument {
+    pub fn new(path: String, xml_definition: &XmlDefinition) ->
+        Result<XmlDocument, XmlDocumentError> {
         let file = match File::open(path) {
             Err(e) => return Err(XmlDocumentError::Error(Box::new(e))),
             Ok(f) => f,
@@ -141,11 +141,11 @@ impl<'a> XmlDocument<'a> {
     }
 }
 
-impl<'a> XmlDocument<'a> {
-    pub fn new_from_reader<R: Read + 'a>(
+impl XmlDocument {
+    pub fn new_from_reader<R: Read>(
         buf_reader: BufReader<R>,
-        xml_definition: &'a XmlDefinition<'a>) ->
-        Result<XmlDocument<'a>, XmlDocumentError> {
+        xml_definition: &XmlDefinition) ->
+        Result<XmlDocument, XmlDocumentError> {
 
         // Create the factory using the reader and XML definition
         let xml_document = XmlDocumentFactory::<R>::new_from_reader(buf_reader,
@@ -178,12 +178,12 @@ impl<'a> XmlDocument<'a> {
     }
 }
         
-impl fmt::Display for XmlDocument<'_> {
+impl fmt::Display for XmlDocument {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 println!("document:");
         write!(f, "<?xml {} {} {:?}>\n",
             self.document_info.version, self.document_info.encoding, self.document_info.standalone)?;
-        write!(f, "{:?}", self.root)       
+        write!(f, "{:?}", self.root_name)       
     }
 }
 
