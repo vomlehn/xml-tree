@@ -140,9 +140,10 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'a, R> {
                 XmlEvent::StartElement{name, attributes, namespace} => {
                     let element_info = ElementInfo::new(0, attributes, namespace);
                     let n = name.clone();
-                    let subelement = self.parse_subelement::<R>(0,
+                    let depth = 0;
+                    let subelement = self.parse_subelement::<R>(depth,
                         &xml_factory_defs, name, element_info)?;
-println!("Push {} on {}", subelement.name.local_name, n.local_name);
+println!("depth {}: push name {} on root", depth, subelement.name.local_name);
                     elements.push(subelement);
                     break;
                 }
@@ -173,22 +174,18 @@ println!("Skipping processing_instruction");
             };
         }
 
-        let elements = Rc::new(elements);
-        let root_name = self.xml_definition.root_name;
-/*
-        // May need to use pin() on elements
-        let root = match (*elements)
-            .iter()
-            .find(|element| element.name.local_name == root_name) {
-            None => return Err(XmlDocumentError::UnknownElement(0, root_name.to_string())),
-            Some(r) => Rc::new(r),
-        };
-*/
+        if elements.len() != 1 {
+            return Err(XmlDocumentError::OnlyOneRootElementAllowed());
+        }
 
+        let root = match elements.first() {
+            None => return Err(XmlDocumentError::OnlyOneRootElementAllowed()),
+            Some(r) => r,
+        };
+//Rc::new()?
          let xml_document = XmlDocument {
             document_info:  document_info,
-            root_name:      root_name.to_string(),
-            elements:       elements,
+            root:           root.clone(),
          };
          Ok(xml_document)
     }
@@ -215,7 +212,6 @@ println!("Skipping processing_instruction");
         };
 
         let new_desc = &self.xml_definition.element_definitions[pos];
-        let mut subelements = Vec::<Element>::new();
 
         loop {
             let xml_element = self.parser.next()?;
@@ -230,9 +226,11 @@ println!("Skipping processing_instruction");
                 },
                 XmlEvent::StartElement{name, attributes, namespace} => {
                     let element_info = ElementInfo::new(0, attributes, namespace);
+                    let n = name.clone();
                     let subelement = self.parse_subelement::<T>(depth + 1,
                         xml_factory_defs, name, element_info)?;
-                    subelements.push(subelement);
+println!("depth {}: push name {} on {}", depth + 1, subelement.name.local_name, element.name.local_name);
+                    element.subelements.push(subelement);
                 },
                 XmlEvent::EndElement{name} => {
                     let local_name = name.local_name.to_string();
@@ -242,7 +240,6 @@ println!("Skipping processing_instruction");
                             local_name.clone()));
                     }
 
-                    element.subelements.push(local_name);
                     return Ok(element);
                 },
                 XmlEvent::Comment(_cmnt) => {
@@ -302,6 +299,16 @@ println!("Skipping processing_instruction");
             .iter()
             .find(|element| element.name.local_name == root_name)
             .ok_or_else(|| XmlDocumentError::UnknownElement(0, root_name.to_string()))
+    }
+*/
+/*
+    pub fn find_element<'a>(&self, name: &str) -> Option<&Element<'a> {
+        let element = match (self.elements)
+            .iter()
+            .find(|element| element.name.local_name == root_name) {
+            None => return Err(XmlDocumentError::UnknownElement(0, root_name.to_string())),
+            Some(r) => Rc::new(r),
+        };
     }
 */
 }

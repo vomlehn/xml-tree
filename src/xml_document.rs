@@ -42,7 +42,7 @@ pub struct Element {
     pub name:               OwnedName,
     depth:                  usize,
     element_info:           ElementInfo,
-    pub subelements:        Vec<String>,
+    pub subelements:        Vec<Element>,
     before_comments:        Vec<String>,
     after_comments:         Vec<String>,
 }
@@ -54,7 +54,7 @@ impl Element {
             name:               name,
             depth:              depth,
             element_info:       element_info,
-            subelements:        Vec::<String>::new(),
+            subelements:        Vec::<Element>::new(),
             before_comments:    Vec::<String>::new(),
             after_comments:     Vec::<String>::new(),
         }
@@ -80,21 +80,7 @@ impl fmt::Display for Element {
         for attribute in self.element_info.attributes.clone() {
             write!(f, " {}={}", attribute.name.local_name, attribute.value)?;
         }
-
-        if self.subelements.len() == 0 {
-            write!(f, " /> (line {})\n", self.element_info.lineno)?;
-        } else {
-            write!(f, "> (line {})\n", self.element_info.lineno)?;
-            let subelement_indent = INDENT_STR.to_string().repeat(self.depth + 1);
-
-            for element in &*self.subelements {
-                write!(f, "{}", subelement_indent);
-                element.fmt(f)?;
-                write!(f, "\n");
-            }
-
-            write!(f, "{}</{}>\n", indent_string, self.name.local_name)?;
-        }
+        write!(f, ">\n");
 
 
         Ok(())
@@ -128,8 +114,7 @@ impl DocumentInfo {
 #[derive(Debug)]
 pub struct XmlDocument {
     pub document_info:  DocumentInfo,
-    pub root_name:      String,
-    pub elements:       Rc<Vec<Element>>,
+    pub root:           Element,
 }
 
 impl XmlDocument {
@@ -155,22 +140,48 @@ impl XmlDocument {
             xml_definition)?;
         Ok(xml_document)
     }
-}
-        
-impl fmt::Display for XmlDocument {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+
+    pub fn display_element(&self, f: &mut fmt::Formatter<'_>, depth: usize,
+        element: &Element) ->
+    fmt::Result {
+        const INDENT_STR: &str = "   ";
+        let indent_string = INDENT_STR.to_string().repeat(depth);
+        write!(f, "{}<{}", indent_string, element.name.local_name)?;
+
+        for attribute in &element.element_info.attributes {
+            write!(f, " {}=\"{}\"", attribute.name, attribute.value)?;
+        }
+
+        if element.subelements.len() == 0 {
+            write!(f, " /> (line {})\n", element.element_info.lineno)?;
+        } else {
+            write!(f, "> (line {})\n", element.element_info.lineno)?;
+
+            for element in &element.subelements {
+                self.display_element(f, depth + 1, element)?;
+            }
+
+            write!(f, "{}<{}>\n", indent_string, element.name.local_name);
+        }
+
+        Ok(())
+    }
+
+    pub fn display(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "<?xml {} {} {:?}>\n",
             self.document_info.version, self.document_info.encoding,
             self.document_info.standalone)?;
 
-        write!(f, "Root: {}\n", self.root_name)?;
-        write!(f, "Elements:\n")?;
-
-        for element in self.elements.iter() {
-            write!(f, "{}\n", element)?;
-        }
+        let depth = 0;
+        self.display_element(f, depth, &self.root)?;
 
         Ok(())
+    }
+}
+        
+impl fmt::Display for XmlDocument {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.display(f)
     }
 }
 
@@ -213,7 +224,7 @@ mod tests {
             <XTCE xmlns="http://www.omg.org/spec/XTCE/">
                 <SpaceSystem xmlns="http://www.omg.org/space/xtce" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.omg.org/space/xtce ../SpaceSystemV1.0.xsd" name="TrivialSat">
                 <a1 />
-                <a2>
+                <a2 attr1="xyz" attr2="abc">
                 </a2>
                 </SpaceSystem>
             </XTCE>"#;

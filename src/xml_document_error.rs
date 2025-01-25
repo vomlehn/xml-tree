@@ -31,6 +31,9 @@ pub enum XmlDocumentError {
     #[error("No XML elements in input")]
     NoXTCE(),
 
+    #[error("Must have exactly one root element")]
+    OnlyOneRootElementAllowed(),
+
     #[error("ElementRef not resolved for \"{0}\"")]
     UnresolvedRef(String),
 
