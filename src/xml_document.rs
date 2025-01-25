@@ -150,30 +150,6 @@ impl XmlDocument {
         // Create the factory using the reader and XML definition
         let xml_document = XmlDocumentFactory::<R>::new_from_reader(buf_reader,
             xml_definition)?;
-/*
-        let mut factory = XmlDocumentFactory::<R>::new_from_reader(buf_reader,
-            xml_definition)?;
-        let xml_document = factory.parse_end_document()?;
-*/
-/*
-        let root_name = factory.xml_definition.root_name.clone();
-
-        // Perform all mutable operations
-        let document_info = factory.parse_start_document()?;
-
-        let elements = factory.parse_end_document()?;
-
-
-        // Construct the XmlDocument
-        let mut xml_document = XmlDocument {
-            document_info:  document_info,
-            root:           None,
-            elements:       elements,
-        };
-
-        xml_document.root = Some(XmlDocumentFactory::<R>::get_root(&xml_document.elements,
-            root_name)?);
-*/
         Ok(xml_document)
     }
 }
@@ -213,8 +189,13 @@ mod tests {
         let input = r#" <?xml version=\"1.0\"?>
             <XTCE xmlns=\"http://www.omg.org/spec/XTCE/\">
                 <SpaceSystem xmlns=\"http://www.omg.org/space/xtce\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://www.omg.org/space/xtce ../SpaceSystemV1.0.xsd\" name=\"TrivialSat\">
+                <a1 />
+                <a2>
+                </a2>
                 </SpaceSystem>
             </XTCE>"#;
+        println!("Running test1 with input: {}", input);
+        println!("Test tree: {}", TEST_XML_DESC_TREE);
 
         let cursor = Cursor::new(input);
         let buf_reader = BufReader::new(cursor);

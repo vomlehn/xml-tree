@@ -19,7 +19,26 @@ impl<'a> XmlDefinition<'a> {
         // o    Ensure at least one element
 //        Err(XmlDocumentError::Unknown(0))
     }
+
+    pub fn get_root<'b>(&self) -> Result<&'b ElementDefinition, XmlDocumentError> {
+        self.element_definitions.iter().find(|element_def| element_def.name == self.root_name).ok_or_else(|| XmlDocumentError::Unknown(0))
+    }
 }
+
+impl<'a> fmt::Display for XmlDefinition<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+// FIXME: handle recursive printing
+        write!(f, "{}\n", self.root_name)?;
+        write!(f, "    [")?;
+        let mut sep = "";
+        for element_def in self.element_definitions {
+            write!(f, "{}{}", sep, element_def.name)?;
+            sep = ", ";
+        }
+        write!(f, "]\n")
+    }
+}
+
 pub struct ElementDefinition<'a> {
     pub name:                   &'a str,
     pub allowable_subelements:  &'a [&'a str],
