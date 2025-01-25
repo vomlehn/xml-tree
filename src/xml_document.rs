@@ -4,11 +4,13 @@
 
 use std::fmt;
 use std::fs::File;
+use std::rc::Rc;
 use std::io::{BufReader, Read};
 use xml::attribute::OwnedAttribute;
 use xml::common::XmlVersion;
 use xml::name::OwnedName;
-use xml::namespace::Namespace;
+//use xml::namespace::Namespace;
+use std::vec::IntoIter;
 
 use crate::xml_document_error::XmlDocumentError;
 use crate::xml_document_factory::XmlDocumentFactory;
@@ -19,15 +21,15 @@ use crate::xml_definition::XmlDefinition;
 pub struct ElementInfo {
     pub lineno:                 LineNumber,
     pub attributes:             Vec<OwnedAttribute>,
-    pub namespace:              Namespace,
+//    pub namespace:              Namespace,
 }
 
 impl ElementInfo {
-    pub fn new(lineno: LineNumber, attributes: Vec<OwnedAttribute>, namespace: Namespace) -> ElementInfo {
+    pub fn new(lineno: LineNumber, attributes: Vec<OwnedAttribute>) -> ElementInfo {
         ElementInfo {
             lineno:     lineno,
             attributes: attributes,
-            namespace:  namespace,
+//            namespace:  namespace,
         }
     }
 }
@@ -36,22 +38,23 @@ impl ElementInfo {
  * Define the structure used to construct the tree for the parsed document.
  */
 #[derive(Clone, Debug)]
-pub struct Element<'a> {
+pub struct Element {
     pub name:               OwnedName,
     depth:                  usize,
     element_info:           ElementInfo,
-    pub subelements:        Vec<&'a str>,
+    pub subelements:        Vec<String>,
     before_comments:        Vec<String>,
     after_comments:         Vec<String>,
 }
 
-impl<'a> Element<'a> {
-    pub fn new(name: OwnedName, depth: usize, element_info: ElementInfo) -> Element<'a> {
+impl Element {
+    pub fn new<'b>(name: OwnedName, depth: usize, element_info: ElementInfo) ->
+        Element {
         Element {
             name:               name,
             depth:              depth,
             element_info:       element_info,
-            subelements:        Vec::<&'a str>::new(),
+            subelements:        Vec::<String>::new(),
             before_comments:    Vec::<String>::new(),
             after_comments:     Vec::<String>::new(),
         }
@@ -68,7 +71,7 @@ impl<'a> Element<'a> {
     }
 }
 
-impl<'a> fmt::Display for Element<'a> {
+impl fmt::Display for Element {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         const INDENT_STR: &str = "   ";
         let indent_string = INDENT_STR.to_string().repeat(self.depth);
@@ -83,7 +86,7 @@ impl<'a> fmt::Display for Element<'a> {
         } else {
             write!(f, "> (line {})\n", self.element_info.lineno)?;
 
-            for element in &self.subelements {
+            for element in &*self.subelements {
                 element.fmt(f)?;
             }
 
@@ -122,8 +125,8 @@ impl DocumentInfo {
 #[derive(Debug)]
 pub struct XmlDocument<'a> {
     document_info:      DocumentInfo,
-    pub root:           Option<&'a Element<'a>>,
-    pub elements:       Vec<Element<'a>>,
+    pub root:           Option<&'a Element>,
+    pub elements:       Rc<Vec<Element>>,
 }
 
 impl<'a> XmlDocument<'a> {
@@ -138,23 +141,39 @@ impl<'a> XmlDocument<'a> {
     }
 }
 
-impl XmlDocument<'_> {
-    pub fn new_from_reader<'a, R: Read + 'a>(buf_reader: BufReader<R>,
+impl<'a> XmlDocument<'a> {
+    pub fn new_from_reader<R: Read + 'a>(
+        buf_reader: BufReader<R>,
         xml_definition: &'a XmlDefinition<'a>) ->
         Result<XmlDocument<'a>, XmlDocumentError> {
+
+        // Create the factory using the reader and XML definition
+        let xml_document = XmlDocumentFactory::<R>::new_from_reader(buf_reader,
+            xml_definition)?;
+/*
         let mut factory = XmlDocumentFactory::<R>::new_from_reader(buf_reader,
             xml_definition)?;
+        let xml_document = factory.parse_end_document()?;
+*/
+/*
+        let root_name = factory.xml_definition.root_name.clone();
 
+        // Perform all mutable operations
         let document_info = factory.parse_start_document()?;
+
         let elements = factory.parse_end_document()?;
-        let xml_document = XmlDocument {
+
+
+        // Construct the XmlDocument
+        let mut xml_document = XmlDocument {
             document_info:  document_info,
             root:           None,
-            elements:       Vec::<Element>::new(),
+            elements:       elements,
         };
 
-//        factory.set_root(&mut xml_document)?;
-
+        xml_document.root = Some(XmlDocumentFactory::<R>::get_root(&xml_document.elements,
+            root_name)?);
+*/
         Ok(xml_document)
     }
 }
@@ -173,7 +192,6 @@ mod tests {
     use std::io::Cursor;
 
     use super::*;
-    use crate::xml_document_factory::Element;
     use crate::xml_definition::ElementDefinition;
 
     static TEST_XML_DESC_TREE: XmlDefinition = XmlDefinition {
