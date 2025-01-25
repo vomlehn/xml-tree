@@ -28,6 +28,12 @@ impl XmlElement {
     }
 }
 
+impl fmt::Display for XmlElement {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:?}", self.event)
+    }
+}
+
 pub struct Parser<R: Read> {
     lineno_ref:     Rc<RefCell<LineNumber>>,
     cur:            Option<Result<XmlElement, XmlDocumentError>>,
@@ -51,23 +57,25 @@ impl<R: Read> Parser<R> {
      * Read the current XmlElement. Multiple reads will return the same
      * value until skip() is called.
      */
-    pub fn current(&mut self) -> &Result<XmlElement, XmlDocumentError> {
-        if self.cur.is_none() {
-            self.cur = Some(self.next());
-        }
-        self.cur.as_ref().unwrap()
-    }
+    pub fn next(&mut self) -> Result<XmlElement, XmlDocumentError> {
 /*
-    pub fn current<'a>(&'a mut self) ->
-        &'a Result<XmlElement, XmlDocumentError> {
-        let elem = match &self.cur {
-            None => &self.next(),
-            Some(el) => el,                
-        };
-
-        elem
-    }
+        if self.cur.is_none() {
+            self.cur = Some(self.lookahead());
+        }
+println!("next: {:?}", self.cur);
+// FIXME: this is really ugly and can't be right
+//        self.cur.as_ref().unwrap()
+        match &self.cur {
+            None => Err(XmlDocumentError::Unknown(0)),
+            Some(c) => match c {
+                Err(e) => Err(*e),
+                Ok(c) => Ok(c.clone()),
+            }
+        }
 */
+        let la = self.lookahead();
+        la
+    }
 
     /*
      * Discard the current XmlElement, forcing a fetch of the next item
@@ -80,25 +88,12 @@ impl<R: Read> Parser<R> {
     /*
      * Read the next XmlElement from the input stream, disc
      */
-/*
-    pub fn next(&mut self) -> Result<XmlElement, XmlDocumentError> {
+// FIXME: need better name
+// FIXME: this is wrong
+    pub fn lookahead(&mut self) -> Result<XmlElement, XmlDocumentError> {
         let lineno = *self.lineno_ref.borrow();
-        let er = &self.event_reader;
 
-        let ret = match er.next() {
-            Err(e) => Err(XmlDocumentError::XmlError(lineno, e)),
-            Ok(elem) => Ok(XmlElement::new(lineno, elem)),
-        };
-
-        self.cur = Some(ret);
-        ret
-    }
-*/
-    pub fn next(&mut self) -> Result<XmlElement, XmlDocumentError> {
-        let lineno = *self.lineno_ref.borrow();
-        let event_reader = &mut self.event_reader;
-
-        match event_reader.next() {
+        match self.event_reader.next() {
             Err(e) => return Err(XmlDocumentError::XmlError(lineno, e)),
             Ok(elem) => return Ok(XmlElement::new(lineno, elem)),
         };
@@ -111,20 +106,20 @@ impl<R: Read> fmt::Debug for Parser<R> {
     }
 }
 
-struct LinenoReader<R: Read> {
+pub struct LinenoReader<R: Read> {
     inner:      R,
     lineno:     Rc<RefCell<LineNumber>>,
 }
 
 impl<R: Read> LinenoReader<R> {
-    fn new(inner: R) -> Self {
+    pub fn new(inner: R) -> Self {
         LinenoReader {
             inner:      inner,
             lineno:     Rc::new(RefCell::new(1)),
         }
     }
 
-    fn lineno_ref(&self) -> Rc<RefCell<LineNumber>> {
+    pub fn lineno_ref(&self) -> Rc<RefCell<LineNumber>> {
         self.lineno.clone()
     }
 }

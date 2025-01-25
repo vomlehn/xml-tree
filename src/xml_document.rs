@@ -85,9 +85,12 @@ impl fmt::Display for Element {
             write!(f, " /> (line {})\n", self.element_info.lineno)?;
         } else {
             write!(f, "> (line {})\n", self.element_info.lineno)?;
+            let subelement_indent = INDENT_STR.to_string().repeat(self.depth + 1);
 
             for element in &*self.subelements {
+                write!(f, "{}", subelement_indent);
                 element.fmt(f)?;
+                write!(f, "\n");
             }
 
             write!(f, "{}</{}>\n", indent_string, self.name.local_name)?;
@@ -156,52 +159,116 @@ impl XmlDocument {
         
 impl fmt::Display for XmlDocument {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-println!("document:");
         write!(f, "<?xml {} {} {:?}>\n",
-            self.document_info.version, self.document_info.encoding, self.document_info.standalone)?;
-        write!(f, "{:?}", self.root_name)       
+            self.document_info.version, self.document_info.encoding,
+            self.document_info.standalone)?;
+
+        write!(f, "Root: {}\n", self.root_name)?;
+        write!(f, "Elements:\n")?;
+
+        for element in self.elements.iter() {
+            write!(f, "{}\n", element)?;
+        }
+
+        Ok(())
     }
 }
 
 #[cfg(test)]
 mod tests {
     use std::io::Cursor;
+    use std::io::BufRead;
 
     use super::*;
     use crate::xml_definition::ElementDefinition;
 
     static TEST_XML_DESC_TREE: XmlDefinition = XmlDefinition {
-        root_name:  "a1",
+        root_name:  "XTCE",
         element_definitions:  & [
             ElementDefinition {
-                name:   "a1",
-                allowable_subelements: & ["a2"],
+                name:                   "XTCE",
+                allowable_subelements:  &["SpaceSystem"],
             },
             ElementDefinition {
-                name:   "a2",
-                allowable_subelements: & ["a1"],
+                name:                   "SpaceSystem",
+                allowable_subelements:  &["a1"],
+            },
+            ElementDefinition {
+                name:                   "a1",
+                allowable_subelements:  &["a2"],
+            },
+            ElementDefinition {
+                name:                   "a2",
+                allowable_subelements:  &["a1"],
             },
         ]
     };
 
     #[test]
     fn test1() {
-        let input = r#" <?xml version=\"1.0\"?>
-            <XTCE xmlns=\"http://www.omg.org/spec/XTCE/\">
-                <SpaceSystem xmlns=\"http://www.omg.org/space/xtce\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://www.omg.org/space/xtce ../SpaceSystemV1.0.xsd\" name=\"TrivialSat\">
+        println!("Test: test1");
+        println!("XML Definition: {}", TEST_XML_DESC_TREE);
+
+        let input = r#"<?xml version="1.0"?>
+            <XTCE xmlns="http://www.omg.org/spec/XTCE/">
+                <SpaceSystem xmlns="http://www.omg.org/space/xtce" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.omg.org/space/xtce ../SpaceSystemV1.0.xsd" name="TrivialSat">
                 <a1 />
                 <a2>
                 </a2>
                 </SpaceSystem>
             </XTCE>"#;
-        println!("Running test1 with input: {}", input);
-        println!("Test tree: {}", TEST_XML_DESC_TREE);
+        println!();
+        println!("Input: {}", input);
 
+        println!();
         let cursor = Cursor::new(input);
-        let buf_reader = BufReader::new(cursor);
+        let mut buf_reader = BufReader::new(cursor);
+
         match XmlDocument::new_from_reader(buf_reader, &TEST_XML_DESC_TREE) {
             Err(e) => println!("Failed: {}", e),
-            Ok(xml_document) => println!("Result: {}", xml_document),
+            Ok(xml_document) => println!("XML Document: {}", xml_document),
+        }
+    }
+
+    #[test]
+    fn test2() {
+        println!("Test: test2");
+        let input = r#"<?xml version="1.0"?>
+            <XTCE xmlns="http://www.omg.org/spec/XTCE/">
+                <SpaceSystem xmlns="http://www.omg.org/space/xtce" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.omg.org/space/xtce ../SpaceSystemV1.0.xsd" name="TrivialSat">
+                <a1 />
+                <a2>
+                </a2>
+                </SpaceSystem>
+            </XTCE>"#;
+        println!();
+        println!("Input: {}", input);
+
+        println!();
+        let cursor = Cursor::new(input.as_bytes());
+        let mut buf_reader = BufReader::new(cursor);
+        let line_reader = crate::parser::LinenoReader::new(buf_reader);
+        let lineno_ref = line_reader.lineno_ref();
+        let mut event_reader = xml::EventReader::new(line_reader);
+        
+        loop {
+            let event = event_reader.next();
+
+            match event {
+                Err(e) => {
+                        println!("Err: {:?}", e);      
+                        break;
+                },
+                Ok(o) => match o {
+                    xml::reader::XmlEvent::EndDocument{..} => {
+                        println!("EOD");
+                        break;
+                    }
+                    _ => println!("Ok: {:?}", o),
+                }
+            }
+
+            println!("done");
         }
     }
 }

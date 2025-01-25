@@ -73,7 +73,7 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'a, R> {
 
         for element_definition in element_definitions {
             let xml_factory_def = XmlDocumentFactoryDef::new(element_definition);
-            if xml_factory_defs.insert(element_definition.name, xml_factory_def).is_none() {
+            if xml_factory_defs.insert(element_definition.name, xml_factory_def).is_some() {
                 return Err(XmlDocumentError::CantInsertElement(element_definition.name.to_string()))
             }
         }
@@ -139,8 +139,10 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'a, R> {
                 },
                 XmlEvent::StartElement{name, attributes, namespace} => {
                     let element_info = ElementInfo::new(0, attributes, namespace);
+                    let n = name.clone();
                     let subelement = self.parse_subelement::<R>(0,
                         &xml_factory_defs, name, element_info)?;
+println!("Push {} on {}", subelement.name.local_name, n.local_name);
                     elements.push(subelement);
                     break;
                 }

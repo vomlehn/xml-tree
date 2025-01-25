@@ -35,7 +35,7 @@ impl<'a> fmt::Display for XmlDefinition<'a> {
             write!(f, "{}{}", sep, element_def.name)?;
             sep = ", ";
         }
-        write!(f, "]\n")
+        write!(f, "]")
     }
 }
 
