@@ -10,6 +10,7 @@ use xml::attribute::OwnedAttribute;
 use xml::common::XmlVersion;
 use xml::name::OwnedName;
 use xml::namespace::Namespace;
+use xml::reader::XmlEvent;
 
 use crate::xml_document_error::XmlDocumentError;
 use crate::xml_document_factory::XmlDocumentFactory;
@@ -43,8 +44,9 @@ pub struct Element {
     depth:                  usize,
     element_info:           ElementInfo,
     pub subelements:        Vec<Element>,
-    before_comments:        Vec<String>,
-    after_comments:         Vec<String>,
+    pub before_element:     Vec<XmlEvent>,
+    pub content:            Vec<XmlEvent>,
+    after_element:          Vec<XmlEvent>,
 }
 
 impl Element {
@@ -55,8 +57,9 @@ impl Element {
             depth:              depth,
             element_info:       element_info,
             subelements:        Vec::<Element>::new(),
-            before_comments:    Vec::<String>::new(),
-            after_comments:     Vec::<String>::new(),
+            before_element:     Vec::<XmlEvent>::new(),
+            content:            Vec::<XmlEvent>::new(),
+            after_element:      Vec::<XmlEvent>::new(),
         }
     }
 
@@ -141,27 +144,45 @@ impl XmlDocument {
         Ok(xml_document)
     }
 
+    fn display_piece(&self, f: &mut fmt::Formatter<'_>, pieces: &Vec<XmlEvent>) -> fmt::Result {
+        let result = for piece in pieces {
+            match piece {
+                XmlEvent::Comment(cmnt) => write!(f, "<!-- {} -->", cmnt)?,
+                XmlEvent::Whitespace(ws) => write!(f, "{}", ws)?,
+                XmlEvent::Characters(characters) => write!(f, "{}", characters)?,
+                XmlEvent::CData(cdata) => write!(f, "{}", cdata)?,
+                _ => return Err(fmt::Error),
+            }
+        };
+
+        Ok(())
+    }
+
     pub fn display_element(&self, f: &mut fmt::Formatter<'_>, depth: usize,
         element: &Element) ->
     fmt::Result {
         const INDENT_STR: &str = "   ";
         let indent_string = INDENT_STR.to_string().repeat(depth);
+
+        self.display_piece(f, &element.before_element)?;
+
         write!(f, "{}<{}", indent_string, element.name.local_name)?;
 
         for attribute in &element.element_info.attributes {
             write!(f, " {}=\"{}\"", attribute.name, attribute.value)?;
         }
 
-        if element.subelements.len() == 0 {
+        if element.subelements.len() == 0 && element.content.len() == 0 {
             write!(f, " /> (line {})\n", element.element_info.lineno)?;
         } else {
             write!(f, "> (line {})\n", element.element_info.lineno)?;
+            self.display_piece(f, &element.content)?;
 
             for element in &element.subelements {
                 self.display_element(f, depth + 1, element)?;
             }
 
-            write!(f, "{}<{}>\n", indent_string, element.name.local_name);
+            write!(f, "{}</{}>\n", indent_string, element.name.local_name);
         }
 
         Ok(())

@@ -139,7 +139,6 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'a, R> {
                 },
                 XmlEvent::StartElement{name, attributes, namespace} => {
                     let element_info = ElementInfo::new(lineno, attributes, namespace);
-                    let n = name.clone();
                     let depth = 0;
                     let subelement = self.parse_subelement::<R>(depth,
                         &xml_factory_defs, name, element_info)?;
@@ -199,6 +198,7 @@ println!("Skipping processing_instruction");
         name: OwnedName, element_info: ElementInfo) ->
         Result<Element, XmlDocumentError> {
         let mut element = Element::new(name.clone(), 1, element_info.clone());
+        let mut pieces = Vec::<XmlEvent>::new();
         let start_name = name.local_name.clone();
 
         // Make sure this element is allowed where it is
@@ -225,10 +225,11 @@ println!("Skipping processing_instruction");
                 },
                 XmlEvent::StartElement{name, attributes, namespace} => {
                     let element_info = ElementInfo::new(lineno, attributes, namespace);
-                    let n = name.clone();
                     let subelement = self.parse_subelement::<T>(depth + 1,
                         xml_factory_defs, name, element_info)?;
                     element.subelements.push(subelement);
+                    element.before_element = pieces;
+                    pieces = Vec::<XmlEvent>::new();
                 },
                 XmlEvent::EndElement{name} => {
                     let local_name = name.local_name.to_string();
@@ -238,19 +239,23 @@ println!("Skipping processing_instruction");
                             local_name.clone()));
                     }
 
+                    element.content = pieces;
                     return Ok(element);
                 },
-                XmlEvent::Comment(_cmnt) => {
-//                            comments_before.push(cmnt);
+                XmlEvent::Comment(cmnt) => {
+                    pieces.push(XmlEvent::Comment(cmnt));
                     continue;
                 },
-                XmlEvent::Whitespace(_ws) => {
+                XmlEvent::Whitespace(ws) => {
+                    pieces.push(XmlEvent::Whitespace(ws));
                     continue;
                 },
-                XmlEvent::Characters(_characters) => {
+                XmlEvent::Characters(characters) => {
+                    pieces.push(XmlEvent::Characters(characters));
                     continue;
                 },
-                XmlEvent::CData(_cdata) => {
+                XmlEvent::CData(cdata) => {
+                    pieces.push(XmlEvent::CData(cdata));
                     continue;
                 },
 /*
