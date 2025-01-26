@@ -118,7 +118,7 @@ pub struct XmlDocument {
 }
 
 impl XmlDocument {
-    pub fn new(path: String, xml_definition: &XmlDefinition) ->
+    pub fn new(path: &str, xml_definition: &XmlDefinition) ->
         Result<XmlDocument, XmlDocumentError> {
         let file = match File::open(path) {
             Err(e) => return Err(XmlDocumentError::Error(Box::new(e))),
@@ -215,6 +215,108 @@ mod tests {
         ]
     };
 
+    static TEST_XSD_DESC_TREE: XmlDefinition = XmlDefinition {
+        root_name: "document_root",
+        element_definitions: &[
+            ElementDefinition {
+                name:                   "document_root",
+                allowable_subelements: &["schema"],
+            },
+            ElementDefinition {
+                name: "annotation",
+                allowable_subelements: &["documentation"],
+            },
+            ElementDefinition {
+                name: "appinfo",
+                allowable_subelements: &[],
+            },
+            ElementDefinition {
+                name: "attribute",
+                allowable_subelements: &[],
+            },
+            ElementDefinition {
+                name: "choice",
+                allowable_subelements: &[],
+            },
+            ElementDefinition {
+                name: "complexContent",
+                allowable_subelements: &[],
+            },
+            ElementDefinition {
+                name: "complexType",
+                allowable_subelements: &[],
+            },
+            ElementDefinition {
+                name: "documentation",
+                allowable_subelements: &[],
+            },
+            ElementDefinition {
+                name: "element",
+                allowable_subelements: &["annotation", "key"],
+            },
+            ElementDefinition {
+                name: "enumeration",
+                allowable_subelements: &[],
+            },
+            ElementDefinition {
+                name: "extension",
+                allowable_subelements: &[],
+            },
+            ElementDefinition {
+                name: "field",
+                allowable_subelements: &[],
+            },
+            ElementDefinition {
+                name: "import",
+                allowable_subelements: &[],
+            },
+            ElementDefinition {
+                name: "key",
+                allowable_subelements: &["annotation", "key"],
+            },
+            ElementDefinition {
+                name: "maxInclusive",
+                allowable_subelements: &[],
+            },
+            ElementDefinition {
+                name: "minInclusive",
+                allowable_subelements: &[],
+            },
+            ElementDefinition {
+                name: "pattern",
+                allowable_subelements: &[],
+            },
+            ElementDefinition {
+                name: "restriction",
+                allowable_subelements: &[],
+            },
+            ElementDefinition {
+                name: "schema",
+                allowable_subelements: &["import", "annotation", "element"],
+            },
+            ElementDefinition {
+                name: "selector",
+                allowable_subelements: &[],
+            },
+            ElementDefinition {
+                name: "sequence",
+                allowable_subelements: &[],
+            },
+            ElementDefinition {
+                name: "simpleContent",
+                allowable_subelements: &[],
+            },
+            ElementDefinition {
+                name: "simpleType",
+                allowable_subelements: &[],
+            },
+            ElementDefinition {
+                name: "union",
+                allowable_subelements: &[],
+            },
+        ],
+    };
+
     #[test]
     fn test1() {
         println!("Test: test1");
@@ -280,6 +382,18 @@ mod tests {
             }
 
             println!("done");
+        }
+    }
+
+    #[test]
+    fn test3() {
+        println!("Test: test3");
+        println!("XML Definition: {}", TEST_XSD_DESC_TREE);
+        println!();
+
+        match XmlDocument::new("schema/SpaceSystem.xsd", &TEST_XSD_DESC_TREE) {
+            Err(e) => println!("Failed: {}", e),
+            Ok(xml_document) => println!("XML Document: {}", xml_document),
         }
     }
 }
