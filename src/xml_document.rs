@@ -391,7 +391,7 @@ mod tests {
         println!("XML Definition: {}", TEST_XSD_DESC_TREE);
         println!();
 
-        match XmlDocument::new("schema/SpaceSystem.xsd", &TEST_XSD_DESC_TREE) {
+        match XmlDocument::new("schema/SpaceSystem-patched.xsd", &TEST_XSD_DESC_TREE) {
             Err(e) => println!("Failed: {}", e),
             Ok(xml_document) => println!("XML Document: {}", xml_document),
         }
