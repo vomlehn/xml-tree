@@ -237,110 +237,107 @@ mod tests {
         allowable_subelements:  &[&A1],
     };
 
-/*
     static TEST_XSD_DESC_TREE: XmlDefinition = XmlDefinition {
-        root_name: "document_root",
-        element_definitions: &[
-            ElementDefinition {
-                name:                   "document_root",
-                allowable_subelements: &["schema"],
-            },
-            ElementDefinition {
-                name: "annotation",
-                allowable_subelements: &["documentation"],
-            },
-            ElementDefinition {
-                name: "appinfo",
-                allowable_subelements: &[],
-            },
-            ElementDefinition {
-                name: "attribute",
-                allowable_subelements: &[],
-            },
-            ElementDefinition {
-                name: "choice",
-                allowable_subelements: &[],
-            },
-            ElementDefinition {
-                name: "complexContent",
-                allowable_subelements: &[],
-            },
-            ElementDefinition {
-                name: "complexType",
-                allowable_subelements: &[],
-            },
-            ElementDefinition {
-                name: "documentation",
-                allowable_subelements: &[],
-            },
-            ElementDefinition {
-                name: "element",
-                allowable_subelements: &["annotation", "key"],
-            },
-            ElementDefinition {
-                name: "enumeration",
-                allowable_subelements: &[],
-            },
-            ElementDefinition {
-                name: "extension",
-                allowable_subelements: &[],
-            },
-            ElementDefinition {
-                name: "field",
-                allowable_subelements: &[],
-            },
-            ElementDefinition {
-                name: "import",
-                allowable_subelements: &[],
-            },
-            ElementDefinition {
-                name: "key",
-                allowable_subelements: &["annotation", "key"],
-            },
-            ElementDefinition {
-                name: "maxInclusive",
-                allowable_subelements: &[],
-            },
-            ElementDefinition {
-                name: "minInclusive",
-                allowable_subelements: &[],
-            },
-            ElementDefinition {
-                name: "pattern",
-                allowable_subelements: &[],
-            },
-            ElementDefinition {
-                name: "restriction",
-                allowable_subelements: &[],
-            },
-            ElementDefinition {
-                name: "schema",
-                allowable_subelements: &["import", "annotation", "element"],
-            },
-            ElementDefinition {
-                name: "selector",
-                allowable_subelements: &[],
-            },
-            ElementDefinition {
-                name: "sequence",
-                allowable_subelements: &[],
-            },
-            ElementDefinition {
-                name: "simpleContent",
-                allowable_subelements: &[],
-            },
-            ElementDefinition {
-                name: "simpleType",
-                allowable_subelements: &[],
-            },
-            ElementDefinition {
-                name: "union",
-                allowable_subelements: &[],
-            },
-        ],
+        root: &[&XTCE_XSD],
     };
-*/
+    static XTCE_XSD: ElementDefinition = ElementDefinition {
+        name:                   "XTCE",
+        allowable_subelements: &[&SCHEMA],
+    };
+    static ANNOTATION: ElementDefinition = ElementDefinition {
+        name: "annotation",
+        allowable_subelements: &[&DOCUMENTATION],
+    };
+    static APPINFO: ElementDefinition = ElementDefinition {
+        name: "appinfo",
+        allowable_subelements: &[],
+    };
+    static ATTRIBUTE: ElementDefinition = ElementDefinition {
+        name: "attribute",
+        allowable_subelements: &[],
+    };
+    static CHOICE: ElementDefinition = ElementDefinition {
+        name: "choice",
+        allowable_subelements: &[],
+    };
+    static COMPLEX_CONTENT: ElementDefinition = ElementDefinition {
+        name: "complexContent",
+        allowable_subelements: &[],
+    };
+    static COMPLEX_TYPE: ElementDefinition = ElementDefinition {
+        name: "complexType",
+        allowable_subelements: &[],
+    };
+    static DOCUMENTATION: ElementDefinition = ElementDefinition {
+        name: "documentation",
+        allowable_subelements: &[],
+    };
+    static ELEMENT: ElementDefinition = ElementDefinition {
+        name: "element",
+        allowable_subelements: &[&ANNOTATION, &KEY],
+    };
+    static ENUMERATION: ElementDefinition = ElementDefinition {
+        name: "enumeration",
+        allowable_subelements: &[],
+    };
+    static EXTENSION: ElementDefinition = ElementDefinition {
+        name: "extension",
+        allowable_subelements: &[],
+    };
+    static FIELD: ElementDefinition = ElementDefinition {
+        name: "field",
+        allowable_subelements: &[],
+    };
+    static IMPORT: ElementDefinition = ElementDefinition {
+        name: "import",
+        allowable_subelements: &[],
+    };
+    static KEY: ElementDefinition = ElementDefinition {
+        name: "key",
+        allowable_subelements: &[&ANNOTATION, &KEY],
+    };
+    static MAX_INCLUSIVE: ElementDefinition = ElementDefinition {
+        name: "maxInclusive",
+        allowable_subelements: &[],
+    };
+    static MIN_INCLUSIVE: ElementDefinition = ElementDefinition {
+        name: "minInclusive",
+        allowable_subelements: &[],
+    };
+    static PATTERN: ElementDefinition = ElementDefinition {
+        name: "pattern",
+        allowable_subelements: &[],
+    };
+    static RESTRICTION: ElementDefinition = ElementDefinition {
+        name: "restriction",
+        allowable_subelements: &[],
+    };
+    static SCHEMA: ElementDefinition = ElementDefinition {
+        name: "SCHEMA",
+        allowable_subelements: &[&IMPORT, &ANNOTATION, &ELEMENT],
+    };
+    static SELECTOR: ElementDefinition = ElementDefinition {
+        name: "selector",
+        allowable_subelements: &[],
+    };
+    static SEQUENCE: ElementDefinition = ElementDefinition {
+        name: "sequence",
+        allowable_subelements: &[],
+    };
+    static SIMPLE_CONTENT: ElementDefinition = ElementDefinition {
+        name: "simpleContent",
+        allowable_subelements: &[],
+    };
+    static SIMPLE_TYPE: ElementDefinition = ElementDefinition {
+        name: "simpleType",
+        allowable_subelements: &[],
+    };
+    static UNION: ElementDefinition = ElementDefinition {
+        name: "union",
+        allowable_subelements: &[],
+    };
 
+/*
     #[test]
     fn test1() {
         println!("Test: test1");
@@ -368,7 +365,6 @@ mod tests {
         }
     }
 
-/*
     #[test]
     fn test2() {
         println!("Test: test2");
@@ -385,9 +381,8 @@ mod tests {
 
         println!();
         let cursor = Cursor::new(input.as_bytes());
-        let mut buf_reader = BufReader::new(cursor);
+        let buf_reader = BufReader::new(cursor);
         let line_reader = crate::parser::LinenoReader::new(buf_reader);
-        let lineno_ref = line_reader.lineno_ref();
         let mut event_reader = xml::EventReader::new(line_reader);
         
         loop {
@@ -410,6 +405,7 @@ mod tests {
             println!("done");
         }
     }
+*/
 
     #[test]
     fn test3() {
@@ -422,5 +418,4 @@ mod tests {
             Ok(xml_document) => println!("XML Document: {}", xml_document),
         }
     }
-*/
 }

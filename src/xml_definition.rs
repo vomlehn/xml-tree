@@ -23,15 +23,22 @@ impl<'a> XmlDefinition<'a> {
     pub fn display_element_def(&self, f: &mut fmt::Formatter<'_>, depth: usize,
         element_definition: &[&ElementDefinition]) ->
     fmt::Result {
+// FIXME: use a better way to detect the end. I need some way to uniquely
+// identify the ElementDefinitions
+if depth > 8 {
+    return Ok(());
+}
         const INDENT_STR: &str = "   ";
         let indent_string = INDENT_STR.to_string().repeat(depth);
 
         if element_definition.len() == 0 {
-            write!(f, "[]\n");
+            write!(f, "[]\n")?;
         } else {
             write!(f, "{}[\n", indent_string)?;
 
             for element_def in element_definition.iter() {
+write!(f, "name {}", element_def.name)?;
+write!(f, "\n")?;
                 write!(f, "{}{}\n", indent_string, element_def.name)?;
                 self.display_element_def(f, depth + 1,
                     element_def.allowable_subelements)?;
@@ -44,18 +51,17 @@ impl<'a> XmlDefinition<'a> {
     }
 
     pub fn display(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-println!("display XmlDefinition");
-
         let depth = 0;
         self.display_element_def(f, depth, &self.root)?;
-
         Ok(())
     }
 }
         
 impl fmt::Display for XmlDefinition<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.display(f)
+write!(f, "{}\n", "Display for XmlDefinition")?;
+//        self.display(f)
+        Ok(())
     }
 }
 
