@@ -6,7 +6,6 @@
 use std::collections::HashMap;
 use std::fmt;
 use std::io::{Read};
-use std::rc::Rc;
 use xml::name::OwnedName;
 use xml::reader::XmlEvent;
 
@@ -20,6 +19,7 @@ struct XmlDocumentFactoryDef<'a> {
     element_definition:   &'a ElementDefinition<'a>,
 }
 
+/*
 impl<'a> XmlDocumentFactoryDef<'a> {
     fn new(element_definition: &'a ElementDefinition) -> XmlDocumentFactoryDef<'a> {
         XmlDocumentFactoryDef {
@@ -27,6 +27,7 @@ impl<'a> XmlDocumentFactoryDef<'a> {
         }
     }
 }
+*/
 
 impl fmt::Display for XmlDocumentFactoryDef<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -51,9 +52,6 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'a, R> {
     pub fn new_from_reader<T: Read + 'a>(reader: T,
         xml_definition: &'a XmlDefinition<'a>) ->
         Result<XmlDocument, XmlDocumentError> {
-        if xml_definition.element_definitions.is_empty() {
-            return Err(XmlDocumentError::XmlNoElementDefined());
-        }
         
         let parser = Parser::<T>::new(reader);
 
@@ -62,10 +60,11 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'a, R> {
             xml_definition: xml_definition,
             factory_defs:   HashMap::<&'a str, XmlDocumentFactoryDef<'a>>::new(),
         };
-        let xml_document = xml_factory.parse_end_document(xml_definition.element_definitions)?;
+        let xml_document = xml_factory.parse_end_document(xml_definition)?;
         Ok(xml_document)
     }
 
+/*
     // Populate the HashMap with Elements
     fn populate<'b>(element_definitions: &'b [ElementDefinition<'b>]) ->
         Result<HashMap<&'b str, XmlDocumentFactoryDef<'b>>, XmlDocumentError> {
@@ -73,18 +72,21 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'a, R> {
 
         for element_definition in element_definitions {
             let xml_factory_def = XmlDocumentFactoryDef::new(element_definition);
-            if xml_factory_defs.insert(element_definition.name, xml_factory_def).is_some() {
-                return Err(XmlDocumentError::CantInsertElement(element_definition.name.to_string()))
+            if xml_factory_defs.insert(element_definition.name,
+                xml_factory_def).is_some() {
+                return Err(XmlDocumentError::CantInsertElement(element_definition
+                    .name.to_string()))
             }
         }
 
         Ok(xml_factory_defs)
     }
+*/
 
     /*
      * Parse the StartDocument event.
      */
-    pub fn parse_start_document<'b>(&mut self) ->
+    fn parse_start_document<'b>(&mut self) ->
         Result<DocumentInfo, XmlDocumentError> {
         let mut comments_before = Vec::<String>::new();
 
@@ -117,13 +119,10 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'a, R> {
     /*
      * Parse until we find an EndDocument, filling in the 
      */
-    pub fn parse_end_document(&'a mut self,
-        element_definitions: &[ElementDefinition]) ->
+    fn parse_end_document(&'a mut self, root_definition: &XmlDefinition) ->
         Result<XmlDocument, XmlDocumentError> {
-        let xml_factory_defs = Self::populate(element_definitions)?;
-
+        let mut pieces = Vec::<XmlEvent>::new();
         let document_info = self.parse_start_document()?;
-
         let mut elements = Vec::<Element>::new();
 
         loop {
@@ -140,8 +139,15 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'a, R> {
                 XmlEvent::StartElement{name, attributes, namespace} => {
                     let element_info = ElementInfo::new(lineno, attributes, namespace);
                     let depth = 0;
-                    let subelement = self.parse_subelement::<R>(depth,
-                        &xml_factory_defs, name, element_info)?;
+                    let allowable_subelements =
+                        root_definition.root[0].allowable_subelements;
+
+                    let mut subelement = self.process_element::<R>(depth,
+                        allowable_subelements, name, element_info)?;
+                    subelement.after_element = pieces;
+/* FIXME: why is this unused?
+                    pieces = Vec::<XmlEvent>::new();
+*/
                     elements.push(subelement);
                     break;
                 }
@@ -149,17 +155,20 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'a, R> {
                     return Err(XmlDocumentError::MisplacedElementEnd(lineno,
                         name.local_name));
                 },
-                XmlEvent::Comment(_cmnt) => {
-//                            comments_before.push(cmnt);
+                XmlEvent::Comment(cmnt) => {
+                    pieces.push(XmlEvent::Comment(cmnt));
                     continue;
                 },
-                XmlEvent::Whitespace(_ws) => {
+                XmlEvent::Whitespace(ws) => {
+                    pieces.push(XmlEvent::Comment(ws));
                     continue;
                 },
-                XmlEvent::Characters(_characters) => {
+                XmlEvent::Characters(characters) => {
+                    pieces.push(XmlEvent::Comment(characters));
                     continue;
                 },
-                XmlEvent::CData(_cdata) => {
+                XmlEvent::CData(cdata) => {
+                    pieces.push(XmlEvent::Comment(cdata));
                     continue;
                 },
 /*
@@ -188,29 +197,39 @@ println!("Skipping processing_instruction");
          Ok(xml_document)
     }
 
+    fn find_element<'b> (&self, elements_defs: &'b[&'b ElementDefinition<'b>],
+        name: &str) ->
+        Option<&'b ElementDefinition<'b>> {
+        let res = elements_defs.iter().find(move |&element_def| element_def.name == name);
+        res.copied()
+    }
+
     /*
-     * Parse a subelement, which may itself have subelements
-     * depth:   Number of levels of element nesting
-     * name:    Name of the subelement
+     * Parse an element, which may itself have subelements
+     * depth:                   Number of levels of element nesting
+     * allowable_elements_in:   List of elements in which the the is to be found
+     * name_in:                 Name of the element
+     * element_info_in:         Other information about the element
      */
-    pub fn parse_subelement<T: Read + 'a>(&mut self, depth: usize,
-        xml_factory_defs: &HashMap<&str, XmlDocumentFactoryDef>,
-        name: OwnedName, element_info: ElementInfo) ->
+    fn process_element<T: Read + 'a>(&mut self, depth: usize,
+        allowable_elements_in: &[&ElementDefinition], name_in: OwnedName,
+        element_info: ElementInfo) ->
         Result<Element, XmlDocumentError> {
-        let mut element = Element::new(name.clone(), 1, element_info.clone());
+        // First, we set up the element
         let mut pieces = Vec::<XmlEvent>::new();
-        let start_name = name.local_name.clone();
 
-        // Make sure this element is allowed where it is
-        let pos = match self
-            .xml_definition.element_definitions.iter()
-            .position(|x| x.name == start_name) {
-            None => return Err(XmlDocumentError::UnknownElement(element_info.
-                lineno, start_name)),
-            Some(p) => p,
+        let element_definition = match self.find_element(allowable_elements_in,
+            name_in.local_name.as_str()) {
+            None => return Err(XmlDocumentError::
+                UnknownElement(element_info.lineno, name_in.local_name.clone())),
+            Some(eld) => eld,
         };
+        let mut element = Element::new(name_in.clone(), depth + 1, element_info);
 
-        let new_desc = &self.xml_definition.element_definitions[pos];
+        // Now add on any subelements
+        let allowable_subelements = element_definition.allowable_subelements;
+        let mut start_name =
+            OwnedName { local_name: "".to_string(), prefix: None, namespace: None };
 
         loop {
             let xml_element = self.parser.next()?;
@@ -224,19 +243,20 @@ println!("Skipping processing_instruction");
                     return Err(XmlDocumentError::Unknown(0));
                 },
                 XmlEvent::StartElement{name, attributes, namespace} => {
-                    let element_info = ElementInfo::new(lineno, attributes, namespace);
-                    let subelement = self.parse_subelement::<T>(depth + 1,
-                        xml_factory_defs, name, element_info)?;
-                    element.subelements.push(subelement);
+                    start_name = name.clone();
+                    let element_info = ElementInfo::new(lineno, attributes,
+                        namespace);
+                    let subelement = self.process_element::<R>(depth + 1,
+                        &allowable_subelements, name, element_info)?;
                     element.before_element = pieces;
+                    element.subelements.push(subelement);
                     pieces = Vec::<XmlEvent>::new();
                 },
                 XmlEvent::EndElement{name} => {
-                    let local_name = name.local_name.to_string();
 
-                    if name.local_name.clone() != new_desc.name {
+                    if name.local_name != start_name.local_name {
                         return Err(XmlDocumentError::MisplacedElementEnd(lineno,
-                            local_name.clone()));
+                            name.local_name.to_string()));
                     }
 
                     element.content = pieces;
@@ -274,7 +294,7 @@ println!("Skipping processing_instruction");
 
 impl<R: Read> fmt::Display for XmlDocumentFactory<'_, R> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.xml_definition.root_name)?;
+        write!(f, "{}", self.xml_definition.root[0].name)?;
         for factory_desc in self.factory_defs.values() {
             write!(f, "{}", factory_desc.element_definition.name)?;
         }

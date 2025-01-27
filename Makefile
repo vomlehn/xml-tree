@@ -1,3 +1,3 @@
 test:
 	clear
-	cargo test --jobs=1 -- --nocapture --test test3
+	cargo test --jobs=1 -- --nocapture --test test1

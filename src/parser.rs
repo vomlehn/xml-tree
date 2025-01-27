@@ -36,7 +36,7 @@ impl fmt::Display for XmlElement {
 
 pub struct Parser<R: Read> {
     lineno_ref:     Rc<RefCell<LineNumber>>,
-    cur:            Option<Result<XmlElement, XmlDocumentError>>,
+//    cur:            Option<Result<XmlElement, XmlDocumentError>>,
     event_reader:   EventReader<LinenoReader<R>>,
 }
 
@@ -48,7 +48,7 @@ impl<R: Read> Parser<R> {
         
         Parser {
             lineno_ref:     lineno_ref,
-            cur:            None,
+//            cur:            None,
             event_reader:   event_reader,
         }
     }
@@ -77,6 +77,7 @@ println!("next: {:?}", self.cur);
         la
     }
 
+/*
     /*
      * Discard the current XmlElement, forcing a fetch of the next item
      * if current() is used.
@@ -84,6 +85,7 @@ println!("next: {:?}", self.cur);
     pub fn skip(&mut self) {
         self.cur = None;
     }
+*/
 
     /*
      * Read the next XmlElement from the input stream, disc

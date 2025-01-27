@@ -4,7 +4,6 @@
 
 use std::fmt;
 use std::fs::File;
-use std::rc::Rc;
 use std::io::{BufReader, Read};
 use xml::attribute::OwnedAttribute;
 use xml::common::XmlVersion;
@@ -41,12 +40,12 @@ impl ElementInfo {
 #[derive(Clone, Debug)]
 pub struct Element {
     pub name:               OwnedName,
-    depth:                  usize,
-    element_info:           ElementInfo,
+    pub depth:              usize,
+    pub element_info:       ElementInfo,
     pub subelements:        Vec<Element>,
     pub before_element:     Vec<XmlEvent>,
     pub content:            Vec<XmlEvent>,
-    after_element:          Vec<XmlEvent>,
+    pub after_element:          Vec<XmlEvent>,
 }
 
 impl Element {
@@ -83,7 +82,7 @@ impl fmt::Display for Element {
         for attribute in self.element_info.attributes.clone() {
             write!(f, " {}={}", attribute.name.local_name, attribute.value)?;
         }
-        write!(f, ">\n");
+        write!(f, ">\n")?;
 
 
         Ok(())
@@ -92,9 +91,9 @@ impl fmt::Display for Element {
 
 #[derive(Clone, Debug)]
 pub struct DocumentInfo {
-    version:    XmlVersion,
-    encoding:   String,
-    standalone: Option<bool>,
+    pub version:    XmlVersion,
+    pub encoding:   String,
+    pub standalone: Option<bool>,
 }
 
 impl DocumentInfo {
@@ -155,12 +154,13 @@ impl XmlDocument {
             }
         };
 
-        Ok(())
+        Ok(result)
     }
 
     pub fn display_element(&self, f: &mut fmt::Formatter<'_>, depth: usize,
         element: &Element) ->
     fmt::Result {
+println!("depth {}", depth);
         const INDENT_STR: &str = "   ";
         let indent_string = INDENT_STR.to_string().repeat(depth);
 
@@ -182,13 +182,16 @@ impl XmlDocument {
                 self.display_element(f, depth + 1, element)?;
             }
 
-            write!(f, "{}</{}>\n", indent_string, element.name.local_name);
+            write!(f, "{}</{}>\n", indent_string, element.name.local_name)?;
         }
+
+        self.display_piece(f, &element.after_element)?;
 
         Ok(())
     }
 
     pub fn display(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+println!("display");
         write!(f, "<?xml {} {} {:?}>\n",
             self.document_info.version, self.document_info.encoding,
             self.document_info.standalone)?;
@@ -202,6 +205,7 @@ impl XmlDocument {
         
 impl fmt::Display for XmlDocument {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+println!("XmlDocument::fmt()");
         self.display(f)
     }
 }
@@ -209,33 +213,31 @@ impl fmt::Display for XmlDocument {
 #[cfg(test)]
 mod tests {
     use std::io::Cursor;
-    use std::io::BufRead;
 
     use super::*;
     use crate::xml_definition::ElementDefinition;
 
     static TEST_XML_DESC_TREE: XmlDefinition = XmlDefinition {
-        root_name:  "XTCE",
-        element_definitions:  & [
-            ElementDefinition {
-                name:                   "XTCE",
-                allowable_subelements:  &["SpaceSystem"],
-            },
-            ElementDefinition {
-                name:                   "SpaceSystem",
-                allowable_subelements:  &["a1"],
-            },
-            ElementDefinition {
-                name:                   "a1",
-                allowable_subelements:  &["a2"],
-            },
-            ElementDefinition {
-                name:                   "a2",
-                allowable_subelements:  &["a1"],
-            },
-        ]
+        root:   &[&XTCE],
+    };
+    static XTCE: ElementDefinition = ElementDefinition {
+        name:                   "XTCE",
+        allowable_subelements:  &[&SPACE_SYSTEM],
+    };
+    static SPACE_SYSTEM: ElementDefinition = ElementDefinition {
+        name:                   "SpaceSystem",
+        allowable_subelements:  &[&A1],
+    };
+    static A1: ElementDefinition = ElementDefinition{
+        name:                   "a1",
+        allowable_subelements:  &[&A2],
+    };
+    static A2: ElementDefinition = ElementDefinition{
+        name:                   "a2",
+        allowable_subelements:  &[&A1],
     };
 
+/*
     static TEST_XSD_DESC_TREE: XmlDefinition = XmlDefinition {
         root_name: "document_root",
         element_definitions: &[
@@ -337,11 +339,13 @@ mod tests {
             },
         ],
     };
+*/
 
     #[test]
     fn test1() {
         println!("Test: test1");
         println!("XML Definition: {}", TEST_XML_DESC_TREE);
+        println!("Tree done");
 
         let input = r#"<?xml version="1.0"?>
             <XTCE xmlns="http://www.omg.org/spec/XTCE/">
@@ -356,7 +360,7 @@ mod tests {
 
         println!();
         let cursor = Cursor::new(input);
-        let mut buf_reader = BufReader::new(cursor);
+        let buf_reader = BufReader::new(cursor);
 
         match XmlDocument::new_from_reader(buf_reader, &TEST_XML_DESC_TREE) {
             Err(e) => println!("Failed: {}", e),
@@ -364,6 +368,7 @@ mod tests {
         }
     }
 
+/*
     #[test]
     fn test2() {
         println!("Test: test2");
@@ -417,4 +422,5 @@ mod tests {
             Ok(xml_document) => println!("XML Document: {}", xml_document),
         }
     }
+*/
 }
