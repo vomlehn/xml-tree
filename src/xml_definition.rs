@@ -6,7 +6,7 @@ use crate::xml_document_error::XmlDocumentError;
  * Define the data structures used to describe the XML used for parsing.
  */
 pub struct XmlDefinition<'a> {
-    pub root:  &'a [&'a ElementDefinition<'a>],
+    pub root:  &'a ElementDefinition<'a>,
 }
 
 impl<'a> XmlDefinition<'a> {
@@ -21,7 +21,7 @@ impl<'a> XmlDefinition<'a> {
     }
 
     pub fn display_element_def(&self, f: &mut fmt::Formatter<'_>, depth: usize,
-        element_definition: &[&ElementDefinition]) ->
+        element_definition: &ElementDefinition) ->
     fmt::Result {
 // FIXME: use a better way to detect the end. I need some way to uniquely
 // identify the ElementDefinitions
@@ -31,17 +31,19 @@ if depth > 8 {
         const INDENT_STR: &str = "   ";
         let indent_string = INDENT_STR.to_string().repeat(depth);
 
-        if element_definition.len() == 0 {
-            write!(f, "[]\n")?;
+        write!(f, "{}", element_definition.name)?;
+
+        let allowable_subelements = element_definition.allowable_subelements;
+
+        if allowable_subelements.len() == 0 {
+            write!(f, "{}[]\n", indent_string)?;
         } else {
             write!(f, "{}[\n", indent_string)?;
 
-            for element_def in element_definition.iter() {
-write!(f, "name {}", element_def.name)?;
-write!(f, "\n")?;
+            for element_def in allowable_subelements.iter() {
                 write!(f, "{}{}\n", indent_string, element_def.name)?;
                 self.display_element_def(f, depth + 1,
-                    element_def.allowable_subelements)?;
+                    element_def)?;
             }
 
             write!(f, "{}]\n", indent_string)?;
@@ -60,7 +62,7 @@ write!(f, "\n")?;
 impl fmt::Display for XmlDefinition<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 write!(f, "{}\n", "Display for XmlDefinition")?;
-//        self.display(f)
+        self.display(f)?;
         Ok(())
     }
 }

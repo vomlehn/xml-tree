@@ -25,7 +25,7 @@ pub struct ElementInfo {
 
 impl ElementInfo {
     pub fn new(lineno: LineNumber, attributes: Vec<OwnedAttribute>,
-    namespace: Namespace) -> ElementInfo {
+        namespace: Namespace) -> ElementInfo {
         ElementInfo {
             lineno:     lineno,
             attributes: attributes,
@@ -212,13 +212,13 @@ println!("XmlDocument::fmt()");
 
 #[cfg(test)]
 mod tests {
-    use std::io::Cursor;
+//    use std::io::Cursor;
 
     use super::*;
     use crate::xml_definition::ElementDefinition;
 
     static TEST_XML_DESC_TREE: XmlDefinition = XmlDefinition {
-        root:   &[&XTCE],
+        root:   &XTCE,
     };
     static XTCE: ElementDefinition = ElementDefinition {
         name:                   "XTCE",
@@ -238,7 +238,7 @@ mod tests {
     };
 
     static TEST_XSD_DESC_TREE: XmlDefinition = XmlDefinition {
-        root: &[&XTCE_XSD],
+        root: &XTCE_XSD,
     };
     static XTCE_XSD: ElementDefinition = ElementDefinition {
         name:                   "XTCE",
@@ -313,7 +313,7 @@ mod tests {
         allowable_subelements: &[],
     };
     static SCHEMA: ElementDefinition = ElementDefinition {
-        name: "SCHEMA",
+        name: "schema",
         allowable_subelements: &[&IMPORT, &ANNOTATION, &ELEMENT],
     };
     static SELECTOR: ElementDefinition = ElementDefinition {

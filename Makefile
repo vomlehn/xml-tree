@@ -1,5 +1,5 @@
-TEST = test3
+TEST = --test=test3
 
 test:
 	clear
-	cargo test --jobs=1 -- --nocapture --test=$(TEST)
+	cargo test --jobs=1 -- --nocapture 

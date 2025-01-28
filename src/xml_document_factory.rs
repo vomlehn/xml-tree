@@ -64,52 +64,42 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'a, R> {
         Ok(xml_document)
     }
 
-/*
-    // Populate the HashMap with Elements
-    fn populate<'b>(element_definitions: &'b [ElementDefinition<'b>]) ->
-        Result<HashMap<&'b str, XmlDocumentFactoryDef<'b>>, XmlDocumentError> {
-        let mut xml_factory_defs = HashMap::<&str, XmlDocumentFactoryDef>::new();
-
-        for element_definition in element_definitions {
-            let xml_factory_def = XmlDocumentFactoryDef::new(element_definition);
-            if xml_factory_defs.insert(element_definition.name,
-                xml_factory_def).is_some() {
-                return Err(XmlDocumentError::CantInsertElement(element_definition
-                    .name.to_string()))
-            }
-        }
-
-        Ok(xml_factory_defs)
-    }
-*/
-
     /*
      * Parse the StartDocument event.
      */
     fn parse_start_document<'b>(&mut self) ->
         Result<DocumentInfo, XmlDocumentError> {
-        let mut comments_before = Vec::<String>::new();
+        let mut comments_before = Vec::<XmlEvent>::new();
 
         let document_info = loop {
             let xml_element = self.parser.next()?;
 
-            match xml_element.event {
+            match &xml_element.event {
                 XmlEvent::StartDocument{version, encoding, standalone} => {
-                    let document_info = DocumentInfo::new(version,
-                        encoding, standalone);
+                    let document_info = DocumentInfo::new(version.clone(),
+                        encoding.clone(), standalone.clone());
                     break document_info;
                 },
                 XmlEvent::EndDocument => {
                     return Err(XmlDocumentError::NoEndDocument());
                 },
                 XmlEvent::Comment(cmnt) => {
-                    comments_before.push(cmnt);
+                    comments_before.push(XmlEvent::Comment(cmnt.clone()));
                     continue;
                 },
-                XmlEvent::Whitespace(_ws) => {
+                XmlEvent::Whitespace(ws) => {
+                    comments_before.push(XmlEvent::Whitespace(ws.clone()));
                     continue;
                 },
-                _ => return Err(XmlDocumentError::UnexpectedXml(xml_element.event)),
+                XmlEvent::Characters(characters) => {
+                    comments_before.push(XmlEvent::Comment(characters.clone()));
+                    continue;
+                },
+                XmlEvent::CData(cdata) => {
+                    comments_before.push(XmlEvent::Comment(cdata.clone()));
+                    continue;
+                },
+                _ => return Err(XmlDocumentError::UnexpectedXml(xml_element.event.clone())),
             }; 
         };
 
@@ -119,17 +109,18 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'a, R> {
     /*
      * Parse until we find an EndDocument, filling in the 
      */
-    fn parse_end_document(&'a mut self, root_definition: &XmlDefinition) ->
+    fn parse_end_document(&'a mut self, xml_definition: &XmlDefinition) ->
         Result<XmlDocument, XmlDocumentError> {
         let mut pieces = Vec::<XmlEvent>::new();
         let document_info = self.parse_start_document()?;
-        let mut elements = Vec::<Element>::new();
+        let start_name =
+            OwnedName { local_name: "".to_string(), prefix: None, namespace: None };
 
-        loop {
+        let root_element = loop {
             let xml_element = self.parser.next()?;
             let lineno = xml_element.lineno;
 
-            match xml_element.event {
+            match &xml_element.event {
                 XmlEvent::StartDocument{..} => {
                     return Err(XmlDocumentError::StartAfterStart(lineno));
                 },
@@ -137,105 +128,92 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'a, R> {
                     return Err(XmlDocumentError::Unknown(0));
                 },
                 XmlEvent::StartElement{name, attributes, namespace} => {
-                    let element_info = ElementInfo::new(lineno, attributes, namespace);
+                    let start_name = name.clone();
                     let depth = 0;
-                    let allowable_subelements =
-                        root_definition.root[0].allowable_subelements;
-
-                    let mut subelement = self.process_element::<R>(depth,
-                        allowable_subelements, name, element_info)?;
-                    subelement.after_element = pieces;
-/* FIXME: why is this unused?
-                    pieces = Vec::<XmlEvent>::new();
-*/
-                    elements.push(subelement);
-                    break;
-                }
+                    println!("depth {}: end StartElement1: start_name {}", depth, start_name.local_name);
+                    let element_info = ElementInfo::new(lineno, attributes.clone(),
+                        namespace.clone());
+                    let mut element = self.process_element::<R>(xml_definition.root,
+                        depth, start_name.clone(), element_info)?;
+                    element.before_element = pieces;
+                    break element;
+                },
                 XmlEvent::EndElement{name} => {
+                    let end_name = name.clone();
+println!("depth {}: EndElement: name {}", 0, end_name.local_name);
                     return Err(XmlDocumentError::MisplacedElementEnd(lineno,
-                        name.local_name));
+                        start_name.local_name, end_name.local_name));
                 },
                 XmlEvent::Comment(cmnt) => {
-                    pieces.push(XmlEvent::Comment(cmnt));
+                    pieces.push(XmlEvent::Comment(cmnt.clone()));
                     continue;
                 },
                 XmlEvent::Whitespace(ws) => {
-                    pieces.push(XmlEvent::Comment(ws));
+                    pieces.push(XmlEvent::Comment(ws.clone()));
                     continue;
                 },
                 XmlEvent::Characters(characters) => {
-                    pieces.push(XmlEvent::Comment(characters));
+                    pieces.push(XmlEvent::Comment(characters.clone()));
                     continue;
                 },
                 XmlEvent::CData(cdata) => {
-                    pieces.push(XmlEvent::Comment(cdata));
+                    pieces.push(XmlEvent::Comment(cdata.clone()));
                     continue;
                 },
 /*
-                XmlEvent::ProcessingInstruction(processing_instruction) => {
+                XmlEvent::ProcessingInstruction(processing_instruction, name, data) => {
 println!("Skipping processing_instruction");
                     continue;
                 },
 */
-                _ => return Err(XmlDocumentError::UnexpectedXml(xml_element.event))
+                _ => {
+                    return Err(XmlDocumentError::UnexpectedXml(xml_element.event.clone()))
+                },
             };
-        }
-
-        if elements.len() != 1 {
-            return Err(XmlDocumentError::OnlyOneRootElementAllowed());
-        }
-
-        let root = match elements.first() {
-            None => return Err(XmlDocumentError::OnlyOneRootElementAllowed()),
-            Some(r) => r,
         };
-//Rc::new()?
+
          let xml_document = XmlDocument {
             document_info:  document_info,
-            root:           root.clone(),
+            root:           root_element,
          };
          Ok(xml_document)
     }
 
-    fn find_element<'b> (&self, elements_defs: &'b[&'b ElementDefinition<'b>],
-        name: &str) ->
+    // Find an ElementDefinition whose name matches the given one
+    fn find_subelement<'b> (&self,
+        allowable_subelements: &'b[&'b ElementDefinition<'b>], name: &str) ->
         Option<&'b ElementDefinition<'b>> {
-        let res = elements_defs.iter().find(move |&element_def| element_def.name == name);
-        res.copied()
+        let elem = allowable_subelements
+            .iter()
+            .find(move |&element_def| element_def.name == name);
+        elem.copied()
     }
 
     /*
-     * Parse an element, which may itself have subelements
+     * Parse the current element and subelements. The <StartElement> has
+     * already been read, read up to, and including, the <EndElement>
+     * element_definition_in:   Definition for this element
      * depth:                   Number of levels of element nesting
-     * allowable_elements_in:   List of elements in which the the is to be found
      * name_in:                 Name of the element
      * element_info_in:         Other information about the element
      */
-    fn process_element<T: Read + 'a>(&mut self, depth: usize,
-        allowable_elements_in: &[&ElementDefinition], name_in: OwnedName,
-        element_info: ElementInfo) ->
+    fn process_element<T: Read + 'a>(&mut self,
+        element_definition_in: &ElementDefinition, depth: usize,
+        name_in: OwnedName, element_info_in: ElementInfo) ->
         Result<Element, XmlDocumentError> {
         // First, we set up the element
         let mut pieces = Vec::<XmlEvent>::new();
 
-        let element_definition = match self.find_element(allowable_elements_in,
-            name_in.local_name.as_str()) {
-            None => return Err(XmlDocumentError::
-                UnknownElement(element_info.lineno, name_in.local_name.clone())),
-            Some(eld) => eld,
-        };
-        let mut element = Element::new(name_in.clone(), depth + 1, element_info);
+        let mut element = Element::new(name_in.clone(), depth, element_info_in);
 
-        // Now add on any subelements
-        let allowable_subelements = element_definition.allowable_subelements;
-        let mut start_name =
-            OwnedName { local_name: "".to_string(), prefix: None, namespace: None };
+        // Parse any subelements
+        let allowable_subelements = element_definition_in.allowable_subelements;
 
         loop {
             let xml_element = self.parser.next()?;
             let lineno = xml_element.lineno;
 
-            match xml_element.event {
+            match &xml_element.event {
                 XmlEvent::StartDocument{..} => {
                     return Err(XmlDocumentError::StartAfterStart(lineno));
                 },
@@ -243,49 +221,56 @@ println!("Skipping processing_instruction");
                     return Err(XmlDocumentError::Unknown(0));
                 },
                 XmlEvent::StartElement{name, attributes, namespace} => {
-                    start_name = name.clone();
-                    let element_info = ElementInfo::new(lineno, attributes,
-                        namespace);
-                    let subelement = self.process_element::<R>(depth + 1,
-                        &allowable_subelements, name, element_info)?;
+                    // See if we support this element under the current element
+                    let start_name = name.clone();
+                    let attributes2 = attributes.clone();
+                    let namespace2 = namespace.clone();
+
+                    let element_definition =
+                        match self.find_subelement(&allowable_subelements,
+                            &start_name.local_name) {
+                            None => return Err(XmlDocumentError::UnknownElement(lineno,
+                                start_name.to_string())),
+                            Some(el) => el,
+                    };
+                    
+                    let element_info = ElementInfo::new(lineno,
+                        attributes2.clone(), namespace2.clone());
+
+                    let subelement = self.process_element::<R>(element_definition,
+                        depth, start_name.clone(), element_info.clone())?;
                     element.before_element = pieces;
                     element.subelements.push(subelement);
                     pieces = Vec::<XmlEvent>::new();
                 },
                 XmlEvent::EndElement{name} => {
-
-                    if name.local_name != start_name.local_name {
+                    if name.local_name != element.name.local_name {
                         return Err(XmlDocumentError::MisplacedElementEnd(lineno,
-                            name.local_name.to_string()));
+                            element.name.local_name, name.local_name.to_string()));
                     }
 
                     element.content = pieces;
                     return Ok(element);
                 },
                 XmlEvent::Comment(cmnt) => {
-                    pieces.push(XmlEvent::Comment(cmnt));
-                    continue;
+                    pieces.push(XmlEvent::Comment(cmnt.clone()));
                 },
                 XmlEvent::Whitespace(ws) => {
-                    pieces.push(XmlEvent::Whitespace(ws));
-                    continue;
+                    pieces.push(XmlEvent::Whitespace(ws.clone()));
                 },
                 XmlEvent::Characters(characters) => {
-                    pieces.push(XmlEvent::Characters(characters));
-                    continue;
+                    pieces.push(XmlEvent::Characters(characters.clone()));
                 },
                 XmlEvent::CData(cdata) => {
-                    pieces.push(XmlEvent::CData(cdata));
-                    continue;
+                    pieces.push(XmlEvent::CData(cdata.clone()));
                 },
 /*
-                XmlEvent::ProcessingInstruction(processing_instruction) => {
+                XmlEvent::ProcessingInstruction(processing_instruction, name, data) => {
 println!("Skipping processing_instruction");
-                    continue;
                 },
 */
                 _ => {
-                    return Err(XmlDocumentError::UnexpectedXml(xml_element.event));
+                    return Err(XmlDocumentError::UnexpectedXml(xml_element.event.clone()));
                 }
             };
         }
@@ -294,7 +279,7 @@ println!("Skipping processing_instruction");
 
 impl<R: Read> fmt::Display for XmlDocumentFactory<'_, R> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.xml_definition.root[0].name)?;
+        write!(f, "{}", self.xml_definition.root.name)?;
         for factory_desc in self.factory_defs.values() {
             write!(f, "{}", factory_desc.element_definition.name)?;
         }

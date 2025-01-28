@@ -14,8 +14,11 @@ pub enum XmlDocumentError {
     #[error("XML parser error: {0}")]
     Error(Box<dyn std::error::Error>),
 
-    #[error("line {0}: Misplaced element end: {1}")]
-    MisplacedElementEnd(LineNumber, String), 
+    #[error("Line {0}: Internal error: {1}")]
+    InternalError(LineNumber, String),
+
+    #[error("line {0}: Misplaced element end: {1}, found {2}")]
+    MisplacedElementEnd(LineNumber, String, String), 
 
     // FIXME: need to fix this
     #[error("No end element in input")]
@@ -63,3 +66,4 @@ pub enum XmlDocumentError {
     #[error("No elements defined")]
     XmlNoElementDefined(),
 }
+
