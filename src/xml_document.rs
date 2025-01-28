@@ -1,5 +1,5 @@
 /*
- * Take an XMLDefinition tree and generate an XmlDocument
+ * Take an XML Definition tree and generate an XmlDocument
  */
 
 use std::fmt;
@@ -120,8 +120,8 @@ pub struct XmlDocument {
 }
 
 impl XmlDocument {
-    pub fn new(path: &str, xml_definition: &XmlDefinition) ->
-        Result<XmlDocument, XmlDocumentError> {
+    pub fn new<'b>(path: &'b str, xml_definition: &'b XmlDefinition) ->
+        Result<XmlDocument, XmlDocumentError<'b>> {
         let file = match File::open(path) {
             Err(e) => return Err(XmlDocumentError::Error(Box::new(e))),
             Ok(f) => f,
@@ -131,11 +131,11 @@ impl XmlDocument {
     }
 }
 
-impl XmlDocument {
-    pub fn new_from_reader<R: Read>(
+impl<'a> XmlDocument {
+    pub fn new_from_reader<R: Read + 'a> (
         buf_reader: BufReader<R>,
-        xml_definition: &XmlDefinition) ->
-        Result<XmlDocument, XmlDocumentError> {
+        xml_definition: &'a XmlDefinition<'_>) ->
+        Result<XmlDocument, XmlDocumentError<'a>> {
 
         // Create the factory using the reader and XML definition
         let xml_document = XmlDocumentFactory::<R>::new_from_reader(buf_reader,
@@ -203,7 +203,7 @@ println!("display");
     }
 }
         
-impl fmt::Display for XmlDocument {
+impl<'a> fmt::Display for XmlDocument {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 println!("XmlDocument::fmt()");
         self.display(f)
@@ -214,34 +214,55 @@ println!("XmlDocument::fmt()");
 mod tests {
 //    use std::io::Cursor;
 
+    use lazy_static::lazy_static;
+    use std::sync::Arc;
+
     use super::*;
+
     use crate::xml_definition::ElementDefinition;
     use crate::xsd_schema::XSD_SCHEMA;
 
-    static TEST_XML_DESC_TREE: XmlDefinition = XmlDefinition {
-        root:   &XTCE,
-    };
-    static XTCE: ElementDefinition = ElementDefinition {
-        name:                   "XTCE",
-        allowable_subelements:  &[&SPACE_SYSTEM],
-    };
-    static SPACE_SYSTEM: ElementDefinition = ElementDefinition {
-        name:                   "SpaceSystem",
-        allowable_subelements:  &[&A1],
-    };
-    static A1: ElementDefinition = ElementDefinition{
-        name:                   "a1",
-        allowable_subelements:  &[&A2],
-    };
-    static A2: ElementDefinition = ElementDefinition{
-        name:                   "a2",
-        allowable_subelements:  &[&A1],
-    };
+    lazy_static!{
+        static ref TEST_XML_DESC_TREE: XmlDefinition<'static> = XmlDefinition {
+            root:                   None,
+            key:                    "XTCE",
+            element_definitions:    &element_definitions,
+        };
 
-/*
+        static ref element_definitions: Arc<[ElementDefinition<'static>]>  =
+            Arc::new([
+            ElementDefinition {
+                name:                       "XTCE",
+                key:                        "XTCE",
+                allowable_subelements:      Vec::<&ElementDefinition>::new(),
+                allowable_subelement_names: &["SPACE_SYSTEM"],
+            },
+            ElementDefinition {
+                name:                       "SpaceSystem",
+                key:                        "SpaceSystem",
+                allowable_subelements:      Vec::<&ElementDefinition>::new(),
+                allowable_subelement_names: &["A1"],
+            },
+            ElementDefinition{
+                name:                       "a1",
+                key:                        "a1",
+                allowable_subelements:      Vec::<&ElementDefinition>::new(),
+                allowable_subelement_names: &["A2"],
+            },
+            ElementDefinition{
+                name:                       "a2",
+                key:                        "a2",
+                allowable_subelements:      Vec::<&ElementDefinition>::new(),
+                allowable_subelement_names: &["A1"],
+            }
+        ]);
+    }
+
     #[test]
     fn test1() {
         println!("Test: test1");
+        TEST_XML_DESC_TREE.validate().unwrap();
+/*
         println!("XML Definition: {}", TEST_XML_DESC_TREE);
         println!("Tree done");
 
@@ -264,8 +285,10 @@ mod tests {
             Err(e) => println!("Failed: {}", e),
             Ok(xml_document) => println!("XML Document: {}", xml_document),
         }
+*/
     }
 
+/*
     #[test]
     fn test2() {
         println!("Test: test2");
@@ -308,15 +331,19 @@ mod tests {
     }
 */
 
+/*
     #[test]
     fn test3() {
         println!("Test: test3");
+        XSD_SCHEMA.validate();
         println!("XML Definition: {}", XSD_SCHEMA);
         println!();
 
-        match XmlDocument::new("schema/SpaceSystem-patched.xsd", &TEST_XSD_DESC_TREE) {
+        match XmlDocument::new("schema/SpaceSystem-patched.xsd",
+            &TEST_XML_DESC_TREE) {
             Err(e) => println!("Failed: {}", e),
             Ok(xml_document) => println!("XML Document: {}", xml_document),
         }
     }
+*/
 }

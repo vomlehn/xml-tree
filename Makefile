@@ -1,4 +1,5 @@
 TEST = --test=test3
+TEST =
 
 test:
 	clear

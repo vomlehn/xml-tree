@@ -1,6 +1,6 @@
 /*
- * Take an ElementDefinition tree and generate an XmlFactorTree, which is used to parse
- * XML input
+ * Take an ElementDefinition tree and generate an XmlFactorTree, which is used
+ * to parse XML input
  */
 
 use std::collections::HashMap;
@@ -43,7 +43,7 @@ impl fmt::Display for XmlDocumentFactoryDef<'_> {
  *                  name to the corresponding entry in xml_definition.
  */
 pub struct XmlDocumentFactory<'a, R: Read> {
-    parser:             Parser<R>,
+    parser:             Parser<'a, R>,
     pub xml_definition: &'a XmlDefinition<'a>,
     factory_defs:       HashMap<&'a str, XmlDocumentFactoryDef<'a>>
 }
@@ -51,24 +51,24 @@ pub struct XmlDocumentFactory<'a, R: Read> {
 impl<'a, R: Read + 'a> XmlDocumentFactory<'a, R> {
     pub fn new_from_reader<T: Read + 'a>(reader: T,
         xml_definition: &'a XmlDefinition<'a>) ->
-        Result<XmlDocument, XmlDocumentError> {
+        Result<XmlDocument, XmlDocumentError<'a>> {
         
         let parser = Parser::<T>::new(reader);
 
-        let mut xml_factory = XmlDocumentFactory::<T> {
+        let xml_factory = XmlDocumentFactory::<T> {
             parser:         parser,
             xml_definition: xml_definition,
             factory_defs:   HashMap::<&'a str, XmlDocumentFactoryDef<'a>>::new(),
         };
-        let xml_document = xml_factory.parse_end_document(xml_definition)?;
-        Ok(xml_document)
+
+        xml_factory.parse_end_document(xml_definition)
     }
 
     /*
      * Parse the StartDocument event.
      */
     fn parse_start_document<'b>(&mut self) ->
-        Result<DocumentInfo, XmlDocumentError> {
+        Result<DocumentInfo, XmlDocumentError<'a>> {
         let mut comments_before = Vec::<XmlEvent>::new();
 
         let document_info = loop {
@@ -109,8 +109,8 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'a, R> {
     /*
      * Parse until we find an EndDocument, filling in the 
      */
-    fn parse_end_document(&'a mut self, xml_definition: &XmlDefinition) ->
-        Result<XmlDocument, XmlDocumentError> {
+    fn parse_end_document(mut self, xml_definition: &XmlDefinition) ->
+        Result<XmlDocument, XmlDocumentError<'a>> {
         let mut pieces = Vec::<XmlEvent>::new();
         let document_info = self.parse_start_document()?;
         let start_name =
@@ -133,7 +133,7 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'a, R> {
                     println!("depth {}: end StartElement1: start_name {}", depth, start_name.local_name);
                     let element_info = ElementInfo::new(lineno, attributes.clone(),
                         namespace.clone());
-                    let mut element = self.process_element::<R>(xml_definition.root,
+                    let mut element = self.process_element::<R>(xml_definition.root.expect("Root is None"),
                         depth, start_name.clone(), element_info)?;
                     element.before_element = pieces;
                     break element;
@@ -200,14 +200,14 @@ println!("Skipping processing_instruction");
     fn process_element<T: Read + 'a>(&mut self,
         element_definition_in: &ElementDefinition, depth: usize,
         name_in: OwnedName, element_info_in: ElementInfo) ->
-        Result<Element, XmlDocumentError> {
+        Result<Element, XmlDocumentError<'a>> {
         // First, we set up the element
         let mut pieces = Vec::<XmlEvent>::new();
 
         let mut element = Element::new(name_in.clone(), depth, element_info_in);
 
         // Parse any subelements
-        let allowable_subelements = element_definition_in.allowable_subelements;
+        let allowable_subelements = &element_definition_in.allowable_subelements;
 
         loop {
             let xml_element = self.parser.next()?;
@@ -279,7 +279,7 @@ println!("Skipping processing_instruction");
 
 impl<R: Read> fmt::Display for XmlDocumentFactory<'_, R> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.xml_definition.root.name)?;
+        write!(f, "{}", self.xml_definition.root.expect("Root is None").name)?;
         for factory_desc in self.factory_defs.values() {
             write!(f, "{}", factory_desc.element_definition.name)?;
         }

@@ -1,23 +1,60 @@
+/*
+ * Define the data structures used to describe the XML used for parsing.
+ */
+
 use std::fmt;
 
 use crate::xml_document_error::XmlDocumentError;
 
 /*
- * Define the data structures used to describe the XML used for parsing.
+ * Top-level definition of the schema
+ * root:    Pointer to the root ElementDefinition
+ * key:     Name of the root ElementDefinition
  */
 pub struct XmlDefinition<'a> {
-    pub root:  &'a ElementDefinition<'a>,
+    pub root:                   Option<&'a ElementDefinition<'a>>,
+    pub key:                    &'a str,
+    pub element_definitions:    &'a [ElementDefinition<'a>],
 }
 
 impl<'a> XmlDefinition<'a> {
 // FIXME: use this
-    fn _validate(_xml_definition: &'a XmlDefinition) -> Result<(), XmlDocumentError> {
-        todo!();
+    pub fn validate(&self) -> Result<(), XmlDocumentError<'a>> {
         // o    Make sure no duplications in element_definitions
         // o    Ensure no duplicates in any element_definitions
         // o    Ensure the root is in element_definitions
         // o    Ensure at least one element
-//        Err(XmlDocumentError::Unknown(0))
+        // There are faster ways to do these things
+        let def_len = self.element_definitions.len();
+
+        for (outer, outer_def) in
+            self.element_definitions[..def_len - 1].iter().enumerate()  {
+            let outer_key = outer_def.key;
+
+            for (inner, inner_def) in
+                self.element_definitions[outer + 1..].iter().enumerate() {
+                let inner_key = inner_def.name;
+                if inner_key == outer_key {
+                    return Err(XmlDocumentError::DuplicateKey(inner_key,
+                        outer, outer + inner));
+                }
+            } 
+
+            let allowable_len = outer_def.allowable_subelements.len();
+
+            if allowable_len > 0 {
+                for (i, i_allowable) in
+                    outer_def.allowable_subelement_names[..allowable_len - 1].iter().enumerate() {
+                    for (j, j_allowable) in
+                        outer_def.allowable_subelement_names[i + 1..].iter().enumerate() {
+                        if i_allowable == j_allowable {
+                            return Err(XmlDocumentError::DuplicateAllowableElement(i_allowable, i, i + j));
+                        }
+                    }
+                }
+            }
+        }
+        Ok(())
     }
 
     pub fn display_element_def(&self, f: &mut fmt::Formatter<'_>, depth: usize,
@@ -33,7 +70,7 @@ if depth > 8 {
 
         write!(f, "{}{}", indent_string, element_definition.name)?;
 
-        let allowable_subelements = element_definition.allowable_subelements;
+        let allowable_subelements = &element_definition.allowable_subelements;
 
         if allowable_subelements.len() == 0 {
             write!(f, " []\n")?;
@@ -52,7 +89,7 @@ if depth > 8 {
 
     pub fn display(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let depth = 0;
-        self.display_element_def(f, depth, &self.root)?;
+        self.display_element_def(f, depth, self.root.unwrap())?;
         Ok(())
     }
 }
@@ -66,8 +103,10 @@ write!(f, "{}\n", "Display for XmlDefinition")?;
 }
 
 pub struct ElementDefinition<'a> {
-    pub name:                   &'a str,
-    pub allowable_subelements:  &'a [&'a ElementDefinition<'a>],
+    pub name:                       &'a str,
+    pub key:                        &'a str,
+    pub allowable_subelements:      Vec<&'a ElementDefinition<'a>>,
+    pub allowable_subelement_names: &'a [&'a str],
 }
 
 impl<'a> ElementDefinition<'a> {

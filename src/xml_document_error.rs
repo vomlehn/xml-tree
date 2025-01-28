@@ -4,12 +4,18 @@ use xml::reader::XmlEvent;
 use crate::parser::{LineNumber};
 
 #[derive(Debug, Error)]
-pub enum XmlDocumentError {
+pub enum XmlDocumentError<'a> {
     #[error("Can't insert element \"{0}\", is it a duplication?")]
     CantInsertElement(String),
 
     #[error("Element name \"{0}\" is duplicated in ElementDefs")]
     DuplicateElementDefsName(String),
+
+    #[error("Duplicate allowable element {0} at index {1} and {2}")]
+    DuplicateAllowableElement(&'a str, usize, usize),
+
+    #[error("Duplicate key {0} at index {1} and {2}")]
+    DuplicateKey(&'a str, usize, usize),
 
     #[error("XML parser error: {0}")]
     Error(Box<dyn std::error::Error>),
