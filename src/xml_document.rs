@@ -216,6 +216,7 @@ mod tests {
 
     use super::*;
     use crate::xml_definition::ElementDefinition;
+    use crate::xsd_schema::XSD_SCHEMA;
 
     static TEST_XML_DESC_TREE: XmlDefinition = XmlDefinition {
         root:   &XTCE,
@@ -235,106 +236,6 @@ mod tests {
     static A2: ElementDefinition = ElementDefinition{
         name:                   "a2",
         allowable_subelements:  &[&A1],
-    };
-
-    static TEST_XSD_DESC_TREE: XmlDefinition = XmlDefinition {
-        root: &XTCE_XSD,
-    };
-    static XTCE_XSD: ElementDefinition = ElementDefinition {
-        name:                   "XTCE",
-        allowable_subelements: &[&SCHEMA],
-    };
-    static ANNOTATION: ElementDefinition = ElementDefinition {
-        name: "annotation",
-        allowable_subelements: &[&DOCUMENTATION],
-    };
-    static APPINFO: ElementDefinition = ElementDefinition {
-        name: "appinfo",
-        allowable_subelements: &[],
-    };
-    static ATTRIBUTE: ElementDefinition = ElementDefinition {
-        name: "attribute",
-        allowable_subelements: &[],
-    };
-    static CHOICE: ElementDefinition = ElementDefinition {
-        name: "choice",
-        allowable_subelements: &[],
-    };
-    static COMPLEX_CONTENT: ElementDefinition = ElementDefinition {
-        name: "complexContent",
-        allowable_subelements: &[],
-    };
-    static COMPLEX_TYPE: ElementDefinition = ElementDefinition {
-        name: "complexType",
-        allowable_subelements: &[],
-    };
-    static DOCUMENTATION: ElementDefinition = ElementDefinition {
-        name: "documentation",
-        allowable_subelements: &[],
-    };
-    static ELEMENT: ElementDefinition = ElementDefinition {
-        name: "element",
-        allowable_subelements: &[&ANNOTATION, &KEY],
-    };
-    static ENUMERATION: ElementDefinition = ElementDefinition {
-        name: "enumeration",
-        allowable_subelements: &[],
-    };
-    static EXTENSION: ElementDefinition = ElementDefinition {
-        name: "extension",
-        allowable_subelements: &[],
-    };
-    static FIELD: ElementDefinition = ElementDefinition {
-        name: "field",
-        allowable_subelements: &[],
-    };
-    static IMPORT: ElementDefinition = ElementDefinition {
-        name: "import",
-        allowable_subelements: &[],
-    };
-    static KEY: ElementDefinition = ElementDefinition {
-        name: "key",
-        allowable_subelements: &[&ANNOTATION, &KEY],
-    };
-    static MAX_INCLUSIVE: ElementDefinition = ElementDefinition {
-        name: "maxInclusive",
-        allowable_subelements: &[],
-    };
-    static MIN_INCLUSIVE: ElementDefinition = ElementDefinition {
-        name: "minInclusive",
-        allowable_subelements: &[],
-    };
-    static PATTERN: ElementDefinition = ElementDefinition {
-        name: "pattern",
-        allowable_subelements: &[],
-    };
-    static RESTRICTION: ElementDefinition = ElementDefinition {
-        name: "restriction",
-        allowable_subelements: &[],
-    };
-    static SCHEMA: ElementDefinition = ElementDefinition {
-        name: "schema",
-        allowable_subelements: &[&IMPORT, &ANNOTATION, &ELEMENT],
-    };
-    static SELECTOR: ElementDefinition = ElementDefinition {
-        name: "selector",
-        allowable_subelements: &[],
-    };
-    static SEQUENCE: ElementDefinition = ElementDefinition {
-        name: "sequence",
-        allowable_subelements: &[],
-    };
-    static SIMPLE_CONTENT: ElementDefinition = ElementDefinition {
-        name: "simpleContent",
-        allowable_subelements: &[],
-    };
-    static SIMPLE_TYPE: ElementDefinition = ElementDefinition {
-        name: "simpleType",
-        allowable_subelements: &[],
-    };
-    static UNION: ElementDefinition = ElementDefinition {
-        name: "union",
-        allowable_subelements: &[],
     };
 
 /*
@@ -410,7 +311,7 @@ mod tests {
     #[test]
     fn test3() {
         println!("Test: test3");
-        println!("XML Definition: {}", TEST_XSD_DESC_TREE);
+        println!("XML Definition: {}", XSD_SCHEMA);
         println!();
 
         match XmlDocument::new("schema/SpaceSystem-patched.xsd", &TEST_XSD_DESC_TREE) {

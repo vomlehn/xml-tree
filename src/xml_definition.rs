@@ -31,19 +31,17 @@ if depth > 8 {
         const INDENT_STR: &str = "   ";
         let indent_string = INDENT_STR.to_string().repeat(depth);
 
-        write!(f, "{}", element_definition.name)?;
+        write!(f, "{}{}", indent_string, element_definition.name)?;
 
         let allowable_subelements = element_definition.allowable_subelements;
 
         if allowable_subelements.len() == 0 {
-            write!(f, "{}[]\n", indent_string)?;
+            write!(f, " []\n")?;
         } else {
-            write!(f, "{}[\n", indent_string)?;
+            write!(f, " [\n")?;
 
             for element_def in allowable_subelements.iter() {
-                write!(f, "{}{}\n", indent_string, element_def.name)?;
-                self.display_element_def(f, depth + 1,
-                    element_def)?;
+                self.display_element_def(f, depth + 1, element_def)?;
             }
 
             write!(f, "{}]\n", indent_string)?;
