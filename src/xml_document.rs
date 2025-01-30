@@ -2,6 +2,8 @@
  * Take an XML Definition tree and generate an XmlDocument
  */
 
+use petgraph::graph::{DiGraph, NodeIndex};
+use std::collections::HashMap;
 use std::fmt;
 use std::fs::File;
 use std::io::{BufReader, Read};
@@ -120,8 +122,8 @@ pub struct XmlDocument {
 }
 
 impl XmlDocument {
-    pub fn new<'b>(path: &'b str, xml_definition: &'b XmlDefinition) ->
-        Result<XmlDocument, XmlDocumentError<'b>> {
+    pub fn new<'a>(path: &str, xml_definition: &'a XmlDefinition) ->
+        Result<XmlDocument, XmlDocumentError<'a>> {
         let file = match File::open(path) {
             Err(e) => return Err(XmlDocumentError::Error(Box::new(e))),
             Ok(f) => f,
@@ -131,10 +133,10 @@ impl XmlDocument {
     }
 }
 
-impl<'a> XmlDocument {
-    pub fn new_from_reader<R: Read + 'a> (
+impl XmlDocument {
+    pub fn new_from_reader<'a, R: Read + 'a> (
         buf_reader: BufReader<R>,
-        xml_definition: &'a XmlDefinition<'_>) ->
+        xml_definition: &'a XmlDefinition) ->
         Result<XmlDocument, XmlDocumentError<'a>> {
 
         // Create the factory using the reader and XML definition
@@ -215,7 +217,6 @@ mod tests {
 //    use std::io::Cursor;
 
     use lazy_static::lazy_static;
-    use std::sync::Arc;
 
     use super::*;
 
@@ -223,47 +224,47 @@ mod tests {
     use crate::xsd_schema::XSD_SCHEMA;
 
     lazy_static!{
-        static ref TEST_XML_DESC_TREE: XmlDefinition<'static> = XmlDefinition {
-            root:                   None,
-            key:                    "XTCE",
-            element_definitions:    &element_definitions,
+        static ref TEST_XML_DESC_TREE: XmlDefinition = XmlDefinition {
+            root_index:                 None,
+            key:                        "XTCE".to_string(),
+            graph:                      DiGraph::<ElementDefinition, String>::new(),
+            element_definitions_map:    HashMap::<String, NodeIndex>::new(),
+            element_definitions:        vec![
+                ElementDefinition {
+                    name:                       "XTCE".to_string(),
+                    key:                        "XTCE".to_string(),
+                    allowable_subelements_map:  HashMap::<String, NodeIndex>::new(),
+                    allowable_subelement_keys:  vec!("SPACE_SYSTEM".to_string()),
+                },
+                ElementDefinition {
+                    name:                       "SpaceSystem".to_string(),
+                    key:                        "SpaceSystem".to_string(),
+                    allowable_subelements_map:  HashMap::<String, NodeIndex>::new(),
+                    allowable_subelement_keys:  vec!("A1".to_string()),
+                },
+                ElementDefinition{
+                    name:                       "a1".to_string(),
+                    key:                        "a1".to_string(),
+                    allowable_subelements_map:  HashMap::<String, NodeIndex>::new(),
+                    allowable_subelement_keys:  vec!("A2".to_string()),
+                },
+                ElementDefinition{
+                    name:                       "a2".to_string(),
+                    key:                        "a2".to_string(),
+                    allowable_subelements_map:  HashMap::<String, NodeIndex>::new(),
+                    allowable_subelement_keys:  vec!("A1".to_string()),
+                }
+            ]
         };
-
-        static ref element_definitions: Arc<[ElementDefinition<'static>]>  =
-            Arc::new([
-            ElementDefinition {
-                name:                       "XTCE",
-                key:                        "XTCE",
-                allowable_subelements:      Vec::<&ElementDefinition>::new(),
-                allowable_subelement_names: &["SPACE_SYSTEM"],
-            },
-            ElementDefinition {
-                name:                       "SpaceSystem",
-                key:                        "SpaceSystem",
-                allowable_subelements:      Vec::<&ElementDefinition>::new(),
-                allowable_subelement_names: &["A1"],
-            },
-            ElementDefinition{
-                name:                       "a1",
-                key:                        "a1",
-                allowable_subelements:      Vec::<&ElementDefinition>::new(),
-                allowable_subelement_names: &["A2"],
-            },
-            ElementDefinition{
-                name:                       "a2",
-                key:                        "a2",
-                allowable_subelements:      Vec::<&ElementDefinition>::new(),
-                allowable_subelement_names: &["A1"],
-            }
-        ]);
     }
 
     #[test]
     fn test1() {
         println!("Test: test1");
         TEST_XML_DESC_TREE.validate().unwrap();
+        // FIXME: Display not defined?
+        // println!("XML Definition: {}", TEST_XML_DESC_TREE);
 /*
-        println!("XML Definition: {}", TEST_XML_DESC_TREE);
         println!("Tree done");
 
         let input = r#"<?xml version="1.0"?>

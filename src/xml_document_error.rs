@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use thiserror::Error;
 use xml::reader::XmlEvent;
 
@@ -11,11 +12,11 @@ pub enum XmlDocumentError<'a> {
     #[error("Element name \"{0}\" is duplicated in ElementDefs")]
     DuplicateElementDefsName(String),
 
-    #[error("Duplicate allowable element {0} at index {1} and {2}")]
-    DuplicateAllowableElement(&'a str, usize, usize),
+    #[error("Duplicate allowable element {0} for Element {1}")]
+    DuplicateAllowableElement(&'a str, &'a str),
 
-    #[error("Duplicate key {0} at index {1} and {2}")]
-    DuplicateKey(&'a str, usize, usize),
+    #[error("Duplicate key {0}")]
+    DuplicateKey(Cow<'a, str>),
 
     #[error("XML parser error: {0}")]
     Error(Box<dyn std::error::Error>),
@@ -34,11 +35,14 @@ pub enum XmlDocumentError<'a> {
     NoDocumentFound(),
 
     #[error("No element \"{0}\" as referenced in element description for \"{1}\"")]
-    NoSuchElement(String, String),
+    NoSuchElement(&'a str, &'a str),
 
     // FIXME: need to fix this
     #[error("No XML elements in input")]
     NoXTCE(),
+
+    #[error("Allowable key \"{0}\" for element definition \"{1}\" not found in elements")]
+    AllowableKeyNotAnElement(Cow<'a, str>, Cow<'a, str>),
 
     #[error("Must have exactly one root element")]
     OnlyOneRootElementAllowed(),
@@ -52,8 +56,11 @@ pub enum XmlDocumentError<'a> {
     #[error("ElementDef name \"{0}\" not in ElementDescs")]
     ElementDefNotInElementDescs(String),
 
-    #[error("Root element \"{0}\" not found")]
-    RootNotFound(String),
+    #[error("Root key \"{0}\" not found")]
+    RootKeyNotFound(Cow<'a, str>),
+
+    #[error("Root is unexpectedly None")]
+    RootIsNone(),
 
     #[error("Unexpected XML error: {0:?}")]
     UnexpectedXml(XmlEvent),

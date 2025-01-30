@@ -1,8 +1,13 @@
 /*
  * Define the data structures used to describe the XML used for parsing.
  */
+// FIXME: make sure errors returned are appropriate
 
+use std::borrow::Cow;
+use std::collections::HashMap;
 use std::fmt;
+use petgraph::graph::{DiGraph, NodeIndex};
+use petgraph::prelude::Dfs;
 
 use crate::xml_document_error::XmlDocumentError;
 
@@ -11,90 +16,155 @@ use crate::xml_document_error::XmlDocumentError;
  * root:    Pointer to the root ElementDefinition
  * key:     Name of the root ElementDefinition
  */
-pub struct XmlDefinition<'a> {
-    pub root:                   Option<&'a ElementDefinition<'a>>,
-    pub key:                    &'a str,
-    pub element_definitions:    &'a [ElementDefinition<'a>],
+pub struct XmlDefinition {
+    pub root_index:                 Option<NodeIndex>,
+    pub key:                        String,
+    pub graph:                      DiGraph<ElementDefinition, String>,
+    pub element_definitions_map:    HashMap<String, NodeIndex>,
+    pub element_definitions:        Vec::<ElementDefinition>,
 }
 
-impl<'a> XmlDefinition<'a> {
-// FIXME: use this
-    pub fn validate(&self) -> Result<(), XmlDocumentError<'a>> {
-        // o    Make sure no duplications in element_definitions
-        // o    Ensure no duplicates in any element_definitions
-        // o    Ensure the root is in element_definitions
-        // o    Ensure at least one element
-        // There are faster ways to do these things
-        let def_len = self.element_definitions.len();
+#[derive(Clone)]
+pub struct ElementDefinition {
+    pub name:                       String,
+    pub key:                        String,
+    pub allowable_subelement_keys:  Vec<String>,
+    pub allowable_subelements_map:  HashMap<String, NodeIndex>,
+}
 
-        for (outer, outer_def) in
-            self.element_definitions[..def_len - 1].iter().enumerate()  {
-            let outer_key = outer_def.key;
+impl<'a> XmlDefinition {
+    pub fn patch(&mut self) -> Result<(), XmlDocumentError> {
+//        let nodes_patch = self.make_nodes_patch()?;
+//        let edges_patch = self.make_edges_patch()?;
+//        self.apply_nodes_patch(nodes_patch);
+//        self.apply_edges_patch(edges_patch);
+        let root_index = {
+            let index = self
+                .element_definitions_map
+                .get(&self.key)
+                .copied();
 
-            for (inner, inner_def) in
-                self.element_definitions[outer + 1..].iter().enumerate() {
-                let inner_key = inner_def.name;
-                if inner_key == outer_key {
-                    return Err(XmlDocumentError::DuplicateKey(inner_key,
-                        outer, outer + inner));
-                }
-            } 
+            index.ok_or_else(|| XmlDocumentError::RootKeyNotFound(Cow::Owned(self.key.clone())))?
+        };
 
-            let allowable_len = outer_def.allowable_subelements.len();
-
-            if allowable_len > 0 {
-                for (i, i_allowable) in
-                    outer_def.allowable_subelement_names[..allowable_len - 1].iter().enumerate() {
-                    for (j, j_allowable) in
-                        outer_def.allowable_subelement_names[i + 1..].iter().enumerate() {
-                        if i_allowable == j_allowable {
-                            return Err(XmlDocumentError::DuplicateAllowableElement(i_allowable, i, i + j));
-                        }
-                    }
-                }
-            }
-        }
+        self.root_index = Some(root_index);
         Ok(())
     }
 
+    fn make_nodes_patch(&self) ->
+        Result<Vec::<(String, ElementDefinition)>, XmlDocumentError> {
+        let mut patch = Vec::<(String, ElementDefinition)>::new();
+
+        for element_def in &self.element_definitions {
+            let element_key = element_def.key.clone();
+            patch.push((element_key.to_string(), element_def.clone()));
+        }
+
+        Ok(patch)
+    }
+
+    fn apply_nodes_patch(& mut self, patch: Vec::<(String, ElementDefinition)>) ->
+        Result<(), XmlDocumentError> {
+        for (element_key, element_def) in patch {
+            let node_index = self.graph.add_node(element_def.clone());
+            let element_key2 = element_key.clone();
+
+            match self
+                .element_definitions_map
+                .insert(element_key.clone(), node_index.clone()) {
+                None => {},
+                Some(_) => return Err(XmlDocumentError::DuplicateKey(Cow::Owned(element_key2.to_string()))),
+            }
+        }
+
+        Ok(())
+    }
+
+    fn make_edges_patch(&self) -> Result<Vec::<(NodeIndex, NodeIndex)>, XmlDocumentError> {
+        let mut patch = Vec::<(NodeIndex, NodeIndex)>::new();
+
+        for (_key, &to_patch_index) in self
+            .element_definitions_map
+            .iter()
+            .map(|(key, node_index)| (key, node_index)) {
+            let element_def = &self.graph[to_patch_index];
+            let element_def_key = element_def.key.clone();
+            for key in &element_def.allowable_subelement_keys {
+                let key2 = key.clone();
+                let patch_with_index = match self
+                    .element_definitions_map
+                    .get(key) {
+                    Some(&idx) => idx,
+                    None => return Err(XmlDocumentError::AllowableKeyNotAnElement(Cow::Owned(key2), Cow::Owned(element_def_key))),
+                };
+                patch.push((to_patch_index.clone(), patch_with_index.clone()));
+            }
+        }
+
+        Ok(patch)
+    }
+
+    fn apply_edges_patch(&mut self, patch: Vec::<(NodeIndex, NodeIndex)>) {
+
+        for (to_patch_index, patch_with_index) in patch {
+            self.graph.add_edge(to_patch_index, patch_with_index, "".to_string());
+        }
+    }
+
+
     pub fn display_element_def(&self, f: &mut fmt::Formatter<'_>, depth: usize,
         element_definition: &ElementDefinition) ->
-    fmt::Result {
-// FIXME: use a better way to detect the end. I need some way to uniquely
-// identify the ElementDefinitions
-if depth > 8 {
-    return Ok(());
-}
+        fmt::Result {
         const INDENT_STR: &str = "   ";
         let indent_string = INDENT_STR.to_string().repeat(depth);
 
-        write!(f, "{}{}", indent_string, element_definition.name)?;
+        write!(f, "{}{} [{}]", indent_string, element_definition.name,
+            element_definition.key)?;
 
-        let allowable_subelements = &element_definition.allowable_subelements;
+        let allowable_subelements = &element_definition.allowable_subelements_map;
 
         if allowable_subelements.len() == 0 {
             write!(f, " []\n")?;
         } else {
             write!(f, " [\n")?;
 
-            for element_def in allowable_subelements.iter() {
+/*
+            for element_def in allowable_subelements.values() {
+// FIXME: handle errors
                 self.display_element_def(f, depth + 1, element_def)?;
             }
 
+*/
             write!(f, "{}]\n", indent_string)?;
         }
 
         Ok(())
     }
 
+    pub fn validate(&self) -> Result<(), XmlDocumentError> {
+        println!("Not validating yet");
+        Ok(())
+    }
+
     pub fn display(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let depth = 0;
-        self.display_element_def(f, depth, self.root.unwrap())?;
+        
+        let root_index = match &self.root_index {
+            None => return Err(fmt::Error),
+            Some(idx) => idx,
+        };
+
+        let mut dfs = Dfs::new(&self.graph, *root_index);
+
+        while let Some(node_index) = dfs.next(&self.graph) {
+            self.display_element_def(f, depth, &self.graph[node_index])?;
+        }
+
         Ok(())
     }
 }
         
-impl fmt::Display for XmlDefinition<'_> {
+impl fmt::Display for XmlDefinition {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 write!(f, "{}\n", "Display for XmlDefinition")?;
         self.display(f)?;
@@ -102,38 +172,28 @@ write!(f, "{}\n", "Display for XmlDefinition")?;
     }
 }
 
-pub struct ElementDefinition<'a> {
-    pub name:                       &'a str,
-    pub key:                        &'a str,
-    pub allowable_subelements:      Vec<&'a ElementDefinition<'a>>,
-    pub allowable_subelement_names: &'a [&'a str],
-}
+impl<'a> ElementDefinition {
+    pub fn new(name: &str, key: &str, allowable_keys: Vec<String>) ->
+        ElementDefinition {
+        ElementDefinition {
+            name:                       name.to_string(),
+            key:                        key.to_string(),
+            allowable_subelement_keys:  allowable_keys,
+            allowable_subelements_map:  HashMap::<String, NodeIndex>::new(),
+        }
+    }
 
-impl<'a> ElementDefinition<'a> {
     pub fn display(&self, f: &mut fmt::Formatter<'_>, depth: usize) ->
         fmt::Result{
         const INDENT_SLOT: &str = "   ";
         let indent_str = INDENT_SLOT.repeat(depth);
-        write!(f, "{}{}\n", indent_str, self.name)?;
-        let sub_indent = INDENT_SLOT.repeat(depth + 1);
-        write!(f, "{}[\n", sub_indent)?;
-        for element_def in self.allowable_subelements.iter() {
-            element_def.display(f, depth)?;
-        }
-        write!(f, "{}]", sub_indent)?;
+        write!(f, "{}{} [{}]\n", indent_str, self.name, self.key)?;
         Ok(())
     }
 }
 
-impl<'a> fmt::Display for ElementDefinition<'a> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.display(f, 0)?;
-        Ok(())
-    }
-}
-
-impl<'a> fmt::Debug for ElementDefinition<'a> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl<'a> fmt::Display for ElementDefinition {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         self.display(f, 0)?;
         Ok(())
     }
