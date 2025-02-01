@@ -43,17 +43,17 @@ impl<'a> XmlDefinition {
             element_definitions:        element_definitions,
         };
 
-        xml_definition.patch().unwrap();
-        println!("In new(): {}", xml_definition);
+        let x = xml_definition.patch();
+        println!("new(): {:?}", x);
         xml_definition
     }
 
     pub fn patch(&mut self) -> Result<(), XmlDocumentError> {
         let nodes_patch = Self::make_nodes_patch(&self.element_definitions)?;
+        Self::apply_nodes_patch(&mut self.graph,
+            &mut self.element_definitions_map, nodes_patch)?;
         let edges_patch = Self::make_edges_patch(&mut self.element_definitions_map,
              &mut self.graph)?;
-        Self::apply_nodes_patch(&mut self.graph, &mut self.element_definitions_map,
-            nodes_patch)?;
         Self::apply_edges_patch(&mut self.graph, edges_patch);
         let root_index = {
             let index = self
@@ -78,6 +78,7 @@ println!("{}", self);
             patch.push((element_key.to_string(), element_def.clone()));
         }
 
+println!("make_nodes_patch: patch.len() {}", patch.len());
         Ok(patch)
     }
 
@@ -85,16 +86,22 @@ println!("{}", self);
         element_definitions_map: &mut HashMap<String, NodeIndex>,
         patch: Vec::<(String, ElementDefinition)>) ->
         Result<(), XmlDocumentError<'b>> {
+println!("apply_nodes_patch: patch has {} elements", patch.len());
         for (element_key, element_def) in patch {
+println!("add_node: {}", element_def.key);
             let node_index = graph.add_node(element_def.clone());
             let element_key2 = element_key.clone();
 
             match element_definitions_map
                 .insert(element_key.clone(), node_index.clone()) {
-                None => {},
-                Some(_) => return Err(XmlDocumentError::DuplicateKey(Cow::Owned(element_key2.to_string()))),
+                None => {println!("node {} inserted: None", element_key2)},
+                Some(idx) => {
+                    println!("node {} not inserted: Some {}", element_key2, graph[idx].key);
+                    return Err(XmlDocumentError::DuplicateKey(Cow::Owned(element_key2.to_string())))
+                    },
             }
         }
+println!("apply_nodes_patch: element_definitions.len() {}", element_definitions_map.len());
 
         Ok(())
     }
@@ -103,14 +110,18 @@ println!("{}", self);
         graph: &mut DiGraph<ElementDefinition, String>) ->
         Result<Vec::<(NodeIndex, NodeIndex)>, XmlDocumentError<'b>> {
         let mut patch = Vec::<(NodeIndex, NodeIndex)>::new();
+println!("make_edge_patch: element_definitions.len() {}", element_definitions_map.len());
 
         for (_key, &to_patch_index) in element_definitions_map
             .iter()
             .map(|(key, node_index)| (key, node_index)) {
             let element_def = &graph[to_patch_index];
             let element_def_key = element_def.key.clone();
+println!("key: {}", element_def_key);
+
             for key in &element_def.allowable_subelement_keys {
                 let key2 = key.clone();
+println!("    {}", key2);
                 let patch_with_index = match element_definitions_map
                     .get(key) {
                     Some(&idx) => idx,
@@ -120,13 +131,16 @@ println!("{}", self);
             }
         }
 
+println!("make_edges_patch: patch has {} elements", patch.len());
         Ok(patch)
     }
 
     fn apply_edges_patch(graph: &mut DiGraph<ElementDefinition, String>,
         patch: Vec::<(NodeIndex, NodeIndex)>) {
 
+
         for (to_patch_index, patch_with_index) in patch {
+println!("add edge from {} to {}", graph[to_patch_index], graph[patch_with_index]);
             graph.add_edge(to_patch_index, patch_with_index, "".to_string());
         }
     }

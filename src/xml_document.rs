@@ -234,19 +234,19 @@ mod tests {
                 },
                 ElementDefinition {
                     name:                       "SpaceSystem".to_string(),
-                    key:                        "SpaceSystem".to_string(),
+                    key:                        "SPACE_SYSTEM".to_string(),
                     allowable_subelements_map:  HashMap::<String, NodeIndex>::new(),
                     allowable_subelement_keys:  vec!("A1".to_string()),
                 },
                 ElementDefinition{
                     name:                       "a1".to_string(),
-                    key:                        "a1".to_string(),
+                    key:                        "A1".to_string(),
                     allowable_subelements_map:  HashMap::<String, NodeIndex>::new(),
                     allowable_subelement_keys:  vec!("A2".to_string()),
                 },
                 ElementDefinition{
                     name:                       "a2".to_string(),
-                    key:                        "a2".to_string(),
+                    key:                        "A2".to_string(),
                     allowable_subelements_map:  HashMap::<String, NodeIndex>::new(),
                     allowable_subelement_keys:  vec!("A1".to_string()),
                 }
