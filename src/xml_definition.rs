@@ -34,10 +34,12 @@ pub struct ElementDefinition {
 
 impl<'a> XmlDefinition {
     pub fn patch(&mut self) -> Result<(), XmlDocumentError> {
-//        let nodes_patch = self.make_nodes_patch()?;
-//        let edges_patch = self.make_edges_patch()?;
-//        self.apply_nodes_patch(nodes_patch);
-//        self.apply_edges_patch(edges_patch);
+        let nodes_patch = Self::make_nodes_patch(&self.element_definitions)?;
+        let edges_patch = Self::make_edges_patch(&mut self.element_definitions_map,
+             &mut self.graph)?;
+        Self::apply_nodes_patch(&mut self.graph, &mut self.element_definitions_map,
+            nodes_patch)?;
+        Self::apply_edges_patch(&mut self.graph, edges_patch);
         let root_index = {
             let index = self
                 .element_definitions_map
@@ -51,11 +53,11 @@ impl<'a> XmlDefinition {
         Ok(())
     }
 
-    fn make_nodes_patch(&self) ->
+    fn make_nodes_patch(element_definitions: &Vec<ElementDefinition>) ->
         Result<Vec::<(String, ElementDefinition)>, XmlDocumentError> {
         let mut patch = Vec::<(String, ElementDefinition)>::new();
 
-        for element_def in &self.element_definitions {
+        for element_def in element_definitions {
             let element_key = element_def.key.clone();
             patch.push((element_key.to_string(), element_def.clone()));
         }
@@ -63,14 +65,15 @@ impl<'a> XmlDefinition {
         Ok(patch)
     }
 
-    fn apply_nodes_patch(& mut self, patch: Vec::<(String, ElementDefinition)>) ->
-        Result<(), XmlDocumentError> {
+    fn apply_nodes_patch<'b>(graph: &mut DiGraph<ElementDefinition, String>,
+        element_definitions_map: &mut HashMap<String, NodeIndex>,
+        patch: Vec::<(String, ElementDefinition)>) ->
+        Result<(), XmlDocumentError<'b>> {
         for (element_key, element_def) in patch {
-            let node_index = self.graph.add_node(element_def.clone());
+            let node_index = graph.add_node(element_def.clone());
             let element_key2 = element_key.clone();
 
-            match self
-                .element_definitions_map
+            match element_definitions_map
                 .insert(element_key.clone(), node_index.clone()) {
                 None => {},
                 Some(_) => return Err(XmlDocumentError::DuplicateKey(Cow::Owned(element_key2.to_string()))),
@@ -80,19 +83,19 @@ impl<'a> XmlDefinition {
         Ok(())
     }
 
-    fn make_edges_patch(&self) -> Result<Vec::<(NodeIndex, NodeIndex)>, XmlDocumentError> {
+    fn make_edges_patch<'b>(element_definitions_map: &mut HashMap<String, NodeIndex>,
+        graph: &mut DiGraph<ElementDefinition, String>) ->
+        Result<Vec::<(NodeIndex, NodeIndex)>, XmlDocumentError<'b>> {
         let mut patch = Vec::<(NodeIndex, NodeIndex)>::new();
 
-        for (_key, &to_patch_index) in self
-            .element_definitions_map
+        for (_key, &to_patch_index) in element_definitions_map
             .iter()
             .map(|(key, node_index)| (key, node_index)) {
-            let element_def = &self.graph[to_patch_index];
+            let element_def = &graph[to_patch_index];
             let element_def_key = element_def.key.clone();
             for key in &element_def.allowable_subelement_keys {
                 let key2 = key.clone();
-                let patch_with_index = match self
-                    .element_definitions_map
+                let patch_with_index = match element_definitions_map
                     .get(key) {
                     Some(&idx) => idx,
                     None => return Err(XmlDocumentError::AllowableKeyNotAnElement(Cow::Owned(key2), Cow::Owned(element_def_key))),
@@ -104,10 +107,11 @@ impl<'a> XmlDefinition {
         Ok(patch)
     }
 
-    fn apply_edges_patch(&mut self, patch: Vec::<(NodeIndex, NodeIndex)>) {
+    fn apply_edges_patch(graph: &mut DiGraph<ElementDefinition, String>,
+        patch: Vec::<(NodeIndex, NodeIndex)>) {
 
         for (to_patch_index, patch_with_index) in patch {
-            self.graph.add_edge(to_patch_index, patch_with_index, "".to_string());
+            graph.add_edge(to_patch_index, patch_with_index, "".to_string());
         }
     }
 

@@ -2,8 +2,6 @@
  * Take an XML Definition tree and generate an XmlDocument
  */
 
-use petgraph::graph::{DiGraph, NodeIndex};
-use std::collections::HashMap;
 use std::fmt;
 use std::fs::File;
 use std::io::{BufReader, Read};
@@ -217,6 +215,8 @@ mod tests {
 //    use std::io::Cursor;
 
     use lazy_static::lazy_static;
+    use petgraph::graph::{DiGraph, NodeIndex};
+    use std::collections::HashMap;
 
     use super::*;
 
