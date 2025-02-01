@@ -33,6 +33,21 @@ pub struct ElementDefinition {
 }
 
 impl<'a> XmlDefinition {
+    pub fn new(key: String, element_definitions: Vec<ElementDefinition>) ->
+        XmlDefinition {
+        let mut xml_definition = XmlDefinition {
+            root_index:                 None,
+            key:                        key,
+            graph:                      DiGraph::<ElementDefinition, String>::new(),
+            element_definitions_map:    HashMap::<String, NodeIndex>::new(),
+            element_definitions:        element_definitions,
+        };
+
+        xml_definition.patch().unwrap();
+        println!("In new(): {}", xml_definition);
+        xml_definition
+    }
+
     pub fn patch(&mut self) -> Result<(), XmlDocumentError> {
         let nodes_patch = Self::make_nodes_patch(&self.element_definitions)?;
         let edges_patch = Self::make_edges_patch(&mut self.element_definitions_map,
@@ -50,6 +65,7 @@ impl<'a> XmlDefinition {
         };
 
         self.root_index = Some(root_index);
+println!("{}", self);
         Ok(())
     }
 
@@ -161,6 +177,7 @@ impl<'a> XmlDefinition {
         let mut dfs = Dfs::new(&self.graph, *root_index);
 
         while let Some(node_index) = dfs.next(&self.graph) {
+            println!("graph: {}", self.graph[node_index]);
             self.display_element_def(f, depth, &self.graph[node_index])?;
         }
 

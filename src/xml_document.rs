@@ -215,7 +215,7 @@ mod tests {
 //    use std::io::Cursor;
 
     use lazy_static::lazy_static;
-    use petgraph::graph::{DiGraph, NodeIndex};
+    use petgraph::graph::NodeIndex;
     use std::collections::HashMap;
 
     use super::*;
@@ -224,12 +224,8 @@ mod tests {
     use crate::xsd_schema::XSD_SCHEMA;
 
     lazy_static!{
-        static ref TEST_XML_DESC_TREE: XmlDefinition = XmlDefinition {
-            root_index:                 None,
-            key:                        "XTCE".to_string(),
-            graph:                      DiGraph::<ElementDefinition, String>::new(),
-            element_definitions_map:    HashMap::<String, NodeIndex>::new(),
-            element_definitions:        vec![
+        static ref TEST_XML_DESC_TREE: XmlDefinition =
+            XmlDefinition::new("XTCE".to_string(), vec![
                 ElementDefinition {
                     name:                       "XTCE".to_string(),
                     key:                        "XTCE".to_string(),
@@ -255,7 +251,7 @@ mod tests {
                     allowable_subelement_keys:  vec!("A1".to_string()),
                 }
             ]
-        };
+        );
     }
 
     #[test]
