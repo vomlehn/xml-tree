@@ -216,31 +216,28 @@ mod tests {
 
     use super::*;
 
-    use crate::xml_schema::{DefIdx, SchemaElement};
-    use crate::xsd_schema::XSD_SCHEMA;
+    use crate::xml_schema::SchemaElement;
 
     lazy_static!{
         static ref TEST_XML_DESC_TREE: XmlSchema =
-            XmlSchema::new("MySchema", vec!(
-                SchemaElement::new("XTCE", vec!(
+            XmlSchema::new("MySchema", SchemaElement::new("XTCE", vec!(
                     SchemaElement::new("SpaceSystem", vec!(
                         SchemaElement::new("a1", vec!(
-                            SchemaElement::new("a2"), vec!()),
-                        ),
+                            SchemaElement::new("a2", vec!()),
+                        )),
                         SchemaElement::new("a2", vec!(
                             SchemaElement::new("a1", vec!()),
                         )),
                     )),
                 )),
-            ));
+            );
     }
 
     #[test]
     fn test1() {
         println!("Test: test1");
-        TEST_XML_DESC_TREE.validate().unwrap();
-        // FIXME: Display not defined?
-        // println!("XML Definition: {}", TEST_XML_DESC_TREE);
+        (*TEST_XML_DESC_TREE).validate().unwrap();
+        println!("XML Definition: {}", *TEST_XML_DESC_TREE);
 /*
         println!("Tree done");
 
@@ -309,12 +306,12 @@ mod tests {
     }
 */
 
-/*
     #[test]
     fn test3() {
+        use crate::xsd_schema::XSD_SCHEMA;
+
         println!("Test: test3");
-        XSD_SCHEMA.validate();
-        println!("XML Definition: {}", XSD_SCHEMA);
+        println!("XML Definition: {}", *XSD_SCHEMA);
         println!();
 
         match XmlDocument::new("schema/SpaceSystem-patched.xsd",
@@ -323,5 +320,4 @@ mod tests {
             Ok(xml_document) => println!("XML Document: {}", xml_document),
         }
     }
-*/
 }

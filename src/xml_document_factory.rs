@@ -125,7 +125,7 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
                         namespace.clone());
                     
                     let mut element = self.process_element::<R>(xml_schema,
-                        &mut xml_schema.element, depth, start_name.clone(),
+                        &xml_schema.element, depth, start_name.clone(),
                         element_info)?;
                     element.before_element = pieces;
                     break element;
@@ -171,18 +171,6 @@ println!("Skipping processing_instruction");
          Ok(xml_document)
     }
 
-/*
-    // Find an SchemaElement whose name matches the given one
-    fn find_subelement (&self,
-        allowable_subelements: &[&SchemaElement], name: &str) ->
-        Option<&SchemaElement> {
-        let elem = allowable_subelements
-            .iter()
-            .find(move |&schema_element| schema_element.name == name);
-        elem.copied()
-    }
-*/
-
     /*
      * Parse the current element and subelements. The <StartElement> has
      * already been read, read up to, and including, the <EndElement>
@@ -192,20 +180,13 @@ println!("Skipping processing_instruction");
      * element_info_in:         Other information about the element
      */
     fn process_element<T: Read>(&mut self,
-        xml_schema: &XmlSchema, _element: &mut SchemaElement,
+        xml_schema: &XmlSchema, schema_element: &SchemaElement,
             depth: usize, name_in: OwnedName, element_info_in: ElementInfo) ->
         Result<Element, XmlDocumentError> {
         // First, we set up the element
         let mut pieces = Vec::<XmlEvent>::new();
 
         let mut element = Element::new(name_in.clone(), depth, element_info_in);
-
-/*
-        // Parse any subelements
-        let schema_element_in = &xml_schema.schema_elements[element_index];
-        let allowable_subelement_vec = &schema_element_in
-            .allowable_subelement_vec;
-*/
 
         loop {
             let xml_element = self.parser.next()?;
@@ -224,9 +205,8 @@ println!("Skipping processing_instruction");
                     let attributes2 = attributes.clone();
                     let namespace2 = namespace.clone();
 
-                    // FIXME: this doesn't handle nested scope
                     let next_schema_element =
-                        match self.element.get(start_name.local_name.as_str()) {
+                        match schema_element.get(start_name.local_name.as_str()) {
                             None => return Err(XmlDocumentError::UnknownElement(lineno,
                                 start_name.to_string())),
                             Some(elem) => elem,
@@ -235,16 +215,16 @@ println!("Skipping processing_instruction");
                     let element_info = ElementInfo::new(lineno,
                         attributes2.clone(), namespace2.clone());
                     let subelement = self.process_element::<R>(xml_schema,
-                        next_schema_element, depth,
+                        &next_schema_element, depth,
                         start_name.clone(), element_info.clone())?;
                     element.before_element = pieces;
                     element.subelements.push(subelement);
                     pieces = Vec::<XmlEvent>::new();
                 },
                 XmlEvent::EndElement{name} => {
-                    if name.local_name != element.name.local_name {
+                    if name.local_name != schema_element.name {
                         return Err(XmlDocumentError::MisplacedElementEnd(lineno,
-                            element.name.local_name, name.local_name.to_string()));
+                            schema_element.name.clone(), name.local_name.to_string()));
                     }
 
                     element.content = pieces;

@@ -36,7 +36,12 @@ pub struct XmlSchema {
 #[derive(Clone, Debug)]
 pub struct SchemaElement {
     pub name:           String,
+    pub attributes:     Vec<SchemaAttribute>,
     pub subelements:    Vec<SchemaElement>,
+}
+
+#[derive(Clone, Debug)]
+pub struct SchemaAttribute {
 }
 
 impl XmlSchema {
@@ -46,18 +51,7 @@ impl XmlSchema {
             element:    element,
         };
 
-        println!("new(): {:?}", xml_schema);
         xml_schema
-    }
-
-    pub fn get(&self, name: &str) -> Option<&SchemaElement> {
-        for element in &self.element.subelements {
-            if element.name == name {
-                return Some(element);
-            }
-        }
-
-        None
     }
 
     pub fn validate(&self) -> Result<(), XmlDocumentError> {
@@ -71,7 +65,7 @@ impl XmlSchema {
         const INDENT_STR: &str = "   ";
         let indent_string = INDENT_STR.to_string().repeat(depth);
 
-        write!(f, "{}{}", indent_string, element.name);
+        write!(f, "{}{}", indent_string, element.name)?;
         let subelements = &element.subelements;
 
         if subelements.len() == 0 {
@@ -111,7 +105,19 @@ impl SchemaElement {
         SchemaElement {
         SchemaElement {
             name:           name.to_string(),
+            attributes:     vec!(),
             subelements:    subelements,
+        }
+    }
+
+    // Find an SchemaElement whose name matches the given one
+    pub fn get(&self, name: &str) -> Option<&SchemaElement> {
+        match self
+            .subelements
+            .iter()
+            .find(move |&schema_element| schema_element.name == name) {
+            None => None,
+            Some(schema_elem) => Some(&schema_elem),
         }
     }
 
@@ -127,6 +133,19 @@ impl SchemaElement {
 impl fmt::Display for SchemaElement {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         self.display(f, 0)?;
+        Ok(())
+    }
+}
+
+impl SchemaAttribute {
+    pub fn new() -> SchemaAttribute {
+        SchemaAttribute {
+        }
+    }
+}
+
+impl fmt::Display for SchemaAttribute {
+    fn fmt(&self, _f: &mut fmt::Formatter) -> fmt::Result {
         Ok(())
     }
 }
