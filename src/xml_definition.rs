@@ -3,43 +3,53 @@
  */
 // FIXME: make sure errors returned are appropriate
 
-use std::borrow::Cow;
 use std::collections::HashMap;
 use std::fmt;
-use petgraph::graph::{DiGraph, NodeIndex};
-use petgraph::prelude::Dfs;
 
 use crate::xml_document_error::XmlDocumentError;
 
+pub type DefIdx = usize;
+
 /*
  * Top-level definition of the schema
- * root:    Pointer to the root ElementDefinition
- * key:     Name of the root ElementDefinition
+ * root_index:              Indicates which ElementDefinition is the root
+ * key:                     Name of the root ElementDefinition
+ * element_definitions_map: HashMap with they ElementDefinition key as the
+ *                          key and the value an index into element_definitions
+ * element_definitions:     Array of ElementDefinition
  */
 pub struct XmlDefinition {
-    pub root_index:                 Option<NodeIndex>,
+    pub root_index:                 Option<DefIdx>,
     pub key:                        String,
-    pub graph:                      DiGraph<ElementDefinition, String>,
-    pub element_definitions_map:    HashMap<String, NodeIndex>,
+    pub element_definitions_map:    HashMap<String, DefIdx>,
     pub element_definitions:        Vec::<ElementDefinition>,
 }
 
+/*
+ * Information for each XML Element
+ * name:                        Element name, which might not be unique
+ * key:                         Key for this ElementDescription, which must be
+ *                              unique
+ * allowable_subelement_keys:   Keys indicating the subelements of this
+ *                              ElementDefinition.
+ * allowable_subelement_vec:   Array with the indices into element_definitions
+ *                              for each item in allowable_element_keys
+ */
 #[derive(Clone)]
 pub struct ElementDefinition {
     pub name:                       String,
     pub key:                        String,
     pub allowable_subelement_keys:  Vec<String>,
-    pub allowable_subelements_map:  HashMap<String, NodeIndex>,
+    pub allowable_subelement_vec:   Vec<DefIdx>,
 }
 
-impl<'a> XmlDefinition {
+impl XmlDefinition {
     pub fn new(key: String, element_definitions: Vec<ElementDefinition>) ->
         XmlDefinition {
         let mut xml_definition = XmlDefinition {
             root_index:                 None,
             key:                        key,
-            graph:                      DiGraph::<ElementDefinition, String>::new(),
-            element_definitions_map:    HashMap::<String, NodeIndex>::new(),
+            element_definitions_map:    HashMap::<String, DefIdx>::new(),
             element_definitions:        element_definitions,
         };
 
@@ -49,55 +59,68 @@ impl<'a> XmlDefinition {
     }
 
     pub fn patch(&mut self) -> Result<(), XmlDocumentError> {
-        let nodes_patch = Self::make_nodes_patch(&self.element_definitions)?;
-        Self::apply_nodes_patch(&mut self.graph,
-            &mut self.element_definitions_map, nodes_patch)?;
-        let edges_patch = Self::make_edges_patch(&mut self.element_definitions_map,
-             &mut self.graph)?;
-        Self::apply_edges_patch(&mut self.graph, edges_patch);
-        let root_index = {
-            let index = self
-                .element_definitions_map
-                .get(&self.key)
-                .copied();
+        let patches = Self::make_patches(&self.element_definitions,
+            &self.element_definitions_map)?;
 
-            index.ok_or_else(|| XmlDocumentError::RootKeyNotFound(Cow::Owned(self.key.clone())))?
-        };
+    for (key, index) in &patches.0 {
+        println!("Element Key: {}, Allowable Subelements: {:?}", key, index);
+    }
 
-        self.root_index = Some(root_index);
-println!("{}", self);
+        Self::apply_patches(&mut self.element_definitions,
+            &mut self.element_definitions_map, patches)?;
+
         Ok(())
     }
 
-    fn make_nodes_patch(element_definitions: &Vec<ElementDefinition>) ->
-        Result<Vec::<(String, ElementDefinition)>, XmlDocumentError> {
-        let mut patch = Vec::<(String, ElementDefinition)>::new();
-
-        for element_def in element_definitions {
-            let element_key = element_def.key.clone();
-            patch.push((element_key.to_string(), element_def.clone()));
-        }
-
-println!("make_nodes_patch: patch.len() {}", patch.len());
-        Ok(patch)
+    fn make_patches(element_definitions: &Vec<ElementDefinition>,
+        element_definitions_map: &HashMap<String, DefIdx>) ->
+        Result<(Vec<(String, DefIdx)>, Vec::<(DefIdx, DefIdx)>),
+            XmlDocumentError> {
+        let element_patch = Self::make_element_patch(element_definitions)?;
+        let subelement_patch = Self::make_subelement_patch(element_definitions,
+            element_definitions_map)?;
+        Ok((element_patch, subelement_patch))
     }
 
-    fn apply_nodes_patch<'b>(graph: &mut DiGraph<ElementDefinition, String>,
-        element_definitions_map: &mut HashMap<String, NodeIndex>,
-        patch: Vec::<(String, ElementDefinition)>) ->
-        Result<(), XmlDocumentError<'b>> {
+    fn apply_patches(element_definitions: &mut Vec<ElementDefinition>,
+        element_definitions_map: &mut HashMap<String, DefIdx>,
+        (element_patch, subelement_patch): (Vec<(String, DefIdx)>,Vec<(DefIdx, DefIdx)>)) ->
+        Result<(), XmlDocumentError> {
+        Self::apply_element_patch(element_definitions, element_definitions_map,
+            element_patch)?;
+        Self::apply_subelement_patch(element_definitions, subelement_patch)?;
+        Ok(())
+    }
+
+    /*
+     * Create a patch relating keys to ElementDefinition indices
+     */
+    fn make_element_patch(element_definitions: &Vec<ElementDefinition>) 
+        -> Result<Vec<(String, usize)>, XmlDocumentError> {
+        Ok(element_definitions
+            .iter()
+            .enumerate() // (index, &ElementDefinition)
+            .map(|(index, element)| (element.key.clone(), index)) // Clone key to make it owned
+            .collect() // Collect into Vec<(usize, String)>, which owns its data
+        )
+    }
+
+    fn apply_element_patch(element_definitions: &Vec<ElementDefinition>,
+        element_definitions_map: &mut HashMap<String, DefIdx>,
+        patch: Vec::<(String, DefIdx)>) ->
+        Result<(), XmlDocumentError> {
 println!("apply_nodes_patch: patch has {} elements", patch.len());
-        for (element_key, element_def) in patch {
-println!("add_node: {}", element_def.key);
-            let node_index = graph.add_node(element_def.clone());
+        for (element_key, index) in patch {
+println!("add_node: {}", element_key);
             let element_key2 = element_key.clone();
 
+println!("apply_element_patch: add ({}, {})", element_key, index);
             match element_definitions_map
-                .insert(element_key.clone(), node_index.clone()) {
+                .insert(element_key.clone(), index) {
                 None => {println!("node {} inserted: None", element_key2)},
                 Some(idx) => {
-                    println!("node {} not inserted: Some {}", element_key2, graph[idx].key);
-                    return Err(XmlDocumentError::DuplicateKey(Cow::Owned(element_key2.to_string())))
+                    println!("node {} not inserted: Some {}", element_key2, element_definitions[idx].key);
+                    return Err(XmlDocumentError::DuplicateKey(element_key2.to_string()))
                     },
             }
         }
@@ -106,26 +129,25 @@ println!("apply_nodes_patch: element_definitions.len() {}", element_definitions_
         Ok(())
     }
 
-    fn make_edges_patch<'b>(element_definitions_map: &mut HashMap<String, NodeIndex>,
-        graph: &mut DiGraph<ElementDefinition, String>) ->
-        Result<Vec::<(NodeIndex, NodeIndex)>, XmlDocumentError<'b>> {
-        let mut patch = Vec::<(NodeIndex, NodeIndex)>::new();
+    fn make_subelement_patch(element_definitions: &Vec<ElementDefinition>,
+        element_definitions_map: &HashMap<String, DefIdx>)  ->
+        Result<Vec::<(DefIdx, DefIdx)>, XmlDocumentError> {
+        let mut patch = Vec::<(DefIdx, DefIdx)>::new();
 println!("make_edge_patch: element_definitions.len() {}", element_definitions_map.len());
 
-        for (_key, &to_patch_index) in element_definitions_map
-            .iter()
-            .map(|(key, node_index)| (key, node_index)) {
-            let element_def = &graph[to_patch_index];
-            let element_def_key = element_def.key.clone();
+        for (to_patch_index, &ref _element_def) in element_definitions.into_iter().enumerate() {
+            let element_def_key = element_definitions[to_patch_index].key.to_string();
 println!("key: {}", element_def_key);
 
-            for key in &element_def.allowable_subelement_keys {
+// FIXME: avoid this clone
+            for (_j, key) in element_definitions[to_patch_index].allowable_subelement_keys.clone().into_iter().enumerate() {
                 let key2 = key.clone();
 println!("    {}", key2);
+
                 let patch_with_index = match element_definitions_map
-                    .get(key) {
+                    .get(&key) {
                     Some(&idx) => idx,
-                    None => return Err(XmlDocumentError::AllowableKeyNotAnElement(Cow::Owned(key2), Cow::Owned(element_def_key))),
+                    None => return Err(XmlDocumentError::AllowableKeyNotAnElement(key2, element_def_key)),
                 };
                 patch.push((to_patch_index.clone(), patch_with_index.clone()));
             }
@@ -135,41 +157,10 @@ println!("make_edges_patch: patch has {} elements", patch.len());
         Ok(patch)
     }
 
-    fn apply_edges_patch(graph: &mut DiGraph<ElementDefinition, String>,
-        patch: Vec::<(NodeIndex, NodeIndex)>) {
-
-
+    fn apply_subelement_patch(element_definitions: &mut Vec<ElementDefinition>,
+        patch: Vec::<(DefIdx, DefIdx)>) -> Result<(), XmlDocumentError> {
         for (to_patch_index, patch_with_index) in patch {
-println!("add edge from {} to {}", graph[to_patch_index], graph[patch_with_index]);
-            graph.add_edge(to_patch_index, patch_with_index, "".to_string());
-        }
-    }
-
-
-    pub fn display_element_def(&self, f: &mut fmt::Formatter<'_>, depth: usize,
-        element_definition: &ElementDefinition) ->
-        fmt::Result {
-        const INDENT_STR: &str = "   ";
-        let indent_string = INDENT_STR.to_string().repeat(depth);
-
-        write!(f, "{}{} [{}]", indent_string, element_definition.name,
-            element_definition.key)?;
-
-        let allowable_subelements = &element_definition.allowable_subelements_map;
-
-        if allowable_subelements.len() == 0 {
-            write!(f, " []\n")?;
-        } else {
-            write!(f, " [\n")?;
-
-/*
-            for element_def in allowable_subelements.values() {
-// FIXME: handle errors
-                self.display_element_def(f, depth + 1, element_def)?;
-            }
-
-*/
-            write!(f, "{}]\n", indent_string)?;
+            element_definitions[to_patch_index].allowable_subelement_vec.push(patch_with_index);
         }
 
         Ok(())
@@ -180,20 +171,42 @@ println!("add edge from {} to {}", graph[to_patch_index], graph[patch_with_index
         Ok(())
     }
 
-    pub fn display(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    pub fn display_element_def(&self, f: &mut fmt::Formatter, depth: DefIdx,
+        element_def: &ElementDefinition) ->
+        fmt::Result {
+        const INDENT_STR: &str = "   ";
+        let indent_string = INDENT_STR.to_string().repeat(depth);
+
+        write!(f, "{}{} [{}]", indent_string, element_def.name,
+            element_def.key)?;
+
+        let allowable_subelements = &element_def.allowable_subelement_vec;
+
+        if allowable_subelements.len() == 0 {
+            write!(f, " []\n")?;
+        } else {
+            write!(f, " [\n")?;
+
+            for i in &element_def.allowable_subelement_vec {
+                self.display_element_def(f, depth + 1, &self.element_definitions[*i])?;
+            }
+
+            write!(f, "{}]\n", indent_string)?;
+        }
+
+        Ok(())
+    }
+
+
+    pub fn display(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let depth = 0;
         
-        let root_index = match &self.root_index {
+        let root_index = match self.root_index {
             None => return Err(fmt::Error),
             Some(idx) => idx,
         };
 
-        let mut dfs = Dfs::new(&self.graph, *root_index);
-
-        while let Some(node_index) = dfs.next(&self.graph) {
-            println!("graph: {}", self.graph[node_index]);
-            self.display_element_def(f, depth, &self.graph[node_index])?;
-        }
+        self.display_element_def(f, depth, &self.element_definitions[root_index])?;
 
         Ok(())
     }
@@ -207,18 +220,18 @@ write!(f, "{}\n", "Display for XmlDefinition")?;
     }
 }
 
-impl<'a> ElementDefinition {
+impl ElementDefinition {
     pub fn new(name: &str, key: &str, allowable_keys: Vec<String>) ->
         ElementDefinition {
         ElementDefinition {
             name:                       name.to_string(),
             key:                        key.to_string(),
             allowable_subelement_keys:  allowable_keys,
-            allowable_subelements_map:  HashMap::<String, NodeIndex>::new(),
+            allowable_subelement_vec:   Vec::<DefIdx>::new(),
         }
     }
 
-    pub fn display(&self, f: &mut fmt::Formatter<'_>, depth: usize) ->
+    pub fn display(&self, f: &mut fmt::Formatter, depth: DefIdx) ->
         fmt::Result{
         const INDENT_SLOT: &str = "   ";
         let indent_str = INDENT_SLOT.repeat(depth);
@@ -227,7 +240,7 @@ impl<'a> ElementDefinition {
     }
 }
 
-impl<'a> fmt::Display for ElementDefinition {
+impl fmt::Display for ElementDefinition {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         self.display(f, 0)?;
         Ok(())

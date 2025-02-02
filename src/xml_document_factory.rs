@@ -4,7 +4,6 @@
  */
 // FIXME: delete all uses of expect(), everywhere
 
-use petgraph::graph::NodeIndex;
 use std::collections::HashMap;
 use std::fmt;
 use std::io::{Read};
@@ -12,7 +11,7 @@ use xml::name::OwnedName;
 use xml::reader::XmlEvent;
 
 use crate::parser::Parser;
-use crate::xml_definition::{XmlDefinition, ElementDefinition};
+use crate::xml_definition::{DefIdx, XmlDefinition, ElementDefinition};
 pub use crate::xml_document::{DocumentInfo, Element, ElementInfo, XmlDocument};
 pub use crate::xml_document_error::XmlDocumentError;
 
@@ -33,23 +32,23 @@ impl fmt::Display for XmlDocumentFactoryDef<'_> {
  * factory_defs     Hash table that makes it faster to get from an element
  *                  name to the corresponding entry in xml_definition.
  */
-pub struct XmlDocumentFactory<'a, R: Read> {
-    parser:             Parser<'a, R>,
+pub struct XmlDocumentFactory<'a, R: Read + 'a> {
+    parser:             Parser<R>,
     pub xml_definition: &'a XmlDefinition,
     factory_defs:       HashMap<&'a str, XmlDocumentFactoryDef<'a>>
 }
 
-impl<'a, R: Read + 'a> XmlDocumentFactory<'a, R> {
-    pub fn new_from_reader<T: Read + 'a>(reader: T,
-        xml_definition: &'a XmlDefinition) ->
-        Result<XmlDocument, XmlDocumentError<'a>> {
+impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
+    pub fn new_from_reader<T: Read>(reader: T,
+        xml_definition: &XmlDefinition) ->
+        Result<XmlDocument, XmlDocumentError> {
         
         let parser = Parser::<T>::new(reader);
 
         let xml_factory = XmlDocumentFactory::<T> {
             parser:         parser,
             xml_definition: xml_definition,
-            factory_defs:   HashMap::<&'a str, XmlDocumentFactoryDef<'a>>::new(),
+            factory_defs:   HashMap::<&str, XmlDocumentFactoryDef>::new(),
         };
 
         xml_factory.parse_end_document(xml_definition)
@@ -58,8 +57,8 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'a, R> {
     /*
      * Parse the StartDocument event.
      */
-    fn parse_start_document<'b>(&mut self) ->
-        Result<DocumentInfo, XmlDocumentError<'a>> {
+    fn parse_start_document(&mut self) ->
+        Result<DocumentInfo, XmlDocumentError> {
         let mut comments_before = Vec::<XmlEvent>::new();
 
         let document_info = loop {
@@ -101,7 +100,7 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'a, R> {
      * Parse until we find an EndDocument, filling in the 
      */
     fn parse_end_document(mut self, xml_definition: &XmlDefinition) ->
-        Result<XmlDocument, XmlDocumentError<'a>> {
+        Result<XmlDocument, XmlDocumentError> {
         let mut pieces = Vec::<XmlEvent>::new();
         let document_info = self.parse_start_document()?;
         let start_name =
@@ -174,9 +173,9 @@ println!("Skipping processing_instruction");
 
 /*
     // Find an ElementDefinition whose name matches the given one
-    fn find_subelement<'b> (&self,
-        allowable_subelements: &'b[&'b ElementDefinition<'b>], name: &str) ->
-        Option<&'b ElementDefinition<'b>> {
+    fn find_subelement (&self,
+        allowable_subelements: &[&ElementDefinition], name: &str) ->
+        Option<&ElementDefinition> {
         let elem = allowable_subelements
             .iter()
             .find(move |&element_def| element_def.name == name);
@@ -192,19 +191,21 @@ println!("Skipping processing_instruction");
      * name_in:                 Name of the element
      * element_info_in:         Other information about the element
      */
-    fn process_element<T: Read + 'a>(&mut self,
-        xml_definition: &XmlDefinition, element_index: NodeIndex, depth: usize,
+    fn process_element<T: Read>(&mut self,
+        xml_definition: &XmlDefinition, _element_index: DefIdx, depth: usize,
         name_in: OwnedName, element_info_in: ElementInfo) ->
-        Result<Element, XmlDocumentError<'a>> {
+        Result<Element, XmlDocumentError> {
         // First, we set up the element
         let mut pieces = Vec::<XmlEvent>::new();
 
         let mut element = Element::new(name_in.clone(), depth, element_info_in);
 
+/*
         // Parse any subelements
-        let element_definition_in = &xml_definition.graph[element_index];
-        let allowable_subelements_map = &element_definition_in
-            .allowable_subelements_map;
+        let element_definition_in = &xml_definition.element_definitions[element_index];
+        let allowable_subelement_vec = &element_definition_in
+            .allowable_subelement_vec;
+*/
 
         loop {
             let xml_element = self.parser.next()?;
@@ -223,8 +224,9 @@ println!("Skipping processing_instruction");
                     let attributes2 = attributes.clone();
                     let namespace2 = namespace.clone();
 
+                    // FIXME: this doesn't handle nested scope
                     let subelement_index =
-                        match allowable_subelements_map.get(start_name.local_name.as_str()) {
+                        match self.xml_definition.element_definitions_map.get(start_name.local_name.as_str()) {
                             None => return Err(XmlDocumentError::UnknownElement(lineno,
                                 start_name.to_string())),
                             Some(idx) => idx,
@@ -276,7 +278,7 @@ println!("Skipping processing_instruction");
 impl<R: Read> fmt::Display for XmlDocumentFactory<'_, R> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let root_index = self.xml_definition.root_index.unwrap();
-        write!(f, "{}", self.xml_definition.graph[root_index].name)?;
+        write!(f, "{}", self.xml_definition.element_definitions[root_index].name)?;
         for factory_desc in self.factory_defs.values() {
             write!(f, "{}", factory_desc.element_definition.name)?;
         }

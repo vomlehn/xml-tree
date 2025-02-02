@@ -39,13 +39,13 @@ impl fmt::Display for XmlElement {
     }
 }
 
-pub struct Parser<'a, R: Read> {
+pub struct Parser<R: Read> {
     lineno_ref:     Rc<RefCell<LineNumber>>,
-    pending:        Option<Result<XmlElement, XmlDocumentError<'a>>>,
+    pending:        Option<Result<XmlElement, XmlDocumentError>>,
     event_reader:   EventReader<LinenoReader<R>>,
 }
 
-impl<'a, R: Read> Parser<'a, R> {
+impl<R: Read> Parser<R> {
     pub fn new(reader: R) -> Self {
         let line_reader = LinenoReader::new(reader);
         let lineno_ref = line_reader.lineno_ref();
@@ -61,7 +61,7 @@ impl<'a, R: Read> Parser<'a, R> {
     /*
      * Read the next XmlElement. Each read returns a new value.
      */
-    pub fn next(&mut self) -> Result<XmlElement, XmlDocumentError<'a>> {
+    pub fn next(&mut self) -> Result<XmlElement, XmlDocumentError> {
         self.skip();
         self.lookahead()
     }
@@ -78,7 +78,7 @@ impl<'a, R: Read> Parser<'a, R> {
      * Read the next XmlElement from the input stream, disc without removing
      * it from the stream.
      */
-pub fn lookahead(&mut self) -> Result<XmlElement, XmlDocumentError<'a>> {
+pub fn lookahead(&mut self) -> Result<XmlElement, XmlDocumentError> {
     if self.pending.is_none() {
         let lineno = *self.lineno_ref.borrow();
         let evt = self.event_reader.next();
@@ -101,7 +101,7 @@ pub fn lookahead(&mut self) -> Result<XmlElement, XmlDocumentError<'a>> {
 }
 
 /*
-    pub fn lookahead(&mut self) -> Result<&XmlElement, XmlDocumentError<'a>> {
+    pub fn lookahead(&mut self) -> Result<&XmlElement, XmlDocumentError> {
         if self.pending.is_none() {
             let lineno = *self.lineno_ref.borrow();
             let evt = self.event_reader.next();
@@ -136,7 +136,7 @@ pub fn lookahead(&mut self) -> Result<XmlElement, XmlDocumentError<'a>> {
     }
 */
 /*
-    pub fn lookahead(&mut self) -> Result<&XmlElement, XmlDocumentError<'a>> {
+    pub fn lookahead(&mut self) -> Result<&XmlElement, XmlDocumentError> {
         let lineno = *self.lineno_ref.borrow();
 
         if self.pending.is_none() {
@@ -158,7 +158,7 @@ pub fn lookahead(&mut self) -> Result<XmlElement, XmlDocumentError<'a>> {
 */
 }
 
-impl <'a, R: Read> fmt::Debug for Parser<'a, R> {
+impl <R: Read> fmt::Debug for Parser<R> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Parser: lineno: {}", *self.lineno_ref.borrow())
     }

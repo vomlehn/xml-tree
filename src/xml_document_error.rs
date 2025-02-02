@@ -1,11 +1,10 @@
-use std::borrow::Cow;
 use thiserror::Error;
 use xml::reader::XmlEvent;
 
 use crate::parser::{LineNumber};
 
 #[derive(Debug, Error)]
-pub enum XmlDocumentError<'a> {
+pub enum XmlDocumentError {
     #[error("Can't insert element \"{0}\", is it a duplication?")]
     CantInsertElement(String),
 
@@ -13,10 +12,10 @@ pub enum XmlDocumentError<'a> {
     DuplicateElementDefsName(String),
 
     #[error("Duplicate allowable element {0} for Element {1}")]
-    DuplicateAllowableElement(&'a str, &'a str),
+    DuplicateAllowableElement(String, String),
 
     #[error("Duplicate key {0}")]
-    DuplicateKey(Cow<'a, str>),
+    DuplicateKey(String),
 
     #[error("XML parser error: {0}")]
     Error(Box<dyn std::error::Error>),
@@ -35,14 +34,14 @@ pub enum XmlDocumentError<'a> {
     NoDocumentFound(),
 
     #[error("No element \"{0}\" as referenced in element description for \"{1}\"")]
-    NoSuchElement(&'a str, &'a str),
+    NoSuchElement(String, String),
 
     // FIXME: need to fix this
     #[error("No XML elements in input")]
     NoXTCE(),
 
     #[error("Allowable key \"{0}\" for element definition \"{1}\" not found in elements")]
-    AllowableKeyNotAnElement(Cow<'a, str>, Cow<'a, str>),
+    AllowableKeyNotAnElement(String, String),
 
     #[error("Must have exactly one root element")]
     OnlyOneRootElementAllowed(),
@@ -57,7 +56,7 @@ pub enum XmlDocumentError<'a> {
     ElementDefNotInElementDescs(String),
 
     #[error("Root key \"{0}\" not found")]
-    RootKeyNotFound(Cow<'a, str>),
+    RootKeyNotFound(String),
 
     #[error("Root is unexpectedly None")]
     RootIsNone(),

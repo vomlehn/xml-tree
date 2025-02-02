@@ -49,7 +49,7 @@ pub struct Element {
 }
 
 impl Element {
-    pub fn new<'b>(name: OwnedName, depth: usize, element_info: ElementInfo) ->
+    pub fn new(name: OwnedName, depth: usize, element_info: ElementInfo) ->
         Element {
         Element {
             name:               name,
@@ -120,8 +120,8 @@ pub struct XmlDocument {
 }
 
 impl XmlDocument {
-    pub fn new<'a>(path: &str, xml_definition: &'a XmlDefinition) ->
-        Result<XmlDocument, XmlDocumentError<'a>> {
+    pub fn new(path: &str, xml_definition: &XmlDefinition) ->
+        Result<XmlDocument, XmlDocumentError> {
         let file = match File::open(path) {
             Err(e) => return Err(XmlDocumentError::Error(Box::new(e))),
             Ok(f) => f,
@@ -132,10 +132,10 @@ impl XmlDocument {
 }
 
 impl XmlDocument {
-    pub fn new_from_reader<'a, R: Read + 'a> (
+    pub fn new_from_reader<R: Read> (
         buf_reader: BufReader<R>,
-        xml_definition: &'a XmlDefinition) ->
-        Result<XmlDocument, XmlDocumentError<'a>> {
+        xml_definition: &XmlDefinition) ->
+        Result<XmlDocument, XmlDocumentError> {
 
         // Create the factory using the reader and XML definition
         let xml_document = XmlDocumentFactory::<R>::new_from_reader(buf_reader,
@@ -203,7 +203,7 @@ println!("display");
     }
 }
         
-impl<'a> fmt::Display for XmlDocument {
+impl fmt::Display for XmlDocument {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 println!("XmlDocument::fmt()");
         self.display(f)
@@ -212,15 +212,11 @@ println!("XmlDocument::fmt()");
 
 #[cfg(test)]
 mod tests {
-//    use std::io::Cursor;
-
     use lazy_static::lazy_static;
-    use petgraph::graph::NodeIndex;
-    use std::collections::HashMap;
 
     use super::*;
 
-    use crate::xml_definition::ElementDefinition;
+    use crate::xml_definition::{DefIdx, ElementDefinition};
     use crate::xsd_schema::XSD_SCHEMA;
 
     lazy_static!{
@@ -229,25 +225,25 @@ mod tests {
                 ElementDefinition {
                     name:                       "XTCE".to_string(),
                     key:                        "XTCE".to_string(),
-                    allowable_subelements_map:  HashMap::<String, NodeIndex>::new(),
+                    allowable_subelement_vec:   Vec::<DefIdx>::new(),
                     allowable_subelement_keys:  vec!("SPACE_SYSTEM".to_string()),
                 },
                 ElementDefinition {
                     name:                       "SpaceSystem".to_string(),
                     key:                        "SPACE_SYSTEM".to_string(),
-                    allowable_subelements_map:  HashMap::<String, NodeIndex>::new(),
+                    allowable_subelement_vec:   Vec::<DefIdx>::new(),
                     allowable_subelement_keys:  vec!("A1".to_string()),
                 },
                 ElementDefinition{
                     name:                       "a1".to_string(),
                     key:                        "A1".to_string(),
-                    allowable_subelements_map:  HashMap::<String, NodeIndex>::new(),
+                    allowable_subelement_vec:   Vec::<DefIdx>::new(),
                     allowable_subelement_keys:  vec!("A2".to_string()),
                 },
                 ElementDefinition{
                     name:                       "a2".to_string(),
                     key:                        "A2".to_string(),
-                    allowable_subelements_map:  HashMap::<String, NodeIndex>::new(),
+                    allowable_subelement_vec:   Vec::<DefIdx>::new(),
                     allowable_subelement_keys:  vec!("A1".to_string()),
                 }
             ]
