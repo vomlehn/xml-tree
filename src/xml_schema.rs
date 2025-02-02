@@ -11,16 +11,16 @@ pub type DefIdx = usize;
 
 /*
  * Top-level definition of the schema
- * root_index:              Indicates which ElementDefinition is the root
- * key:                     Name of the root ElementDefinition
- * element_definitions_map: HashMap with they ElementDefinition key as the
- *                          key and the value an index into element_definitions
- * element_definitions:     Array of ElementDefinition
+ * root_index:              Indicates which SchemaElement is the root
+ * key:                     Name of the root SchemaElement
+ * schema_elements_map: HashMap with they SchemaElement key as the
+ *                          key and the value an index into schema_elements
+ * schema_elements:     Array of SchemaElement
  */
 #[derive(Debug)]
-pub struct XmlDefinition {
+pub struct XmlSchema {
     pub name:       String,
-    pub element:    ElementDefinition,
+    pub element:    SchemaElement,
 }
 
 /*
@@ -29,28 +29,28 @@ pub struct XmlDefinition {
  * key:                         Key for this ElementDescription, which must be
  *                              unique
  * allowable_subelement_keys:   Keys indicating the subelements of this
- *                              ElementDefinition.
- * allowable_subelement_vec:   Array with the indices into element_definitions
+ *                              SchemaElement.
+ * allowable_subelement_vec:   Array with the indices into schema_elements
  *                              for each item in allowable_element_keys
  */
 #[derive(Clone, Debug)]
-pub struct ElementDefinition {
+pub struct SchemaElement {
     pub name:           String,
-    pub subelements:    Vec<ElementDefinition>,
+    pub subelements:    Vec<SchemaElement>,
 }
 
-impl XmlDefinition {
-    pub fn new(name: &str, element: ElementDefinition) -> XmlDefinition {
-        let xml_definition = XmlDefinition {
+impl XmlSchema {
+    pub fn new(name: &str, element: SchemaElement) -> XmlSchema {
+        let xml_schema = XmlSchema {
             name:       name.to_string(),
             element:    element,
         };
 
-        println!("new(): {:?}", xml_definition);
-        xml_definition
+        println!("new(): {:?}", xml_schema);
+        xml_schema
     }
 
-    pub fn get(&self, name: &str) -> Option<&ElementDefinition> {
+    pub fn get(&self, name: &str) -> Option<&SchemaElement> {
         for element in &self.element.subelements {
             if element.name == name {
                 return Some(element);
@@ -66,7 +66,7 @@ impl XmlDefinition {
     }
 
     pub fn display_element(&self, f: &mut fmt::Formatter, depth: DefIdx,
-        element: &ElementDefinition) ->
+        element: &SchemaElement) ->
         fmt::Result {
         const INDENT_STR: &str = "   ";
         let indent_string = INDENT_STR.to_string().repeat(depth);
@@ -98,18 +98,18 @@ impl XmlDefinition {
     }
 }
         
-impl fmt::Display for XmlDefinition {
+impl fmt::Display for XmlSchema {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-write!(f, "{}\n", "Display for XmlDefinition")?;
+write!(f, "{}\n", "Display for XmlSchema")?;
         self.display(f)?;
         Ok(())
     }
 }
 
-impl ElementDefinition {
-    pub fn new(name: &str, subelements: Vec<ElementDefinition>) ->
-        ElementDefinition {
-        ElementDefinition {
+impl SchemaElement {
+    pub fn new(name: &str, subelements: Vec<SchemaElement>) ->
+        SchemaElement {
+        SchemaElement {
             name:           name.to_string(),
             subelements:    subelements,
         }
@@ -124,7 +124,7 @@ impl ElementDefinition {
     }
 }
 
-impl fmt::Display for ElementDefinition {
+impl fmt::Display for SchemaElement {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         self.display(f, 0)?;
         Ok(())

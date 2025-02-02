@@ -14,7 +14,7 @@ use xml::reader::XmlEvent;
 use crate::xml_document_error::XmlDocumentError;
 use crate::xml_document_factory::XmlDocumentFactory;
 use crate::parser::LineNumber;
-use crate::xml_definition::XmlDefinition;
+use crate::xml_schema::XmlSchema;
 
 #[derive(Clone, Debug)]
 pub struct ElementInfo {
@@ -120,26 +120,26 @@ pub struct XmlDocument {
 }
 
 impl XmlDocument {
-    pub fn new(path: &str, xml_definition: &XmlDefinition) ->
+    pub fn new(path: &str, xml_schema: &XmlSchema) ->
         Result<XmlDocument, XmlDocumentError> {
         let file = match File::open(path) {
             Err(e) => return Err(XmlDocumentError::Error(Box::new(e))),
             Ok(f) => f,
         };
         let reader = BufReader::new(file);
-        XmlDocument::new_from_reader(reader, xml_definition)
+        XmlDocument::new_from_reader(reader, xml_schema)
     }
 }
 
 impl XmlDocument {
     pub fn new_from_reader<R: Read> (
         buf_reader: BufReader<R>,
-        xml_definition: &XmlDefinition) ->
+        xml_schema: &XmlSchema) ->
         Result<XmlDocument, XmlDocumentError> {
 
         // Create the factory using the reader and XML definition
         let xml_document = XmlDocumentFactory::<R>::new_from_reader(buf_reader,
-            xml_definition)?;
+            xml_schema)?;
         Ok(xml_document)
     }
 
@@ -216,19 +216,19 @@ mod tests {
 
     use super::*;
 
-    use crate::xml_definition::{DefIdx, ElementDefinition};
+    use crate::xml_schema::{DefIdx, SchemaElement};
     use crate::xsd_schema::XSD_SCHEMA;
 
     lazy_static!{
-        static ref TEST_XML_DESC_TREE: XmlDefinition =
-            XmlDefinition::new("MySchema", vec!(
-                ElementDefinition::new("XTCE", vec!(
-                    ElementDefinition::new("SpaceSystem", vec!(
-                        ElementDefinition::new("a1", vec!(
-                            ElementDefinition::new("a2"), vec!()),
+        static ref TEST_XML_DESC_TREE: XmlSchema =
+            XmlSchema::new("MySchema", vec!(
+                SchemaElement::new("XTCE", vec!(
+                    SchemaElement::new("SpaceSystem", vec!(
+                        SchemaElement::new("a1", vec!(
+                            SchemaElement::new("a2"), vec!()),
                         ),
-                        ElementDefinition::new("a2", vec!(
-                            ElementDefinition::new("a1", vec!()),
+                        SchemaElement::new("a2", vec!(
+                            SchemaElement::new("a1", vec!()),
                         )),
                     )),
                 )),
