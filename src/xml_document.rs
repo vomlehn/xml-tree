@@ -221,33 +221,18 @@ mod tests {
 
     lazy_static!{
         static ref TEST_XML_DESC_TREE: XmlDefinition =
-            XmlDefinition::new("XTCE".to_string(), vec![
-                ElementDefinition {
-                    name:                       "XTCE".to_string(),
-                    key:                        "XTCE".to_string(),
-                    allowable_subelement_vec:   Vec::<DefIdx>::new(),
-                    allowable_subelement_keys:  vec!("SPACE_SYSTEM".to_string()),
-                },
-                ElementDefinition {
-                    name:                       "SpaceSystem".to_string(),
-                    key:                        "SPACE_SYSTEM".to_string(),
-                    allowable_subelement_vec:   Vec::<DefIdx>::new(),
-                    allowable_subelement_keys:  vec!("A1".to_string()),
-                },
-                ElementDefinition{
-                    name:                       "a1".to_string(),
-                    key:                        "A1".to_string(),
-                    allowable_subelement_vec:   Vec::<DefIdx>::new(),
-                    allowable_subelement_keys:  vec!("A2".to_string()),
-                },
-                ElementDefinition{
-                    name:                       "a2".to_string(),
-                    key:                        "A2".to_string(),
-                    allowable_subelement_vec:   Vec::<DefIdx>::new(),
-                    allowable_subelement_keys:  vec!("A1".to_string()),
-                }
-            ]
-        );
+            XmlDefinition::new("MySchema", vec!(
+                ElementDefinition::new("XTCE", vec!(
+                    ElementDefinition::new("SpaceSystem", vec!(
+                        ElementDefinition::new("a1", vec!(
+                            ElementDefinition::new("a2"), vec!()),
+                        ),
+                        ElementDefinition::new("a2", vec!(
+                            ElementDefinition::new("a1", vec!()),
+                        )),
+                    )),
+                )),
+            ));
     }
 
     #[test]

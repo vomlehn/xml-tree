@@ -11,7 +11,7 @@ use xml::name::OwnedName;
 use xml::reader::XmlEvent;
 
 use crate::parser::Parser;
-use crate::xml_definition::{DefIdx, XmlDefinition, ElementDefinition};
+use crate::xml_definition::{XmlDefinition, ElementDefinition};
 pub use crate::xml_document::{DocumentInfo, Element, ElementInfo, XmlDocument};
 pub use crate::xml_document_error::XmlDocumentError;
 
@@ -124,9 +124,9 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
                     let element_info = ElementInfo::new(lineno, attributes.clone(),
                         namespace.clone());
                     
-                    let root_index = xml_definition.root_index.unwrap();
                     let mut element = self.process_element::<R>(xml_definition,
-                        root_index, depth, start_name.clone(), element_info)?;
+                        &mut xml_definition.element, depth, start_name.clone(),
+                        element_info)?;
                     element.before_element = pieces;
                     break element;
                 },
@@ -192,8 +192,8 @@ println!("Skipping processing_instruction");
      * element_info_in:         Other information about the element
      */
     fn process_element<T: Read>(&mut self,
-        xml_definition: &XmlDefinition, _element_index: DefIdx, depth: usize,
-        name_in: OwnedName, element_info_in: ElementInfo) ->
+        xml_definition: &XmlDefinition, _element: &mut ElementDefinition,
+            depth: usize, name_in: OwnedName, element_info_in: ElementInfo) ->
         Result<Element, XmlDocumentError> {
         // First, we set up the element
         let mut pieces = Vec::<XmlEvent>::new();
@@ -225,17 +225,17 @@ println!("Skipping processing_instruction");
                     let namespace2 = namespace.clone();
 
                     // FIXME: this doesn't handle nested scope
-                    let subelement_index =
-                        match self.xml_definition.element_definitions_map.get(start_name.local_name.as_str()) {
+                    let next_element_def =
+                        match self.element.get(start_name.local_name.as_str()) {
                             None => return Err(XmlDocumentError::UnknownElement(lineno,
                                 start_name.to_string())),
-                            Some(idx) => idx,
+                            Some(elem) => elem,
                     };
                     
                     let element_info = ElementInfo::new(lineno,
                         attributes2.clone(), namespace2.clone());
                     let subelement = self.process_element::<R>(xml_definition,
-                        *subelement_index, depth,
+                        next_element_def, depth,
                         start_name.clone(), element_info.clone())?;
                     element.before_element = pieces;
                     element.subelements.push(subelement);
@@ -277,8 +277,7 @@ println!("Skipping processing_instruction");
 
 impl<R: Read> fmt::Display for XmlDocumentFactory<'_, R> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let root_index = self.xml_definition.root_index.unwrap();
-        write!(f, "{}", self.xml_definition.element_definitions[root_index].name)?;
+        write!(f, "{}", self.xml_definition.element.name)?;
         for factory_desc in self.factory_defs.values() {
             write!(f, "{}", factory_desc.element_definition.name)?;
         }
