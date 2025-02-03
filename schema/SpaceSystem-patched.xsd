@@ -108,59 +108,59 @@ Style Notes, used throughout the schema:
 <documentation xml:lang="en">SpaceSystem is a collection of SpaceSystem(s) including space assets, ground assets, multi-satellite systems and sub-systems. A SpaceSystem is the root element for the set of data necessary to monitor and command an arbitrary space device - this includes the binary decomposition the data streams going into and out of a device.</documentation>
 </annotation>
 <complexContent>
-<extension base="xtce:NameDescriptionType">
-<sequence>
-<element name="Header" type="xtce:HeaderType" minOccurs="0">
-<annotation>
-<documentation xml:lang="en">The Header element contains optional descriptive information about this SpaceSystem or the document as a whole when specified at the root SpaceSystem.</documentation>
-</annotation>
-</element>
-<element name="TelemetryMetaData" type="xtce:TelemetryMetaDataType" minOccurs="0">
-<annotation>
-<documentation xml:lang="en">This element contains descriptions of the telemetry created on the space asset/device and sent to other data consumers.</documentation>
-</annotation>
-</element>
-<element name="CommandMetaData" type="xtce:CommandMetaDataType" minOccurs="0">
-<annotation>
-<documentation xml:lang="en">This element contains descriptions of the commands and their associated constraints and verifications that can be sent to the space asset/device.</documentation>
-</annotation>
-</element>
-<element name="ServiceSet" type="xtce:ServiceSetType" minOccurs="0"/>
-<element ref="xtce:SpaceSystem" minOccurs="0" maxOccurs="unbounded">
-<annotation>
-<documentation xml:lang="en">Additional SpaceSystem elements may be used like namespaces to segregate portions of the space asset/device into convenient groupings or may be used to specialize a product line generic SpaceSystem to a specific asset instance.</documentation>
-</annotation>
-</element>
-</sequence>
-<attribute name="operationalStatus" type="token" use="optional">
-<annotation>
-<documentation xml:lang="en">Optional descriptive attribute for document owner convenience.</documentation>
-</annotation>
-</attribute>
-<attribute ref="xml:base"/>
-</extension>
+    <extension base="xtce:NameDescriptionType">
+        <sequence>
+            <element name="Header" type="xtce:HeaderType" minOccurs="0">
+                <annotation>
+                    <documentation xml:lang="en">The Header element contains optional descriptive information about this SpaceSystem or the document as a whole when specified at the root SpaceSystem.</documentation>
+                </annotation>
+            </element>
+            <element name="TelemetryMetaData" type="xtce:TelemetryMetaDataType" minOccurs="0">
+                <annotation>
+                    <documentation xml:lang="en">This element contains descriptions of the telemetry created on the space asset/device and sent to other data consumers.</documentation>
+                </annotation>
+            </element>
+            <element name="CommandMetaData" type="xtce:CommandMetaDataType" minOccurs="0">
+                <annotation>
+                    <documentation xml:lang="en">This element contains descriptions of the commands and their associated constraints and verifications that can be sent to the space asset/device.</documentation>
+                </annotation>
+            </element>
+            <element name="ServiceSet" type="xtce:ServiceSetType" minOccurs="0"/>
+            <element ref="xtce:SpaceSystem" minOccurs="0" maxOccurs="unbounded">
+            <annotation>
+                <documentation xml:lang="en">Additional SpaceSystem elements may be used like namespaces to segregate portions of the space asset/device into convenient groupings or may be used to specialize a product line generic SpaceSystem to a specific asset instance.</documentation>
+            </annotation>
+            </element>
+        </sequence>
+        <attribute name="operationalStatus" type="token" use="optional">
+            <annotation>
+                <documentation xml:lang="en">Optional descriptive attribute for document owner convenience.</documentation>
+            </annotation>
+        </attribute>
+        <attribute ref="xml:base"/>
+    </extension>
 </complexContent>
 </complexType>
 <complexType name="CommandMetaDataType" mixed="false">
-<annotation>
-<documentation xml:lang="en">Describe command related metadata. Items defined in this area may refer to items defined in TelemetryMetaData. See TelemetryMetaDataType.</documentation>
-</annotation>
-<sequence>
-<element name="ParameterTypeSet" type="xtce:ParameterTypeSetType" minOccurs="0">
-<annotation>
-<documentation xml:lang="en">A list of parameter types.</documentation>
-</annotation>
-</element>
-<element name="ParameterSet" type="xtce:ParameterSetType" minOccurs="0">
-<annotation>
-<documentation xml:lang="en">Parameters referenced by MetaCommands. This Parameter Set is located here so that MetaCommand data can be built independently of TelemetryMetaData.</documentation>
-</annotation>
-</element>
-<element name="ArgumentTypeSet" type="xtce:ArgumentTypeSetType" minOccurs="0">
-<annotation>
-<documentation xml:lang="en">A list of argument types. MetaCommand definitions can contain arguments and parameters. Arguments are user provided to the specific command definition. Parameters are provided/calculated/determined by the software creating the command instance. As a result, arguments contain separate type information. In some cases, arguments have different descriptive characteristics.</documentation>
-</annotation>
-</element>
+    <annotation>
+        <documentation xml:lang="en">Describe command related metadata. Items defined in this area may refer to items defined in TelemetryMetaData. See TelemetryMetaDataType.</documentation>
+    </annotation>
+    <sequence>
+        <element name="ParameterTypeSet" type="xtce:ParameterTypeSetType" minOccurs="0">
+            <annotation>
+                <documentation xml:lang="en">A list of parameter types.</documentation>
+            </annotation>
+        </element>
+        <element name="ParameterSet" type="xtce:ParameterSetType" minOccurs="0">
+            <annotation>
+                    <documentation xml:lang="en">Parameters referenced by MetaCommands. This Parameter Set is located here so that MetaCommand data can be built independently of TelemetryMetaData.</documentation>
+            </annotation>
+        </element>
+        <element name="ArgumentTypeSet" type="xtce:ArgumentTypeSetType" minOccurs="0">
+        <annotation>
+        <documentation xml:lang="en">A list of argument types. MetaCommand definitions can contain arguments and parameters. Arguments are user provided to the specific command definition. Parameters are provided/calculated/determined by the software creating the command instance. As a result, arguments contain separate type information. In some cases, arguments have different descriptive characteristics.</documentation>
+        </annotation>
+        </element>
 <element name="MetaCommandSet" type="xtce:MetaCommandSetType" minOccurs="0">
 <annotation>
 <documentation xml:lang="en">A list of command definitions with their arguments, parameters, and container encoding descriptions.</documentation>
@@ -478,16 +478,16 @@ Style Notes, used throughout the schema:
 </complexContent>
 </complexType>
 <complexType name="ContainerSetType">
-<annotation>
-<documentation xml:lang="en">Unordered Set of Containers</documentation>
-</annotation>
-<choice maxOccurs="unbounded">
-<element name="SequenceContainer" type="xtce:SequenceContainerType">
-<annotation>
-<documentation xml:lang="en">SequenceContainers define sequences of parameters or other containers. </documentation>
-</annotation>
-</element>
-</choice>
+    <annotation>
+        <documentation xml:lang="en">Unordered Set of Containers</documentation>
+    </annotation>
+    <choice maxOccurs="unbounded">
+        <element name="SequenceContainer" type="xtce:SequenceContainerType">
+            <annotation>
+                <documentation xml:lang="en">SequenceContainers define sequences of parameters or other containers. </documentation>
+            </annotation>
+        </element>
+    </choice>
 </complexType>
 <complexType name="EntryListType" mixed="false">
 <annotation>
@@ -1046,31 +1046,31 @@ Style Notes, used throughout the schema:
 </attribute>
 </complexType>
 <complexType name="ParameterType">
-<annotation>
-<documentation xml:lang="en">Describe the properties of a telemetry parameter, including its data type (parameter type). The bulk of properties associated with a telemetry parameter are in its parameter type. The initial value specified here, overrides the initial value in the parameter type. A parameter may be local, in which case its parameter type would have no data encodings. Ideally such a definition would also set data source in parameter properties to ‘local’ but the syntax does not enforce this. See BaseDataType, BaseTimeDataType, and NameReferenceType.</documentation>
-</annotation>
-<complexContent>
-<extension base="xtce:NameDescriptionType">
-<sequence>
-<element name="ParameterProperties" type="xtce:ParameterPropertiesType" minOccurs="0">
-<annotation>
-<documentation xml:lang="en">Specify additional properties for this Parameter used by the implementation of tailor the behavior and attributes of the Parameter. When not specified, the defaults on the ParameterProperties element attributes are assumed.</documentation>
-</annotation>
-</element>
-</sequence>
-<attribute name="parameterTypeRef" type="xtce:NameReferenceType" use="required">
-<annotation>
-<documentation xml:lang="en">Specify the reference to the parameter type from the ParameterTypeSet area using the path reference rules, either local to this SpaceSystem, relative, or absolute.</documentation>
-</annotation>
-</attribute>
-<attribute name="initialValue" type="string" use="optional">
-<annotation>
-<documentation xml:lang="en">Specify as: integer data type using xs:integer, float data type using xs:double, string data type using xs:string, boolean data type using xs:boolean, binary data type using xs:hexBinary, enum data type using label name, relative time data type using xs:duration, absolute time data type using xs:dateTime. Values must not exceed the characteristics for the data type or this is a validation error. Takes precedence over an initial value given in the data type. Values are calibrated unless there is an option to override it.</documentation>
-<appinfo>The value type must match the Parameter type</appinfo>
-</annotation>
-</attribute>
-</extension>
-</complexContent>
+    <annotation>
+        <documentation xml:lang="en">Describe the properties of a telemetry parameter, including its data type (parameter type). The bulk of properties associated with a telemetry parameter are in its parameter type. The initial value specified here, overrides the initial value in the parameter type. A parameter may be local, in which case its parameter type would have no data encodings. Ideally such a definition would also set data source in parameter properties to ‘local’ but the syntax does not enforce this. See BaseDataType, BaseTimeDataType, and NameReferenceType.</documentation>
+    </annotation>
+    <complexContent>
+        <extension base="xtce:NameDescriptionType">
+            <sequence>
+                <element name="ParameterProperties" type="xtce:ParameterPropertiesType" minOccurs="0">
+                <annotation>
+                    <documentation xml:lang="en">Specify additional properties for this Parameter used by the implementation of tailor the behavior and attributes of the Parameter. When not specified, the defaults on the ParameterProperties element attributes are assumed.</documentation>
+                </annotation>
+                </element>
+            </sequence>
+            <attribute name="parameterTypeRef" type="xtce:NameReferenceType" use="required">
+                <annotation>
+                    <documentation xml:lang="en">Specify the reference to the parameter type from the ParameterTypeSet area using the path reference rules, either local to this SpaceSystem, relative, or absolute.</documentation>
+                </annotation>
+            </attribute>
+            <attribute name="initialValue" type="string" use="optional">
+                <annotation>
+                    <documentation xml:lang="en">Specify as: integer data type using xs:integer, float data type using xs:double, string data type using xs:string, boolean data type using xs:boolean, binary data type using xs:hexBinary, enum data type using label name, relative time data type using xs:duration, absolute time data type using xs:dateTime. Values must not exceed the characteristics for the data type or this is a validation error. Takes precedence over an initial value given in the data type. Values are calibrated unless there is an option to override it.</documentation>
+                    <appinfo>The value type must match the Parameter type</appinfo>
+                </annotation>
+            </attribute>
+        </extension>
+    </complexContent>
 </complexType>
 <complexType name="ParameterTypeSetType">
 <annotation>
@@ -1360,45 +1360,45 @@ Style Notes, used throughout the schema:
 </annotation>
 <complexContent>
 <extension base="xtce:BaseConditionsType">
-<sequence>
-<choice>
-<element name="ParameterInstanceRef" type="xtce:ParameterInstanceRefType">
-<annotation>
-<documentation xml:lang="en">Left hand side parameter instance.</documentation>
-</annotation>
-</element>
-<element name="ArgumentInstanceRef" type="xtce:ArgumentInstanceRefType">
-<annotation>
-<documentation xml:lang="en">Left hand side argument instance.</documentation>
-</annotation>
-</element>
-</choice>
-<element name="ComparisonOperator" type="xtce:ComparisonOperatorsType">
-<annotation>
-<documentation xml:lang="en">Comparison operator.</documentation>
-</annotation>
-</element>
-<choice>
-<choice>
-<element name="ParameterInstanceRef" type="xtce:ParameterInstanceRefType">
-<annotation>
-<documentation xml:lang="en">Right hand side parameter instance. Parameter is assumed to be of the same type as the comparison Argument or Parameter.</documentation>
-</annotation>
-</element>
-<element name="ArgumentInstanceRef" type="xtce:ArgumentInstanceRefType">
-<annotation>
-<documentation xml:lang="en">Right hand side argument instance. Argument is assumed to be of the same type as the comparison Argument or Parameter.</documentation>
-</annotation>
-</element>
-</choice>
-<element name="Value" type="string">
-<annotation>
-<documentation xml:lang="en">Specify as: integer data type using xs:integer, float data type using xs:double, string data type using xs:string, boolean data type using xs:boolean, binary data type using xs:hexBinary, enum data type using label name, relative time data type using xs:duration, absolute time data type using xs:dateTime. Values must not exceed the characteristics for the data type or this is a validation error. Takes precedence over an initial value given in the data type. Values are calibrated unless there is an option to override it.</documentation>
-</annotation>
-</element>
-</choice>
-</sequence>
-</extension>
+    <sequence>
+        <choice>
+            <element name="ParameterInstanceRef" type="xtce:ParameterInstanceRefType">
+                <annotation>
+                <documentation xml:lang="en">Left hand side parameter instance.</documentation>
+                </annotation>
+            </element>
+            <element name="ArgumentInstanceRef" type="xtce:ArgumentInstanceRefType">
+                <annotation>
+                <documentation xml:lang="en">Left hand side argument instance.</documentation>
+                </annotation>
+            </element>
+        </choice>
+    <element name="ComparisonOperator" type="xtce:ComparisonOperatorsType">
+    <annotation>
+    <documentation xml:lang="en">Comparison operator.</documentation>
+    </annotation>
+    </element>
+    <choice>
+        <choice>
+            <element name="ParameterInstanceRef" type="xtce:ParameterInstanceRefType">
+                <annotation>
+                <documentation xml:lang="en">Right hand side parameter instance. Parameter is assumed to be of the same type as the comparison Argument or Parameter.</documentation>
+                </annotation>
+            </element>
+            <element name="ArgumentInstanceRef" type="xtce:ArgumentInstanceRefType">
+                <annotation>
+                    <documentation xml:lang="en">Right hand side argument instance. Argument is assumed to be of the same type as the comparison Argument or Parameter.</documentation>
+                </annotation>
+            </element>
+        </choice>
+        <element name="Value" type="string">
+                    <annotation>
+                <documentation xml:lang="en">Specify as: integer data type using xs:integer, float data type using xs:double, string data type using xs:string, boolean data type using xs:boolean, binary data type using xs:hexBinary, enum data type using label name, relative time data type using xs:duration, absolute time data type using xs:dateTime. Values must not exceed the characteristics for the data type or this is a validation error. Takes precedence over an initial value given in the data type. Values are calibrated unless there is an option to override it.</documentation>
+                    </annotation>
+                </element>
+            </choice>
+        </sequence>
+    </extension>
 </complexContent>
 </complexType>
 <complexType name="ArgumentComparisonListType">
@@ -2375,45 +2375,45 @@ Style Notes, used throughout the schema:
 </annotation>
 </complexType>
 <complexType name="ChecksumType">
-<annotation>
-<documentation>Describe checksum information.</documentation>
-</annotation>
-<sequence>
-<element name="InputAlgorithm" type="xtce:InputAlgorithmType" minOccurs="0">
-<annotation>
-<documentation>Assumed to return the computed checksum.</documentation>
-</annotation>
-</element>
-</sequence>
-<attribute name="bitsFromReference" type="xtce:NonNegativeLongType"/>
-<attribute name="reference" type="xtce:ReferencePointType" default="start"/>
-<attribute name="name" use="required">
-<annotation>
-<documentation>Qualified list of name checksum algorithms. If custom is chosen, InputAlgorithm must be set.</documentation>
-</annotation>
-<simpleType>
-<restriction base="string">
-<enumeration value="unix_sum"/>
-<enumeration value="sum8"/>
-<enumeration value="sum16"/>
-<enumeration value="sum24"/>
-<enumeration value="sum32"/>
-<enumeration value="fletcher4"/>
-<enumeration value="fletcher8"/>
-<enumeration value="fletcher16"/>
-<enumeration value="fletcher32"/>
-<enumeration value="adler32"/>
-<enumeration value="luhn"/>
-<enumeration value="verhoeff"/>
-<enumeration value="damm"/>
-<enumeration value="custom">
-<annotation>
-<documentation>Document a custom checksum algorithm</documentation>
-</annotation>
-</enumeration>
-</restriction>
-</simpleType>
-</attribute>
+    <annotation>
+        <documentation>Describe checksum information.</documentation>
+    </annotation>
+    <sequence>
+        <element name="InputAlgorithm" type="xtce:InputAlgorithmType" minOccurs="0">
+            <annotation>
+                <documentation>Assumed to return the computed checksum.</documentation>
+            </annotation>
+        </element>
+    </sequence>
+    <attribute name="bitsFromReference" type="xtce:NonNegativeLongType"/>
+    <attribute name="reference" type="xtce:ReferencePointType" default="start"/>
+    <attribute name="name" use="required">
+        <annotation>
+            <documentation>Qualified list of name checksum algorithms. If custom is chosen, InputAlgorithm must be set.</documentation>
+        </annotation>
+        <simpleType>
+            <restriction base="string">
+                <enumeration value="unix_sum"/>
+                <enumeration value="sum8"/>
+                <enumeration value="sum16"/>
+                <enumeration value="sum24"/>
+                <enumeration value="sum32"/>
+                <enumeration value="fletcher4"/>
+                <enumeration value="fletcher8"/>
+                <enumeration value="fletcher16"/>
+                <enumeration value="fletcher32"/>
+                <enumeration value="adler32"/>
+                <enumeration value="luhn"/>
+                <enumeration value="verhoeff"/>
+                <enumeration value="damm"/>
+                <enumeration value="custom">
+                <annotation>
+                <documentation>Document a custom checksum algorithm</documentation>
+                </annotation>
+                </enumeration>
+            </restriction>
+        </simpleType>
+    </attribute>
 <attribute name="hashSizeInBits" type="xtce:PositiveLongType"/>
 </complexType>
 <complexType name="ConstantType">

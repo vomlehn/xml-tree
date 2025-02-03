@@ -1,73 +1,190 @@
+/*
+ * This is the parsed scheme for XSD files.
+ */
 use lazy_static::lazy_static;
 
-use crate::xml_schema::{SchemaElement, XmlSchema};
+use crate::xml_schema::{DirectElement, XmlSchema};
 
 lazy_static! {
     pub static ref XSD_SCHEMA: XmlSchema =
-        XmlSchema::new("XsdSchema", SchemaElement::new("XTCE", vec!(
-            SchemaElement::new("schema", vec!(
-                SchemaElement::new("import", vec!()),
-                SchemaElement::new("annotation", vec!(
-                    SchemaElement::new("documentation", vec!()),
+        XmlSchema::new("XsdSchema", DirectElement::new("schema", vec!(
+            DirectElement::new("import", vec!()),
+            DirectElement::new("annotation", vec!(
+                DirectElement::new("documentation", vec!()),
+            )),
+            DirectElement::new("element", vec!(
+                DirectElement::new("annotation", vec!(
+                    DirectElement::new("documentation", vec!()),
                 )),
-                SchemaElement::new("element", vec!(
-                    SchemaElement::new("annotation", vec!(
-                        SchemaElement::new("documentation", vec!()),
+                DirectElement::new("key", vec!(
+                    DirectElement::new("annotation", vec!(
+                        DirectElement::new("documentation", vec!()),
                     )),
-                    SchemaElement::new("key", vec!(
-                        SchemaElement::new("annotation", vec!(
-                            SchemaElement::new("key", vec!()),
-                        )),
-                        SchemaElement::new("selector", vec!()),
-                        SchemaElement::new("field", vec!()),
-                    )),
+                    DirectElement::new("selector", vec!()),
+                    DirectElement::new("field", vec!()),
                 )),
             )),
-/*
-            SchemaElement::new("attribute", vec!(
-                SchemaElement::new("annotation", vec!(
-                    SchemaElement::new("documentation", vec!()),
+            DirectElement::new("complexType", vec!(
+                DirectElement::new("annotation", vec!(
+                    DirectElement::new("documentation", vec!()),
+                    DirectElement::new("appinfo", vec!()),
                 )),
-            )),
-*/
-            SchemaElement::new("complexType", vec!(
-                SchemaElement::new("annotation", vec!(
-                    SchemaElement::new("documentation", vec!()),
-                )),
-                SchemaElement::new("simpleContent", vec!(
-                    SchemaElement::new("extension", vec!(
-                        SchemaElement::new("attribute", vec!()),
+                DirectElement::new("attribute", vec!(
+                    DirectElement::new("annotation", vec!(
+                        DirectElement::new("documentation", vec!()),
+                        DirectElement::new("appinfo", vec!()),
                     )),
-                )),
-                SchemaElement::new("complexContent", vec!(
-                    SchemaElement::new("extension", vec!(
-                        SchemaElement::new("sequence", vec!(
-                            SchemaElement::new("annotation", vec!(
-                                SchemaElement::new("documentation", vec!()),
-                                SchemaElement::new("appinfo", vec!()),
-                            )),
-                            SchemaElement::new("element", vec!(
-                                SchemaElement::new("annotation", vec!(
-                                    SchemaElement::new("documentation", vec!()),
+                    DirectElement::new("simpleType", vec!(
+                        DirectElement::new("restriction", vec!(
+                            DirectElement::new("enumeration", vec!(
+                                DirectElement::new("annotation", vec!(
+                                    DirectElement::new("documentation", vec!()),
                                 )),
                             )),
                         )),
                     )),
                 )),
-                SchemaElement::new("choice", vec!(),),
-            )),
-            SchemaElement::new("simpleType", vec!(
-                SchemaElement::new("restriction", vec!(
-                    SchemaElement::new("maxInclusive", vec!()),
-                    SchemaElement::new("minInclusive", vec!()),
-                    SchemaElement::new("pattern", vec!()),
+                DirectElement::new("choice", vec!(
+                    DirectElement::new("annotation", vec!(
+                        DirectElement::new("documentation", vec!()),
+                    )),
+                    DirectElement::new("element", vec!(
+                        DirectElement::new("annotation", vec!(
+                            DirectElement::new("documentation", vec!()),
+                        )),
+                        DirectElement::new("key", vec!(
+                            DirectElement::new("annotation", vec!(
+                                DirectElement::new("documentation", vec!()),
+                            )),
+                            DirectElement::new("selector", vec!()),
+                            DirectElement::new("field", vec!()),
+                        )),
+                    )),
                 )),
-                SchemaElement::new("union", vec!()),
-            )),
-            SchemaElement::new("enumeration", vec!(
-                SchemaElement::new("annotation", vec!(
-                    SchemaElement::new("documentation", vec!()),
+                DirectElement::new("sequence", vec!(
+                    DirectElement::new("annotation", vec!(
+                        DirectElement::new("documentation", vec!()),
+                        DirectElement::new("appinfo", vec!()),
+                    )),
+                    DirectElement::new("element", vec!(
+                        DirectElement::new("annotation", vec!(
+                            DirectElement::new("documentation", vec!()),
+                            DirectElement::new("appinfo", vec!()),
+                        )),
+                    )),
+                    DirectElement::new("choice", vec!(
+                        DirectElement::new("annotation", vec!(
+                            DirectElement::new("documentation", vec!()),
+                        )),
+                        DirectElement::new("element", vec!(
+                            DirectElement::new("annotation", vec!(
+                                DirectElement::new("documentation", vec!()),
+                                DirectElement::new("appinfo", vec!()),
+                            )),
+                        )),
+                    )),
                 )),
+                DirectElement::new("simpleContent", vec!(
+                    DirectElement::new("extension", vec!(
+                        DirectElement::new("attribute", vec!()),
+                    )),
+                )),
+                DirectElement::new("sequence", vec!(
+                    DirectElement::new("element", vec!(
+                        DirectElement::new("annotation", vec!(
+                            DirectElement::new("documentation", vec!()),
+                            DirectElement::new("appinfo", vec!()),
+                        )),
+                    )),
+                    DirectElement::new("choice", vec!(
+                        DirectElement::new("annotation", vec!(
+                            DirectElement::new("documentation", vec!()),
+                        )),
+                        DirectElement::new("element", vec!(
+                            DirectElement::new("annotation", vec!(
+                                DirectElement::new("documentation", vec!()),
+                                DirectElement::new("appinfo", vec!()),
+                            )),
+                        )),
+                    )),
+                )),
+                DirectElement::new("complexContent", vec!(
+                    DirectElement::new("extension", vec!(
+                        DirectElement::new("attribute", vec!(
+                            DirectElement::new("annotation", vec!(
+                                DirectElement::new("documentation", vec!()),
+                                DirectElement::new("appinfo", vec!()),
+                            )),
+                        )),
+                        DirectElement::new("choice", vec!(
+                            DirectElement::new("annotation", vec!(
+                                DirectElement::new("documentation", vec!()),
+                            )),
+                            DirectElement::new("element", vec!(
+                                DirectElement::new("annotation", vec!(
+                                    DirectElement::new("documentation", vec!()),
+                                )),
+                            )),
+                        )),
+                        DirectElement::new("sequence", vec!(
+                            DirectElement::new("annotation", vec!(
+                                DirectElement::new("documentation", vec!()),
+                                DirectElement::new("appinfo", vec!()),
+                            )),
+                            DirectElement::new("choice", vec!(
+                                DirectElement::new("annotation", vec!(
+                                    DirectElement::new("documentation", vec!()),
+                                )),
+                                DirectElement::new("choice", vec!(
+                                    DirectElement::new("annotation", vec!(
+                                        DirectElement::new("documentation", vec!()),
+                                    )),
+                                    DirectElement::new("element", vec!(
+                                        DirectElement::new("annotation", vec!(
+                                            DirectElement::new("documentation", vec!()),
+                                        )),
+                                    )),
+                                )),
+                                DirectElement::new("element", vec!(
+                                    DirectElement::new("annotation", vec!(
+                                        DirectElement::new("documentation", vec!()),
+                                    )),
+                                )),
+                            )),
+                            DirectElement::new("element", vec!(
+                                DirectElement::new("annotation", vec!(
+                                    DirectElement::new("documentation", vec!()),
+                                    DirectElement::new("appinfo", vec!()),
+                                )),
+                                DirectElement::new("complexType", vec!(
+                                    DirectElement::new("complexContent", vec!()),
+                                )),
+                            )),
+                        )),
+                    )),
+                )),
+            )),
+            DirectElement::new("simpleType", vec!(
+                DirectElement::new("annotation", vec!(
+                    DirectElement::new("documentation", vec!()),
+                )),
+                DirectElement::new("enumeration", vec!(
+                    DirectElement::new("annotation", vec!(
+                        DirectElement::new("documentation", vec!()),
+                    )),
+                )),
+                DirectElement::new("restriction", vec!(
+                    DirectElement::new("maxInclusive", vec!()),
+                    DirectElement::new("minInclusive", vec!()),
+                    DirectElement::new("pattern", vec!()),
+                    DirectElement::new("enumeration", vec!(
+                        DirectElement::new("annotation", vec!(
+                            DirectElement::new("documentation", vec!()),
+                            DirectElement::new("appinfo", vec!()),
+                        )),
+                    )),
+                )),
+                DirectElement::new("union", vec!()),
             )),
         )),
     );

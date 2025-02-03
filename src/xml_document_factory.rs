@@ -16,12 +16,12 @@ pub use crate::xml_document::{DocumentInfo, Element, ElementInfo, XmlDocument};
 pub use crate::xml_document_error::XmlDocumentError;
 
 struct XmlDocumentFactoryDef<'a> {
-    schema_element:   &'a SchemaElement,
+    schema_element:   &'a dyn SchemaElement,
 }
 
 impl fmt::Display for XmlDocumentFactoryDef<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.schema_element.name)
+        write!(f, "{}", self.schema_element.name())
     }
 }
 
@@ -120,7 +120,6 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
                 XmlEvent::StartElement{name, attributes, namespace} => {
                     let start_name = name.clone();
                     let depth = 0;
-                    println!("depth {}: end StartElement1: start_name {}", depth, start_name.local_name);
                     let element_info = ElementInfo::new(lineno, attributes.clone(),
                         namespace.clone());
                     
@@ -132,7 +131,6 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
                 },
                 XmlEvent::EndElement{name} => {
                     let end_name = name.clone();
-println!("depth {}: EndElement: name {}", 0, end_name.local_name);
                     return Err(XmlDocumentError::MisplacedElementEnd(lineno,
                         start_name.local_name, end_name.local_name));
                 },
@@ -180,13 +178,14 @@ println!("Skipping processing_instruction");
      * element_info_in:         Other information about the element
      */
     fn process_element<T: Read>(&mut self,
-        xml_schema: &XmlSchema, schema_element: &SchemaElement,
+        xml_schema: &XmlSchema, schema_element: &dyn SchemaElement,
             depth: usize, name_in: OwnedName, element_info_in: ElementInfo) ->
         Result<Element, XmlDocumentError> {
         // First, we set up the element
         let mut pieces = Vec::<XmlEvent>::new();
 
-        let mut element = Element::new(name_in.clone(), depth, element_info_in);
+        println!("<{}> ({:?}: {})", name_in.local_name, schema_element.name(), element_info_in.lineno);
+        let mut element = Element::new(name_in.clone(), depth, element_info_in.clone());
 
         loop {
             let xml_element = self.parser.next()?;
@@ -208,23 +207,24 @@ println!("Skipping processing_instruction");
                     let next_schema_element =
                         match schema_element.get(start_name.local_name.as_str()) {
                             None => return Err(XmlDocumentError::UnknownElement(lineno,
-                                start_name.to_string())),
+                                start_name.local_name.to_string())),
                             Some(elem) => elem,
                     };
                     
                     let element_info = ElementInfo::new(lineno,
                         attributes2.clone(), namespace2.clone());
                     let subelement = self.process_element::<R>(xml_schema,
-                        &next_schema_element, depth,
+                        next_schema_element, depth,
                         start_name.clone(), element_info.clone())?;
                     element.before_element = pieces;
                     element.subelements.push(subelement);
                     pieces = Vec::<XmlEvent>::new();
                 },
                 XmlEvent::EndElement{name} => {
-                    if name.local_name != schema_element.name {
+        println!("</{}> ({:?}: {}->{})", name.local_name, schema_element.name(), element_info_in.lineno, xml_element.lineno);
+                    if name.local_name != schema_element.name() {
                         return Err(XmlDocumentError::MisplacedElementEnd(lineno,
-                            schema_element.name.clone(), name.local_name.to_string()));
+                            schema_element.name().clone(), name.local_name.to_string()));
                     }
 
                     element.content = pieces;
@@ -259,7 +259,7 @@ impl<R: Read> fmt::Display for XmlDocumentFactory<'_, R> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.xml_schema.element.name)?;
         for factory_desc in self.factory_defs.values() {
-            write!(f, "{}", factory_desc.schema_element.name)?;
+            write!(f, "{}", factory_desc.schema_element.name())?;
         }
         Ok(())
     }

@@ -14,7 +14,7 @@ use xml::reader::XmlEvent;
 use crate::xml_document_error::XmlDocumentError;
 use crate::xml_document_factory::XmlDocumentFactory;
 use crate::parser::LineNumber;
-use crate::xml_schema::XmlSchema;
+use crate::xml_schema::{SchemaElement, XmlSchema};
 
 #[derive(Clone, Debug)]
 pub struct ElementInfo {
@@ -45,7 +45,7 @@ pub struct Element {
     pub subelements:        Vec<Element>,
     pub before_element:     Vec<XmlEvent>,
     pub content:            Vec<XmlEvent>,
-    pub after_element:          Vec<XmlEvent>,
+    pub after_element:      Vec<XmlEvent>,
 }
 
 impl Element {
@@ -216,17 +216,17 @@ mod tests {
 
     use super::*;
 
-    use crate::xml_schema::SchemaElement;
+    use crate::xml_schema::{DirectElement, SchemaElement};
 
     lazy_static!{
         static ref TEST_XML_DESC_TREE: XmlSchema =
-            XmlSchema::new("MySchema", SchemaElement::new("XTCE", vec!(
-                    SchemaElement::new("SpaceSystem", vec!(
-                        SchemaElement::new("a1", vec!(
-                            SchemaElement::new("a2", vec!()),
+            XmlSchema::new("MySchema", DirectElement::new("XTCE", vec!(
+                    DirectElement::new("SpaceSystem", vec!(
+                        DirectElement::new("a1", vec!(
+                            DirectElement::new("a2", vec!()),
                         )),
-                        SchemaElement::new("a2", vec!(
-                            SchemaElement::new("a1", vec!()),
+                        DirectElement::new("a2", vec!(
+                            DirectElement::new("a1", vec!()),
                         )),
                     )),
                 )),
@@ -315,7 +315,7 @@ mod tests {
         println!();
 
         match XmlDocument::new("schema/SpaceSystem-patched.xsd",
-            &TEST_XML_DESC_TREE) {
+            &XSD_SCHEMA) {
             Err(e) => println!("Failed: {}", e),
             Ok(xml_document) => println!("XML Document: {}", xml_document),
         }
