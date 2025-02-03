@@ -3,10 +3,9 @@
  */
 use lazy_static::lazy_static;
 
-use crate::xml_schema::{DirectElement, XmlSchema};
-
+/*
 lazy_static! {
-    pub static ref XSD_SCHEMA: XmlSchema =
+    pub static ref XSD_SCHEMA: XmlSchema<'static> =
         XmlSchema::new("XsdSchema", DirectElement::new("schema", vec!(
             DirectElement::new("import", vec!()),
             DirectElement::new("annotation", vec!(
@@ -190,3 +189,4 @@ lazy_static! {
     );
 
 }
+*/

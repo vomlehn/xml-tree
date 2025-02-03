@@ -3,6 +3,7 @@
  */
 // FIXME: make sure errors returned are appropriate
 
+use std::any::Any;
 use std::fmt;
 
 use crate::xml_document_error::XmlDocumentError;
@@ -11,27 +12,12 @@ pub type DefIdx = usize;
 
 /*
  * Top-level definition of the schema
- * root_index:              Indicates which DirectElement is the root
- * key:                     Name of the root DirectElement
- * schema_elements_map: HashMap with they DirectElement key as the
- *                          key and the value an index into schema_elements
- * schema_elements:     Array of DirectElement
+ * name:        Name of the structure when printed
+ * element:     Root element
  */
-#[derive(Debug)]
-pub struct XmlSchema {
+pub struct XmlSchema<'a> {
     pub name:       String,
-    pub element:    DirectElement,
-}
-
-/*
- * trait making DirectElement and IndirectElement work well together
- * name:    Function that returns the name of the element
- * get:     Search for an element by name
- */
-pub trait SchemaElement {
-    fn name(&self) -> String;
-    fn get(&self, name: &str) -> Option<&DirectElement>;
-    fn display(&self, f: &mut fmt::Formatter, depth: DefIdx) -> fmt::Result;
+    pub element:    Box<&'a dyn SchemaElement<'a>>,
 }
 
 /*
@@ -44,24 +30,23 @@ pub trait SchemaElement {
  * allowable_subelement_vec:   Array with the indices into schema_elements
  *                              for each item in allowable_element_keys
  */
-#[derive(Clone, Debug)]
-pub struct DirectElement {
+pub struct DirectElement<'a> {
     pub name:           String,
     pub attributes:     Vec<SchemaAttribute>,
-    pub subelements:    Vec<DirectElement>,
+    pub subelements:    Vec<Box<dyn SchemaElement<'a>>>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct IndirectElement<'a> {
-    direct_element: &'a DirectElement,
+    direct_element: &'a DirectElement<'a>,
 }
 
 #[derive(Clone, Debug)]
 pub struct SchemaAttribute {
 }
 
-impl XmlSchema {
-    pub fn new(name: &str, element: DirectElement) -> XmlSchema {
+impl XmlSchema<'_> {
+    pub fn new<'a>(name: &'a str, element: Box<&'a dyn SchemaElement<'a>>) -> XmlSchema<'a>  {
         let xml_schema = XmlSchema {
             name:       name.to_string(),
             element:    element,
@@ -74,15 +59,169 @@ impl XmlSchema {
         println!("Not validating yet");
         Ok(())
     }
+}
 
-    pub fn display_element(&self, f: &mut fmt::Formatter, depth: DefIdx,
-        element: &DirectElement) ->
-        fmt::Result {
+impl<'a> DirectElement<'a> {
+    pub fn new(name: &str, subelements: Vec<Box<dyn SchemaElement<'a>>>) ->
+        DirectElement<'a> {
+        DirectElement {
+            name:           name.to_string(),
+            attributes:     vec!(),
+            subelements:    subelements,
+        }
+    }
+}
+        
+impl fmt::Display for XmlSchema<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+write!(f, "{}\n", "Display for XmlSchema")?;
+        let depth = 1;
+        write!(f, "Schema: {}\n", self.name);
+        self.element.display_element(f, depth)
+    }
+}
+
+impl SchemaElement<'_> for DirectElement<'_> {
+    fn name(&self) -> String {
+        self.name.clone()
+    }
+
+    // Find an element whose name matches the given one
+    fn get<'b>(&self, name: &str) -> Option<&Box<dyn SchemaElement>> {
+        match self
+            .subelements
+            .iter()
+            .find(move |&schema_element| schema_element.name() == name) {
+            None => None,
+            Some(schema_elem) => Some(schema_elem),
+        }
+    }
+
+    fn subelements(&self) -> &Vec<Box<&dyn SchemaElement>> {
+        &self.subelements
+    }
+}
+
+impl fmt::Display for DirectElement<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let depth = 0;
+        self.display_element(f, depth)
+    }
+}
+
+/*
+ * IndirectElement
+ */
+impl<'a> IndirectElement<'a> {
+    pub fn new<'b>(direct_element: &'b DirectElement<'b>) -> IndirectElement<'b> {
+        IndirectElement {
+            direct_element: direct_element,
+        }
+    }
+}
+
+impl SchemaElement<'_> for IndirectElement<'_> {
+    fn name(&self) -> String {
+        self.direct_element.name.clone()
+    }
+
+    fn get<'b>(&self, name: &str) -> Option<&Box<dyn SchemaElement>> {
+        self.direct_element.get(name)
+    }
+
+    fn subelements(&self) -> &Vec<Box<&dyn SchemaElement>> {
+        &self.direct_element.subelements()
+    }
+}
+
+impl fmt::Display for IndirectElement<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let depth = 0;
+        self.direct_element.display_element(f, depth)
+    }
+}
+
+/*
+ * DirectElement
+ */
+/*
+struct DirectElementCollection {
+    direct_elements: Vec<Box<DirectElement>>, // Owned heap-allocated trait objects
+}
+
+// Owned Iterator
+struct DirectElementIterator {
+    direct_elements: Vec<Box<DirectElement>>, // A Vec of trait objects
+    index: usize,
+}
+
+impl Iterator for DirectElement {
+    type Item = DirectElement;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.index < self.len() {
+            self.index += 1;
+            Some(self.remove(0)) // Remove and return the first element
+        } else {
+            None
+        }
+    }
+}
+
+// Owned IntoIterator
+impl IntoIterator for DirectElementCollection {
+    type Item = Box<DirectElement>; // Owns the items when iterating
+    type IntoIter = std::vec::IntoIter<Box<DirectElement>>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.direct_elements.into_iter()
+    }
+}
+
+// Borrowed IntoIterator
+impl<'a> IntoIterator for &'a DirectElementIterator {
+    type Item = &'a DirectElement;
+    type IntoIter = std::iter::Map<std::slice::Iter<'a, Box<DirectElement>>, fn(&Box<DirectElement>) -> &DirectElement>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.direct_elements.iter().map(|b| &**b) // Convert `&Box<DirectElement>` to `&DirectElement`
+    }
+}
+
+// Mutable
+impl<'a> IntoIterator for &'a mut DirectElementCollection {
+    type Item = &'a mut DirectElement;
+    type IntoIter = std::iter::Map<
+        std::slice::IterMut<'a, Box<DirectElement>>,
+        fn(&mut Box<DirectElement>) -> &mut DirectElement,
+    >;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.direct_elements.iter_mut().map(|direct_element| direct_element.as_mut())
+    }
+}
+*/
+
+/*
+ * SchemaElement
+ */
+
+/*
+ * trait making DirectElement and IndirectElement work well together
+ * name:    Function that returns the name of the element
+ * get:     Search for an element by name
+ */
+pub trait SchemaElement<'a> {
+    fn get<'b>(&self, name: &str) -> Option<&Box<dyn SchemaElement>>;
+    fn name(&self) -> String;
+    fn subelements(&self) -> &Vec<Box<&dyn SchemaElement>>;
+
+    fn display_element(&self, f: &mut fmt::Formatter, depth: DefIdx) -> fmt::Result {
         const INDENT_STR: &str = "   ";
         let indent_string = INDENT_STR.to_string().repeat(depth);
 
-        write!(f, "{}{}", indent_string, element.name)?;
-        let subelements = &element.subelements;
+        write!(f, "{}{}", indent_string, self.name())?;
+        let subelements = self.subelements();
 
         if subelements.len() == 0 {
             write!(f, " []\n")?;
@@ -90,7 +229,7 @@ impl XmlSchema {
             write!(f, " [\n")?;
 
             for elem in subelements {
-                self.display_element(f, depth + 1, elem)?;
+                elem.display_element(f, depth + 1)?;
             }
 
             write!(f, "{}]\n", indent_string)?;
@@ -99,116 +238,55 @@ impl XmlSchema {
         Ok(())
     }
 
-
-    pub fn display(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let depth = 0;
-        self.display_element(f, depth, &self.element)?;
-
-        Ok(())
-    }
-}
-        
-impl fmt::Display for XmlSchema {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-write!(f, "{}\n", "Display for XmlSchema")?;
-        self.display(f)?;
-        Ok(())
+    fn as_any(&self) -> &dyn Any {
+        &self
     }
 }
 
-impl DirectElement {
-    pub fn new(name: &str, subelements: Vec<DirectElement>) ->
-        DirectElement {
-        DirectElement {
-            name:           name.to_string(),
-            attributes:     vec!(),
-            subelements:    subelements,
-        }
-    }
-
-    // Find an DirectElement whose name matches the given one
-    pub fn get(&self, name: &str) -> Option<&DirectElement> {
-        match self
-            .subelements
-            .iter()
-            .find(move |&schema_element| schema_element.name == name) {
-            None => None,
-            Some(schema_elem) => Some(&schema_elem),
-        }
-    }
-
-    pub fn display_root(&self, f: &mut fmt::Formatter, depth: DefIdx) ->
-        fmt::Result{
-        const INDENT_SLOT: &str = "   ";
-        let indent_str = INDENT_SLOT.repeat(depth);
-        write!(f, "{}{}\n", indent_str, self.name)?;
-        Ok(())
-    }
-}
-
-impl SchemaElement for DirectElement {
-    fn name(&self) -> String {
-        self.name.clone()
-    }
-
-    fn get(&self, name: &str) -> Option<&DirectElement> {
-        println!("get({})", name);
-        None
-    }
-
-    fn display(&self, f: &mut fmt::Formatter, _depth: DefIdx) -> fmt::Result {
-        self.display_root(f, 0)
-    }
-}
-
-impl fmt::Display for DirectElement {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        self.display_root(f, 0)?;
-        Ok(())
-    }
-}
-
-impl IndirectElement<'_> {
-    pub fn new(direct_element: &DirectElement) -> IndirectElement {
-        IndirectElement {
-            direct_element: direct_element,
-        }
-    }
-
-
-    fn display_root(&self, _f: &mut fmt::Formatter, _depth: DefIdx) -> fmt::Result {
-        Ok(())
-    }
-}
-
-impl SchemaElement for IndirectElement<'_> {
-    fn name(&self) -> String {
-        self.direct_element.name.clone()
-    }
-
-    fn get(&self, name: &str) -> Option<&DirectElement> {
-        println!("get({})", name);
-        None
-    }
-
-    fn display(&self, f: &mut fmt::Formatter, _depth: DefIdx) -> fmt::Result {
-        self.display_root(f, 0)
-    }
-}
-struct SchemaElementCollection {
-    schema_elements: Vec<Box<dyn SchemaElement>>, // Owned heap-allocated trait objects
+struct SchemaElementCollection<'a> {
+    schema_elements: Vec<Box<&'a dyn SchemaElement<'a>>>, // Owned heap-allocated trait objects
 }
 
 // Owned Iterator
-struct SchemaElementIterator {
-    schema_elements: Vec<Box<dyn SchemaElement>>, // A Vec of trait objects
-    index: usize,
+struct SchemaElementIterator<'a> {
+    schema_elements: Vec<&'a mut dyn Iterator<Item = &'a dyn SchemaElement<'a>>>,
 }
 
+impl<'a> Iterator for SchemaElementIterator<'a> {
+    type Item = &'a dyn SchemaElement<'a>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            let len = self.schema_elements.len();
+
+            if len == 0 {
+println!("Got nuttin");
+                return None;
+            } else {
+print!("using next() on element {}: ", len - 1);
+                match self.schema_elements[len - 1].next() {
+                    None => {
+println!("nuttin");
+                        self.schema_elements.pop();
+                        if self.schema_elements.len() == 0 {
+                            return None;
+                        }
+                    },
+                    Some(schema_element) => {
+println!("sumptin");
+                        return Some(schema_element);
+                    },
+                };
+            }
+        }
+    }
+}
+
+/*
 // Owned IntoIterator
 impl IntoIterator for SchemaElementCollection {
-    type Item = Box<dyn SchemaElement>; // Owns the items when iterating
-    type IntoIter = std::vec::IntoIter<Box<dyn SchemaElement>>;
+    type Item = Box<&dyn SchemaElement>; // Owns the items when iterating
+    type IntoIter = std::vec::IntoIter<Box<&dyn SchemaElement>>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.schema_elements.into_iter()
@@ -218,10 +296,10 @@ impl IntoIterator for SchemaElementCollection {
 // Borrowed IntoIterator
 impl<'a> IntoIterator for &'a SchemaElementIterator {
     type Item = &'a dyn SchemaElement;
-    type IntoIter = std::iter::Map<std::slice::Iter<'a, Box<dyn SchemaElement>>, fn(&Box<dyn SchemaElement>) -> &dyn SchemaElement>;
+    type IntoIter = std::iter::Map<std::slice::Iter<'a, SchemaElement>, fn(&SchemaElement) -> &dyn SchemaElement>;
 
     fn into_iter(self) -> Self::IntoIter {
-        self.schema_elements.iter().map(|b| &**b) // Convert `&Box<dyn SchemaElement>` to `&dyn SchemaElement`
+        self.schema_elements.iter().map(|b| &**b) // Convert `&SchemaElement` to `&dyn SchemaElement`
     }
 }
 
@@ -229,15 +307,19 @@ impl<'a> IntoIterator for &'a SchemaElementIterator {
 impl<'a> IntoIterator for &'a mut SchemaElementCollection {
     type Item = &'a mut dyn SchemaElement;
     type IntoIter = std::iter::Map<
-        std::slice::IterMut<'a, Box<dyn SchemaElement>>,
-        fn(&mut Box<dyn SchemaElement>) -> &mut dyn SchemaElement,
+        std::slice::IterMut<'a, SchemaElement>,
+        fn(&mut SchemaElement) -> &mut dyn SchemaElement,
     >;
 
     fn into_iter(self) -> Self::IntoIter {
         self.schema_elements.iter_mut().map(|schema_element| schema_element.as_mut())
     }
 }
+*/
 
+/*
+ * SchemaAttribute
+ */
 impl SchemaAttribute {
     pub fn new() -> SchemaAttribute {
         SchemaAttribute {
@@ -261,17 +343,17 @@ trait Animal {
 }
 
 struct AnimalCollection {
-    animals: Vec<Box<dyn Animal>>, // Owned heap-allocated trait objects
+    animals: Vec<Box<Box<dyndyn Animal>>, // Owned heap-allocated trait objects
 }
 
 // Owned Iterator
 struct AnimalIterator {
-    animals: Vec<Box<dyn Animal>>, // A Vec of trait objects
+    animals: Vec<Box<Box<dyndyn Animal>>, // A Vec of trait objects
     index: usize,
 }
 
 impl Iterator for AnimalIterator {
-    type Item = Box<dyn Animal>;
+    type Item = Box<Box<dyndyn Animal>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.index < self.animals.len() {
@@ -285,7 +367,7 @@ impl Iterator for AnimalIterator {
 
 // Borrowed Iterator
 impl Iterator for AnimalIterator {
-    type Item = Box<dyn Animal>;
+    type Item = Box<Box<dyndyn Animal>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.index < self.animals.len() {
@@ -300,8 +382,8 @@ impl Iterator for AnimalIterator {
 
 // Owned IntoIterator
 impl IntoIterator for AnimalCollection {
-    type Item = Box<dyn Animal>; // Owns the items when iterating
-    type IntoIter = std::vec::IntoIter<Box<dyn Animal>>;
+    type Item = Box<Box<dyndyn Animal>; // Owns the items when iterating
+    type IntoIter = std::vec::IntoIter<Box<Box<dyndyn Animal>>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.animals.into_iter()
@@ -311,10 +393,10 @@ impl IntoIterator for AnimalCollection {
 // Borrowed IntoIterator
 impl<'a> IntoIterator for &'a AnimalCollection {
     type Item = &'a dyn Animal;
-    type IntoIter = std::iter::Map<std::slice::Iter<'a, Box<dyn Animal>>, fn(&Box<dyn Animal>) -> &dyn Animal>;
+    type IntoIter = std::iter::Map<std::slice::Iter<'a, Box<Box<dyndyn Animal>>, fn(&Box<Box<dyndyn Animal>) -> &dyn Animal>;
 
     fn into_iter(self) -> Self::IntoIter {
-        self.animals.iter().map(|b| &**b) // Convert `&Box<dyn Animal>` to `&dyn Animal`
+        self.animals.iter().map(|b| &**b) // Convert `&Box<Box<dyndyn Animal>` to `&dyn Animal`
     }
 }
 
@@ -322,8 +404,8 @@ impl<'a> IntoIterator for &'a AnimalCollection {
 impl<'a> IntoIterator for &'a mut AnimalCollection {
     type Item = &'a mut dyn Animal;
     type IntoIter = std::iter::Map<
-        std::slice::IterMut<'a, Box<dyn Animal>>,
-        fn(&mut Box<dyn Animal>) -> &mut dyn Animal,
+        std::slice::IterMut<'a, Box<Box<dyndyn Animal>>,
+        fn(&mut Box<Box<dyndyn Animal>) -> &mut dyn Animal,
     >;
 
     fn into_iter(self) -> Self::IntoIter {

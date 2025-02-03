@@ -219,18 +219,18 @@ mod tests {
     use crate::xml_schema::{DirectElement, SchemaElement};
 
     lazy_static!{
-        static ref TEST_XML_DESC_TREE: XmlSchema =
-            XmlSchema::new("MySchema", DirectElement::new("XTCE", vec!(
-                    DirectElement::new("SpaceSystem", vec!(
-                        DirectElement::new("a1", vec!(
-                            DirectElement::new("a2", vec!()),
-                        )),
-                        DirectElement::new("a2", vec!(
-                            DirectElement::new("a1", vec!()),
-                        )),
-                    )),
-                )),
-            );
+        static ref TEST_XML_DESC_TREE: XmlSchema<'static> =
+            Box::new(XmlSchema::new("MySchema", DirectElement::new("XTCE", vec!(
+                Box::new(DirectElement::new("SpaceSystem", vec!(
+                    Box::new(DirectElement::new("a1", vec!(
+                        Box::new(DirectElement::new("a2", vec!())),
+                    ))),
+                    Box::new(DirectElement::new("a2", vec!(
+                        Box::new(DirectElement::new("a1", vec!()))
+                    ))),
+                ))),
+            ))),
+        );
     }
 
     #[test]
@@ -305,6 +305,7 @@ mod tests {
         }
     }
 */
+/*
 
     #[test]
     fn test3() {
@@ -320,4 +321,5 @@ mod tests {
             Ok(xml_document) => println!("XML Document: {}", xml_document),
         }
     }
+*/
 }

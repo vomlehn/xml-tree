@@ -16,7 +16,7 @@ pub use crate::xml_document::{DocumentInfo, Element, ElementInfo, XmlDocument};
 pub use crate::xml_document_error::XmlDocumentError;
 
 struct XmlDocumentFactoryDef<'a> {
-    schema_element:   &'a dyn SchemaElement,
+    schema_element:   &'a dyn SchemaElement<'a>,
 }
 
 impl fmt::Display for XmlDocumentFactoryDef<'_> {
@@ -34,7 +34,7 @@ impl fmt::Display for XmlDocumentFactoryDef<'_> {
  */
 pub struct XmlDocumentFactory<'a, R: Read + 'a> {
     parser:             Parser<R>,
-    pub xml_schema: &'a XmlSchema,
+    pub xml_schema:     XmlSchema<'a>,
     factory_defs:       HashMap<&'a str, XmlDocumentFactoryDef<'a>>
 }
 
@@ -47,11 +47,11 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
 
         let xml_factory = XmlDocumentFactory::<T> {
             parser:         parser,
-            xml_schema: xml_schema,
+            xml_schema:     xml_schema,
             factory_defs:   HashMap::<&str, XmlDocumentFactoryDef>::new(),
         };
 
-        xml_factory.parse_end_document(xml_schema)
+        xml_factory.parse_end_document(&xml_schema)
     }
 
     /*
@@ -123,7 +123,7 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
                     let element_info = ElementInfo::new(lineno, attributes.clone(),
                         namespace.clone());
                     
-                    let mut element = self.process_element::<R>(xml_schema,
+                    let mut element = self.parse_element::<R>(xml_schema,
                         &xml_schema.element, depth, start_name.clone(),
                         element_info)?;
                     element.before_element = pieces;
@@ -177,7 +177,7 @@ println!("Skipping processing_instruction");
      * name_in:                 Name of the element
      * element_info_in:         Other information about the element
      */
-    fn process_element<T: Read>(&mut self,
+    fn parse_element<T: Read>(&mut self,
         xml_schema: &XmlSchema, schema_element: &dyn SchemaElement,
             depth: usize, name_in: OwnedName, element_info_in: ElementInfo) ->
         Result<Element, XmlDocumentError> {
@@ -213,7 +213,7 @@ println!("Skipping processing_instruction");
                     
                     let element_info = ElementInfo::new(lineno,
                         attributes2.clone(), namespace2.clone());
-                    let subelement = self.process_element::<R>(xml_schema,
+                    let subelement = self.parse_element::<R>(xml_schema,
                         next_schema_element, depth,
                         start_name.clone(), element_info.clone())?;
                     element.before_element = pieces;
