@@ -5,6 +5,7 @@
 use std::fmt;
 use std::fs::File;
 use std::io::{BufReader, Read};
+use std::sync::Arc;
 use xml::attribute::OwnedAttribute;
 use xml::common::XmlVersion;
 use xml::name::OwnedName;
@@ -13,8 +14,8 @@ use xml::reader::XmlEvent;
 
 use crate::xml_document_error::XmlDocumentError;
 use crate::xml_document_factory::XmlDocumentFactory;
+use crate::xml_schema::XmlSchema;
 use crate::parser::LineNumber;
-use crate::xml_schema::{SchemaElement, XmlSchema};
 
 #[derive(Clone, Debug)]
 pub struct ElementInfo {
@@ -120,10 +121,10 @@ pub struct XmlDocument {
 }
 
 impl XmlDocument {
-    pub fn new(path: &str, xml_schema: &XmlSchema) ->
+    pub fn new(path: &str, xml_schema: XmlSchema) ->
         Result<XmlDocument, XmlDocumentError> {
         let file = match File::open(path) {
-            Err(e) => return Err(XmlDocumentError::Error(Box::new(e))),
+            Err(e) => return Err(XmlDocumentError::Error(Arc::new(e))),
             Ok(f) => f,
         };
         let reader = BufReader::new(file);
@@ -132,9 +133,9 @@ impl XmlDocument {
 }
 
 impl XmlDocument {
-    pub fn new_from_reader<R: Read> (
+    pub fn new_from_reader<'a, R: Read + 'a> (
         buf_reader: BufReader<R>,
-        xml_schema: &XmlSchema) ->
+        xml_schema: XmlSchema<'a>) ->
         Result<XmlDocument, XmlDocumentError> {
 
         // Create the factory using the reader and XML definition
@@ -216,20 +217,25 @@ mod tests {
 
     use super::*;
 
-    use crate::xml_schema::{DirectElement, SchemaElement};
+    use crate::xml_schema::DirectElement;
 
     lazy_static!{
         static ref TEST_XML_DESC_TREE: XmlSchema<'static> =
-            Box::new(XmlSchema::new("MySchema", DirectElement::new("XTCE", vec!(
-                Box::new(DirectElement::new("SpaceSystem", vec!(
-                    Box::new(DirectElement::new("a1", vec!(
-                        Box::new(DirectElement::new("a2", vec!())),
-                    ))),
-                    Box::new(DirectElement::new("a2", vec!(
-                        Box::new(DirectElement::new("a1", vec!()))
-                    ))),
-                ))),
-            ))),
+            XmlSchema::new("MySchema",
+/*
+                Arc::new(DirectElement::new("XTCE", vec!(
+                DirectElement::new("SpaceSystem", vec!(
+                    DirectElement::new("a1", vec!(
+                        DirectElement::new("a2", vec!()),
+                    )),
+                    DirectElement::new("a2", vec!(
+                        DirectElement::new("a1", vec!())
+                    )),
+                )),
+            )),
+        ));
+*/
+DirectElement::new("stuff", vec!())
         );
     }
 

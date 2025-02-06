@@ -1,3 +1,4 @@
+use std::sync::{Arc, Mutex};
 use thiserror::Error;
 use xml::reader::XmlEvent;
 
@@ -18,7 +19,7 @@ pub enum XmlDocumentError {
     DuplicateKey(String),
 
     #[error("XML parser error: {0}")]
-    Error(Box<dyn std::error::Error>),
+    Error(Arc<dyn std::error::Error>),
 
     #[error("Line {0}: Internal error: {1}")]
     InternalError(LineNumber, String),

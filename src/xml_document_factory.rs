@@ -4,43 +4,31 @@
  */
 // FIXME: delete all uses of expect(), everywhere
 
-use std::collections::HashMap;
 use std::fmt;
 use std::io::{Read};
+use std::sync::{Arc, Mutex};
 use xml::name::OwnedName;
 use xml::reader::XmlEvent;
+
 
 use crate::parser::Parser;
 use crate::xml_schema::{XmlSchema, SchemaElement};
 pub use crate::xml_document::{DocumentInfo, Element, ElementInfo, XmlDocument};
 pub use crate::xml_document_error::XmlDocumentError;
 
-struct XmlDocumentFactoryDef<'a> {
-    schema_element:   &'a dyn SchemaElement<'a>,
-}
-
-impl fmt::Display for XmlDocumentFactoryDef<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.schema_element.name())
-    }
-}
-
 /*
  * Structure used to hold parsing information
  * parser:          Used to extract XmlElement objects from the input stream
  * xml_schema:  Definition of what the input is expected to look like
- * factory_defs     Hash table that makes it faster to get from an element
- *                  name to the corresponding entry in xml_schema.
  */
 pub struct XmlDocumentFactory<'a, R: Read + 'a> {
     parser:             Parser<R>,
     pub xml_schema:     XmlSchema<'a>,
-    factory_defs:       HashMap<&'a str, XmlDocumentFactoryDef<'a>>
 }
 
 impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
-    pub fn new_from_reader<T: Read>(reader: T,
-        xml_schema: &XmlSchema) ->
+    pub fn new_from_reader<T: Read + 'a>(reader: T,
+        xml_schema: XmlSchema<'a>) ->
         Result<XmlDocument, XmlDocumentError> {
         
         let parser = Parser::<T>::new(reader);
@@ -48,10 +36,9 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
         let xml_factory = XmlDocumentFactory::<T> {
             parser:         parser,
             xml_schema:     xml_schema,
-            factory_defs:   HashMap::<&str, XmlDocumentFactoryDef>::new(),
         };
 
-        xml_factory.parse_end_document(&xml_schema)
+        xml_factory.parse_end_document()
     }
 
     /*
@@ -99,7 +86,7 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
     /*
      * Parse until we find an EndDocument, filling in the 
      */
-    fn parse_end_document(mut self, xml_schema: &XmlSchema) ->
+    fn parse_end_document(mut self) ->
         Result<XmlDocument, XmlDocumentError> {
         let mut pieces = Vec::<XmlEvent>::new();
         let document_info = self.parse_start_document()?;
@@ -123,9 +110,8 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
                     let element_info = ElementInfo::new(lineno, attributes.clone(),
                         namespace.clone());
                     
-                    let mut element = self.parse_element::<R>(xml_schema,
-                        &xml_schema.element, depth, start_name.clone(),
-                        element_info)?;
+                    let mut element = self.parse_element::<R>(&self.xml_schema.element, depth,
+                        start_name.clone(), element_info)?;
                     element.before_element = pieces;
                     break element;
                 },
@@ -178,7 +164,7 @@ println!("Skipping processing_instruction");
      * element_info_in:         Other information about the element
      */
     fn parse_element<T: Read>(&mut self,
-        xml_schema: &XmlSchema, schema_element: &dyn SchemaElement,
+        schema_element: &Arc<Mutex<dyn SchemaElement + Sync + 'static>>,
             depth: usize, name_in: OwnedName, element_info_in: ElementInfo) ->
         Result<Element, XmlDocumentError> {
         // First, we set up the element
@@ -213,7 +199,7 @@ println!("Skipping processing_instruction");
                     
                     let element_info = ElementInfo::new(lineno,
                         attributes2.clone(), namespace2.clone());
-                    let subelement = self.parse_element::<R>(xml_schema,
+                    let subelement = self.parse_element::<R>(
                         next_schema_element, depth,
                         start_name.clone(), element_info.clone())?;
                     element.before_element = pieces;
@@ -257,10 +243,6 @@ println!("Skipping processing_instruction");
 
 impl<R: Read> fmt::Display for XmlDocumentFactory<'_, R> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.xml_schema.element.name)?;
-        for factory_desc in self.factory_defs.values() {
-            write!(f, "{}", factory_desc.schema_element.name())?;
-        }
-        Ok(())
+        write!(f, "{}", self.xml_schema)
     }
 }
