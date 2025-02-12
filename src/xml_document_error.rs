@@ -1,4 +1,4 @@
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use thiserror::Error;
 use xml::reader::XmlEvent;
 
@@ -18,6 +18,7 @@ pub enum XmlDocumentError {
     #[error("Duplicate key {0}")]
     DuplicateKey(String),
 
+    // FIXME: RefCell?
     #[error("XML parser error: {0}")]
     Error(Arc<dyn std::error::Error>),
 

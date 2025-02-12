@@ -9,5 +9,6 @@ mod xml_document_factory;
 
 pub use crate::xml_schema::{XmlSchema, SchemaElement};
 pub use crate::xml_document::{Element, XmlDocument};
+pub use crate::xml_document_factory::XmlDocumentFactory;
 pub use crate::xml_document_error::XmlDocumentError;
 //pub use crate::multiterator::Multiterator;

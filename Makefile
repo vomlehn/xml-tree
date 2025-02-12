@@ -1,5 +1,5 @@
-TEST = test3
-#TEST =
+#TEST = test3
+TEST =
 
 #RUN_FILE = test/test5.xtce
 RUN_FILE = schema/SpaceSystem-patched.xtce

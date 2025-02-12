@@ -6,13 +6,11 @@
 
 use std::fmt;
 use std::io::{Read};
-use std::sync::{Arc, Mutex};
 use xml::name::OwnedName;
 use xml::reader::XmlEvent;
 
-
 use crate::parser::Parser;
-use crate::xml_schema::{XmlSchema, SchemaElement};
+use crate::xml_schema::{SchemaElement, SchemaElementType, XmlSchema};
 pub use crate::xml_document::{DocumentInfo, Element, ElementInfo, XmlDocument};
 pub use crate::xml_document_error::XmlDocumentError;
 
@@ -23,12 +21,12 @@ pub use crate::xml_document_error::XmlDocumentError;
  */
 pub struct XmlDocumentFactory<'a, R: Read + 'a> {
     parser:             Parser<R>,
-    pub xml_schema:     XmlSchema<'a>,
+    pub xml_schema:     &'a XmlSchema<'a>,
 }
 
 impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
     pub fn new_from_reader<T: Read + 'a>(reader: T,
-        xml_schema: XmlSchema<'a>) ->
+        xml_schema: &'a XmlSchema<'a>) ->
         Result<XmlDocument, XmlDocumentError> {
         
         let parser = Parser::<T>::new(reader);
@@ -110,8 +108,9 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
                     let element_info = ElementInfo::new(lineno, attributes.clone(),
                         namespace.clone());
                     
-                    let mut element = self.parse_element::<R>(&self.xml_schema.element, depth,
-                        start_name.clone(), element_info)?;
+                    let root_element = self.xml_schema.element().clone();
+                    let mut element = self.parse_element::<R>(root_element,
+                        depth, start_name.clone(), element_info)?;
                     element.before_element = pieces;
                     break element;
                 },
@@ -164,7 +163,7 @@ println!("Skipping processing_instruction");
      * element_info_in:         Other information about the element
      */
     fn parse_element<T: Read>(&mut self,
-        schema_element: &Arc<Mutex<dyn SchemaElement + Sync + 'static>>,
+        schema_element: SchemaElementType,
             depth: usize, name_in: OwnedName, element_info_in: ElementInfo) ->
         Result<Element, XmlDocumentError> {
         // First, we set up the element
@@ -208,9 +207,9 @@ println!("Skipping processing_instruction");
                 },
                 XmlEvent::EndElement{name} => {
         println!("</{}> ({:?}: {}->{})", name.local_name, schema_element.name(), element_info_in.lineno, xml_element.lineno);
-                    if name.local_name != schema_element.name() {
+                    if name.local_name != *schema_element.name() {
                         return Err(XmlDocumentError::MisplacedElementEnd(lineno,
-                            schema_element.name().clone(), name.local_name.to_string()));
+                            schema_element.name().to_string(), name.local_name.to_string()));
                     }
 
                     element.content = pieces;

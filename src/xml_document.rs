@@ -76,15 +76,17 @@ impl Element {
 
 impl fmt::Display for Element {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        const INDENT_STR: &str = "   ";
-        let indent_string = INDENT_STR.to_string().repeat(self.depth);
+        write!(f, "{}", self.name.local_name)?;
 
-        write!(f, "{}<{}", indent_string, self.name.local_name)?;
-        for attribute in self.element_info.attributes.clone() {
-            write!(f, " {}={}", attribute.name.local_name, attribute.value)?;
+        for attribute in &self.element_info.attributes {
+            write!(f, " {}=\"{}\"", attribute.name, attribute.value)?;
         }
-        write!(f, ">\n")?;
 
+        if self.subelements.len() == 0 && self.content.len() == 0 {
+            write!(f, " /> (line {})\n", self.element_info.lineno)?;
+        } else {
+            write!(f, "> (line {})\n", self.element_info.lineno)?;
+        }
 
         Ok(())
     }
@@ -121,7 +123,7 @@ pub struct XmlDocument {
 }
 
 impl XmlDocument {
-    pub fn new(path: &str, xml_schema: XmlSchema) ->
+    pub fn new<'a>(path: &str, xml_schema: &'a XmlSchema<'a>) ->
         Result<XmlDocument, XmlDocumentError> {
         let file = match File::open(path) {
             Err(e) => return Err(XmlDocumentError::Error(Arc::new(e))),
@@ -135,7 +137,7 @@ impl XmlDocument {
 impl XmlDocument {
     pub fn new_from_reader<'a, R: Read + 'a> (
         buf_reader: BufReader<R>,
-        xml_schema: XmlSchema<'a>) ->
+        xml_schema: &'a XmlSchema<'a>) ->
         Result<XmlDocument, XmlDocumentError> {
 
         // Create the factory using the reader and XML definition
@@ -161,13 +163,23 @@ impl XmlDocument {
     pub fn display_element(&self, f: &mut fmt::Formatter<'_>, depth: usize,
         element: &Element) ->
     fmt::Result {
-println!("depth {}", depth);
         const INDENT_STR: &str = "   ";
         let indent_string = INDENT_STR.to_string().repeat(depth);
 
-        self.display_piece(f, &element.before_element)?;
+//        self.display_piece(f, &element.before_element)?;
 
-        write!(f, "{}<{}", indent_string, element.name.local_name)?;
+        write!(f, "{}<{}", indent_string, element);
+
+        if element.subelements.len() != 0 || element.content.len() != 0 {
+            for element in &element.subelements {
+                self.display_element(f, depth + 1, element)?;
+            }
+
+            write!(f, "{}</{}>\n", indent_string, element.name.local_name)?;
+        }
+
+/*
+, element.name.local_name)?;
 
         for attribute in &element.element_info.attributes {
             write!(f, " {}=\"{}\"", attribute.name, attribute.value)?;
@@ -187,12 +199,12 @@ println!("depth {}", depth);
         }
 
         self.display_piece(f, &element.after_element)?;
+*/
 
         Ok(())
     }
 
     pub fn display(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-println!("display");
         write!(f, "<?xml {} {} {:?}>\n",
             self.document_info.version, self.document_info.encoding,
             self.document_info.standalone)?;
@@ -206,7 +218,6 @@ println!("display");
         
 impl fmt::Display for XmlDocument {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-println!("XmlDocument::fmt()");
         self.display(f)
     }
 }
@@ -215,38 +226,40 @@ println!("XmlDocument::fmt()");
 mod tests {
     use lazy_static::lazy_static;
 
+    use std::io::Cursor;
+
     use super::*;
 
-    use crate::xml_schema::DirectElement;
+    use crate::xml_schema::{DirectElement, SchemaElement};
 
     lazy_static!{
         static ref TEST_XML_DESC_TREE: XmlSchema<'static> =
             XmlSchema::new("MySchema",
-/*
                 Arc::new(DirectElement::new("XTCE", vec!(
-                DirectElement::new("SpaceSystem", vec!(
-                    DirectElement::new("a1", vec!(
-                        DirectElement::new("a2", vec!()),
-                    )),
-                    DirectElement::new("a2", vec!(
-                        DirectElement::new("a1", vec!())
-                    )),
-                )),
-            )),
-        ));
-*/
-DirectElement::new("stuff", vec!())
+                Arc::new(DirectElement::new("SpaceSystem", vec!(
+                    Arc::new(DirectElement::new("a1", vec!(
+                        Arc::new(DirectElement::new("a2", vec!())),
+                    ))),
+                    Arc::new(DirectElement::new("a2", vec!(
+                        Arc::new(DirectElement::new("a1", vec!()))
+                    ))),
+                ))),
+            ))),
         );
+//Arc::new(DirectElement::new("stuff", vec!()))
+//        );
     }
 
     #[test]
     fn test1() {
         println!("Test: test1");
         (*TEST_XML_DESC_TREE).validate().unwrap();
-        println!("XML Definition: {}", *TEST_XML_DESC_TREE);
-/*
-        println!("Tree done");
+        println!("-----------------------------");
+        println!("Schema:");
+        println!("{}", *TEST_XML_DESC_TREE);
 
+        println!("-----------------------------");
+        println!("Input:");
         let input = r#"<?xml version="1.0"?>
             <XTCE xmlns="http://www.omg.org/spec/XTCE/">
                 <SpaceSystem xmlns="http://www.omg.org/space/xtce" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.omg.org/space/xtce ../SpaceSystemV1.0.xsd" name="TrivialSat">
@@ -255,18 +268,20 @@ DirectElement::new("stuff", vec!())
                 </a2>
                 </SpaceSystem>
             </XTCE>"#;
-        println!();
-        println!("Input: {}", input);
-
-        println!();
+        println!("{}", input);
+        println!("-----------------------------");
+        println!("Parsing:");
         let cursor = Cursor::new(input);
         let buf_reader = BufReader::new(cursor);
 
         match XmlDocument::new_from_reader(buf_reader, &TEST_XML_DESC_TREE) {
             Err(e) => println!("Failed: {}", e),
-            Ok(xml_document) => println!("XML Document: {}", xml_document),
+            Ok(xml_document) => {
+                println!("-----------------------------");
+                println!("Result:");
+                println!("{}", xml_document);
+            },
         }
-*/
     }
 
 /*
