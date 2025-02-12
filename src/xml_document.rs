@@ -168,7 +168,7 @@ impl XmlDocument {
 
 //        self.display_piece(f, &element.before_element)?;
 
-        write!(f, "{}<{}", indent_string, element);
+        write!(f, "{}<{}", indent_string, element)?;
 
         if element.subelements.len() != 0 || element.content.len() != 0 {
             for element in &element.subelements {
@@ -246,11 +246,21 @@ mod tests {
                 ))),
             ))),
         );
-//Arc::new(DirectElement::new("stuff", vec!()))
-//        );
     }
 
-    #[test]
+    lazy_static!{
+        static ref TEST_MATH: XmlSchema<'static> =
+            XmlSchema::new("MathSchema",
+                Arc::new(DirectElement::new("Math", vec!(
+                Arc::new(DirectElement::new("operand", vec!(
+                    Arc::new(DirectElement::new("int", vec!())),
+                ))),
+                Arc::new(DirectElement::new("operator", vec!())),
+            ))),
+        );
+    }
+
+    #[test] #[ignore]
     fn test1() {
         println!("Test: test1");
         (*TEST_XML_DESC_TREE).validate().unwrap();
@@ -284,51 +294,49 @@ mod tests {
         }
     }
 
-/*
     #[test]
     fn test2() {
         println!("Test: test2");
+        (*TEST_MATH).validate().unwrap();
+        println!("-----------------------------");
+        println!("Schema:");
+        println!("{}", *TEST_MATH);
+
+        println!("-----------------------------");
+        println!("Input:");
         let input = r#"<?xml version="1.0"?>
-            <XTCE xmlns="http://www.omg.org/spec/XTCE/">
-                <SpaceSystem xmlns="http://www.omg.org/space/xtce" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.omg.org/space/xtce ../SpaceSystemV1.0.xsd" name="TrivialSat">
-                <a1 />
-                <a2>
-                </a2>
-                </SpaceSystem>
-            </XTCE>"#;
-        println!();
-        println!("Input: {}", input);
-
-        println!();
-        let cursor = Cursor::new(input.as_bytes());
+            <Math xmlns="http://www.omg.org/spec/XTCE/">
+                <operand>
+                    <int>
+                        27
+                    </int>
+                </operand>
+                <operator>
+                        +
+                </operator>
+                <operand>
+                    <int>
+                        12
+                    </int>
+                </operand>
+            </Math>"#;
+        println!("{}", input);
+        println!("-----------------------------");
+        println!("Parsing:");
+        let cursor = Cursor::new(input);
         let buf_reader = BufReader::new(cursor);
-        let line_reader = crate::parser::LinenoReader::new(buf_reader);
-        let mut event_reader = xml::EventReader::new(line_reader);
-        
-        loop {
-            let event = event_reader.next();
 
-            match event {
-                Err(e) => {
-                        println!("Err: {:?}", e);      
-                        break;
-                },
-                Ok(o) => match o {
-                    xml::reader::XmlEvent::EndDocument{..} => {
-                        println!("EOD");
-                        break;
-                    }
-                    _ => println!("Ok: {:?}", o),
-                }
-            }
-
-            println!("done");
+        match XmlDocument::new_from_reader(buf_reader, &TEST_MATH) {
+            Err(e) => println!("Failed: {}", e),
+            Ok(xml_document) => {
+                println!("-----------------------------");
+                println!("Result:");
+                println!("{}", xml_document);
+            },
         }
     }
-*/
-/*
 
-    #[test]
+    #[test] #[ignore]
     fn test3() {
         use crate::xsd_schema::XSD_SCHEMA;
 
@@ -342,5 +350,45 @@ mod tests {
             Ok(xml_document) => println!("XML Document: {}", xml_document),
         }
     }
-*/
+
+    #[test]
+    fn test4() {
+        println!("Test: test4");
+        (*TEST_XML_DESC_TREE).validate().unwrap();
+        println!("-----------------------------");
+        println!("Schema:");
+        println!("{}", *TEST_XML_DESC_TREE);
+
+        println!("-----------------------------");
+        println!("Input:");
+        let input = r#"<?xml version="1.0"?>
+            <XTCE xmlns="http://www.omg.org/spec/XTCE/">
+                <SpaceSystem xmlns="http://www.omg.org/space/xtce" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.omg.org/space/xtce ../SpaceSystemV1.0.xsd" name="TrivialSat">
+                <a1 />
+                <a2 attr1="xyz" attr2="abc">
+                </a2>
+                </SpaceSystem>
+            </XTCE>"#;
+        println!("{}", input);
+        println!("-----------------------------");
+        println!("Parsing:");
+        let cursor = Cursor::new(input);
+        let buf_reader = BufReader::new(cursor);
+
+        let xml_document = match XmlDocument::new_from_reader(buf_reader,
+            &TEST_XML_DESC_TREE) {
+            Err(e) => {
+                println!("Failed: {}", e);
+                return Err(e);
+            },
+            Ok(xml_document) => xml_document,
+        };
+
+        println!("-----------------------------");
+//        println!("Result:");
+//        println!("{}", xml_document);
+        let print_item = PrintItem::new();
+        let print = Print::new(print_item);
+        print.walk(&xml_document);
+    }
 }

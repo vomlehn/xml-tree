@@ -4,9 +4,11 @@ pub mod xml_document_error;
 
 mod parser;
 mod multiterator;
+mod walker;
 mod xsd_schema;
 mod xml_document_factory;
 
+pub use crate::walker::{*}; // Be more choosy
 pub use crate::xml_schema::{XmlSchema, SchemaElement};
 pub use crate::xml_document::{Element, XmlDocument};
 pub use crate::xml_document_factory::XmlDocumentFactory;
