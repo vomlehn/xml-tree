@@ -197,7 +197,7 @@ impl XmlDocument {
         Ok(xml_document)
     }
 
-    fn display_piece(&self, f: &mut fmt::Formatter<'_>, pieces: &Vec<XmlEvent>) -> fmt::Result {
+    fn _display_piece(&self, f: &mut fmt::Formatter<'_>, pieces: &Vec<XmlEvent>) -> fmt::Result {
         let result = for piece in pieces {
             match piece {
                 XmlEvent::Comment(cmnt) => write!(f, "<!-- {} -->", cmnt)?,

@@ -5,6 +5,7 @@ pub mod xml_document_error;
 mod parser;
 mod multiterator;
 mod walker;
+mod walker_print;
 mod xsd_schema;
 mod xml_document_factory;
 

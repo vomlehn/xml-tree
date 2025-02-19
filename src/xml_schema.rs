@@ -5,7 +5,8 @@
 
 //use std::any::Any;
 use std::fmt;
-use std::iter;
+// FIXME: implement some more iterators
+//use std::iter;
 use std::marker::Sync;
 use std::ops::Deref;
 use std::sync::{Arc, Mutex, MutexGuard};
@@ -39,7 +40,7 @@ pub struct XmlSchema<'a> {
  */
 struct DirectElementInner<'a> {
     name:           &'a str,
-    attributes:     Vec<SchemaAttribute>,
+    _attributes:     Vec<SchemaAttribute>,
     subelements:    Arc<Mutex<SubelementsType<'a>>>,
 }
 
@@ -105,7 +106,7 @@ impl<'a> DirectElementInner<'a> {
         DirectElementInner<'a> {
         DirectElementInner {
             name:           name,
-            attributes:     vec!(),
+            _attributes:     vec!(),
             subelements:    Arc::new(Mutex::new(subelements)),
         }
     }

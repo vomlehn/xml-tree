@@ -10,7 +10,7 @@ use xml::name::OwnedName;
 use xml::reader::XmlEvent;
 
 use crate::parser::Parser;
-use crate::xml_schema::{SchemaElement, SchemaElementType, XmlSchema};
+use crate::xml_schema::{SchemaElementType, XmlSchema};
 pub use crate::xml_document::{DocumentInfo, Element, ElementInfo, XmlDocument};
 pub use crate::xml_document_error::XmlDocumentError;
 
@@ -169,7 +169,6 @@ println!("Skipping processing_instruction");
         // First, we set up the element
         let mut pieces = Vec::<XmlEvent>::new();
 
-        println!("<{}> ({:?}: {})", name_in.local_name, schema_element.name(), element_info_in.lineno);
         let mut element = Element::new(name_in.clone(), depth, element_info_in.clone());
 
         loop {
@@ -206,10 +205,10 @@ println!("Skipping processing_instruction");
                     pieces = Vec::<XmlEvent>::new();
                 },
                 XmlEvent::EndElement{name} => {
-        println!("</{}> ({:?}: {}->{})", name.local_name, schema_element.name(), element_info_in.lineno, xml_element.lineno);
                     if name.local_name != *schema_element.name() {
                         return Err(XmlDocumentError::MisplacedElementEnd(lineno,
-                            schema_element.name().to_string(), name.local_name.to_string()));
+                            schema_element.name().to_string(),
+                            name.local_name.to_string()));
                     }
 
                     element.content = pieces;
