@@ -147,13 +147,6 @@ mod tests {
         let mut outstr = String::new();
         let mut formatter = fmt::Formatter::new(&mut outstr);
         let mut f = &mut formatter;
-/*
-        // Writing formatted output to a custom writer (String in this case)
-        write!(f, "Hello, {}", "world")?;
-
-        // Output will be "Hello, world"
-        println!("Formatted output: {}", outstr);
-*/
 
         let print_xml_document = match XmlDocument::new_from_reader(buf_reader,
             print_xml_schema) {

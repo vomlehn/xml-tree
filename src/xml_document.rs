@@ -12,8 +12,8 @@ use xml::name::OwnedName;
 use xml::namespace::Namespace;
 use xml::reader::XmlEvent;
 
-//use crate::walker::Walker;
-//use crate::walker_print::{PrintWalker, PrintWalkerData, PrintWalkerResult};
+use crate::walker::Walker;
+use crate::walker_print::{PrintWalker, PrintWalkerData, PrintWalkerResult};
 use crate::xml_document_error::XmlDocumentError;
 use crate::xml_document_factory::XmlDocumentFactory;
 use crate::xml_schema::XmlSchema;
@@ -241,20 +241,14 @@ impl XmlDocument {
     }
 }
         
-/*
 impl<'a> fmt::Display for XmlDocument {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let pwd = PrintWalkerData::<PrintWalkerResult>::new(f, 0);
         let w = PrintWalker::<PrintWalkerData<PrintWalkerResult>,
             PrintWalkerResult>::new(self);
-        match w.walk(&mut pwd) {
-            Err(_) => Err(fmt::Error),
-            Ok(_) => Ok(()),
-        }
-        Ok(())
+        w.walk(&mut pwd)
     }
 }
-*/
 
 #[cfg(test)]
 mod tests {
