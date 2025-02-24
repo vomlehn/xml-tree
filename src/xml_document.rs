@@ -12,6 +12,8 @@ use xml::name::OwnedName;
 use xml::namespace::Namespace;
 use xml::reader::XmlEvent;
 
+//use crate::walker::Walker;
+//use crate::walker_print::{PrintWalker, PrintWalkerData, PrintWalkerResult};
 use crate::xml_document_error::XmlDocumentError;
 use crate::xml_document_factory::XmlDocumentFactory;
 use crate::xml_schema::XmlSchema;
@@ -113,20 +115,16 @@ impl Element {
         }
     }
     
-    pub fn display_start(&self, f: &mut fmt::Formatter<'_>) ->
+    pub fn display_start(&self, f: &mut fmt::Formatter<'_>, depth: usize) ->
         fmt::Result {
-        write!(f, "{}", self.start_string(0))?;
+        write!(f, "{}", self.start_string(depth))?;
+        write!(f, "{}", self.attributes_string())?;
         write!(f, "{}", self.end_first_line_string())
     }
 
-    pub fn display_attributes(&self, f: &mut fmt::Formatter<'_>) ->
+    pub fn display_end(&self, f: &mut fmt::Formatter<'_>, depth: usize) ->
         fmt::Result {
-        write!(f, "{}", self.attributes_string())
-    }
-
-    pub fn display_end(&self, f: &mut fmt::Formatter<'_>) ->
-        fmt::Result {
-        if let Some(string) = self.end_n_line_string(0) {
+        if let Some(string) = self.end_n_line_string(depth) {
             write!(f, "{}", string)?;
         }
         Ok(())
@@ -135,9 +133,8 @@ impl Element {
 
 impl fmt::Display for Element {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.display_start(f)?;
-        self.display_attributes(f)?;
-        self.display_end(f)?;
+        self.display_start(f, 0)?;
+        self.display_end(f, 0)?;
 
         Ok(())
     }
@@ -229,29 +226,6 @@ impl XmlDocument {
             write!(f, "{}</{}>\n", indent_string, element.name.local_name)?;
         }
 
-/*
-, element.name.local_name)?;
-
-        for attribute in &element.element_info.attributes {
-            write!(f, " {}=\"{}\"", attribute.name, attribute.value)?;
-        }
-
-        if element.subelements.len() == 0 && element.content.len() == 0 {
-            write!(f, " /> (line {})\n", element.element_info.lineno)?;
-        } else {
-            write!(f, "> (line {})\n", element.element_info.lineno)?;
-            self.display_piece(f, &element.content)?;
-
-            for element in &element.subelements {
-                self.display_element(f, depth + 1, element)?;
-            }
-
-            write!(f, "{}</{}>\n", indent_string, element.name.local_name)?;
-        }
-
-        self.display_piece(f, &element.after_element)?;
-*/
-
         Ok(())
     }
 
@@ -267,11 +241,20 @@ impl XmlDocument {
     }
 }
         
-impl fmt::Display for XmlDocument {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.display(f)
+/*
+impl<'a> fmt::Display for XmlDocument {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let pwd = PrintWalkerData::<PrintWalkerResult>::new(f, 0);
+        let w = PrintWalker::<PrintWalkerData<PrintWalkerResult>,
+            PrintWalkerResult>::new(self);
+        match w.walk(&mut pwd) {
+            Err(_) => Err(fmt::Error),
+            Ok(_) => Ok(()),
+        }
+        Ok(())
     }
 }
+*/
 
 #[cfg(test)]
 mod tests {

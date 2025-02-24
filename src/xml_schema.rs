@@ -91,7 +91,7 @@ impl<'a> XmlSchema<'a> {
 }
 
 impl fmt::Display for XmlSchema<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let depth = 0;
         write!(f, "Display for XmlSchema unimplemented, depth {}", depth)?;
         Ok(())
@@ -151,7 +151,7 @@ impl<'a> SchemaElement<'a> for DirectElement<'a> {
 }
 
 impl fmt::Display for DirectElement<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let depth = 0;
         self.display_element(f, depth)
     }

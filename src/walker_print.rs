@@ -2,63 +2,74 @@
  * Recursive print
  */
 
-/*
-use lazy_static::lazy_static;
-use thiserror;
-use std::error;
-use std::io::{BufReader, Read};
-use std::io::Cursor;
-use std::process;
-use std::rc::Rc;
-use std::sync::Arc;
-
-use crate::xml_document_error::XmlDocumentError;
-use crate::xml_schema::{DirectElement, XmlSchema};
-*/
-
+//use std::cell::RefCell;
+use std::error::Error;
+use std::fmt;
 use std::marker::PhantomData;
 
-use crate::xml_document::Element;
-use crate::walker::{WalkerData, WalkerError};
+use crate::xml_document::{Element, XmlDocument};
+use crate::walker::{Walker, WalkerData};
 
-#[derive(Clone, Debug)]
-struct PrintWalkerData<O> {
+pub struct PrintWalker<'a, 'b, I: WalkerData<'a, 'b, O>, O> {
+    xml_document:   &'a XmlDocument,
+    marker1:        PhantomData<I>,
+    marker2:        PhantomData<O>,
+    marker3:        PhantomData<&'b ()>,
+}
+
+impl<'a, 'b, I: WalkerData<'a, 'b, O>, O> PrintWalker<'a, 'b, I, O> {
+    pub fn new(xml_document: &'a XmlDocument) -> Self {
+        Self {
+            xml_document:   xml_document,
+            marker1:        PhantomData,
+            marker2:        PhantomData,
+            marker3:        PhantomData,
+        }
+    }
+}
+
+impl<'a, I: WalkerData<'a, 'a, O>, O> Walker<'a, 'a, I, O> for PrintWalker<'a, 'a, I, O> {
+    fn xml_document(&self) -> &'a XmlDocument {
+        self.xml_document
+    }
+}
+
+pub struct PrintWalkerData<'a, O> {
+    f:          &'a mut fmt::Formatter<'a>,
     depth:      usize,
     marker1:    PhantomData<O>,
 }
 
-impl<O> PrintWalkerData<O> {
-    pub fn new(depth: usize) -> PrintWalkerData::<O> {
-        PrintWalkerData::<O> {
+impl<'a, O> PrintWalkerData<'a, O> {
+    pub fn new(f: &'a mut fmt::Formatter<'a>, depth: usize) -> Self {
+        PrintWalkerData {
+            f:          f,
             depth:      depth,
             marker1:    PhantomData,
         }
     }
 }
 
-impl<O: Clone + Default> WalkerData<O> for PrintWalkerData<O> {
-    fn element_start(&self, element: &Element) ->
-        Result<PrintWalkerData<O>, WalkerError> {
-        println!("{}{}{}", element.start_string(self.depth),
-            element.attributes_string(), element.end_first_line_string());
-        let next_data = PrintWalkerData::<O>::new(self.depth + 1);
+impl<'a, O: Default> WalkerData<'a, 'a, O> for PrintWalkerData<'a, O> {
+    fn element_start<'c: 'a>(&'c mut self, element: &Element) ->
+        Result<Self, Box<dyn Error>>
+    where
+        Self: Sized {
+        element.display_start(self.f, self.depth)?;
+
+        let next_data = PrintWalkerData::<O>::new(self.f, self.depth + 1);
         Ok(next_data)
     }
 
-    fn element_end(&self, element: &Element, _subelements: Vec<O>) ->
-        Result<O, WalkerError> {
-
-        if let Some(string) = element.end_n_line_string(self.depth) {
-            println!("{}", string);
-        }
+    fn element_end(&mut self, element: &Element, _subelements: Vec<O>) ->
+        Result<O, Box<dyn Error>> {
+        element.display_end(self.f, self.depth)?;
 
         Ok(O::default())
     }
 }
 
-#[derive(Clone)]
-struct PrintWalkerResult {
-    _dummy:  i8,
+pub struct PrintWalkerResult {
 }
 
 impl PrintWalkerResult {
@@ -67,11 +78,11 @@ impl PrintWalkerResult {
 impl Default for PrintWalkerResult {
     fn default() -> Self {
         Self {
-            _dummy: 1,
         }
     }
 }
 
+/*
 #[cfg(test)]
 mod tests {
     use lazy_static::lazy_static;
@@ -91,8 +102,8 @@ mod tests {
         println!("test done: {:?}", res);
     }
 
-    pub fn f<'a, PrintWalkerResult: Clone + Default>() ->
-        Result<PrintWalkerResult, WalkerError> {
+    pub fn f<'a, PrintWalkerResult: Default>() ->
+        Result<PrintWalkerResult, Box<dyn Error>> {
         let input: &'static str = r#"<?xml version="1.0"?>
             <XTCE xmlns="http://www.omg.org/spec/XTCE/">
                 <SpaceSystem xmlns="http://www.omg.org/space/xtce" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.omg.org/space/xtce ../SpaceSystemV1.0.xsd" name="TrivialSat">
@@ -127,10 +138,12 @@ mod tests {
     }
 
     // The `g` function that receives PRINT_DESC_TREE
-    pub fn g<'a, R: Read + 'a, PrintWalkerResult: Clone + Default>(
+    pub fn g<'a, R: Read + 'a, PrintWalkerResult: Default>(
         buf_reader: BufReader<R>,
         print_xml_schema: &'a XmlSchema<'a>) ->
-        Result<PrintWalkerResult, WalkerError> {
+        Result<PrintWalkerResult, Box<dyn Error>> {
+        let mut output = String::new();
+        let mut f = fmt::Formatter::new(&mut output);
 
         let print_xml_document = match XmlDocument::new_from_reader(buf_reader,
             print_xml_schema) {
@@ -138,11 +151,10 @@ mod tests {
             Ok(print_xml_document) => print_xml_document,
         };
         
-
         let pwd = PrintWalkerData::<PrintWalkerResult>::new(0);
-        let w = Walker::<PrintWalkerData<PrintWalkerResult>,
-            PrintWalkerResult>::new(&print_xml_document);
+        let w = PrintWalker::<PrintWalkerData<PrintWalkerResult>,
+            PrintWalkerResult>::new(&print_xml_document, f);
         w.walk(&pwd)
     }
 }
-
+*/
