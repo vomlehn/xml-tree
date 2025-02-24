@@ -82,16 +82,17 @@ impl Default for PrintWalkerResult {
     }
 }
 
-/*
 #[cfg(test)]
 mod tests {
     use lazy_static::lazy_static;
 
+    use std::error::Error;
+    use std::fmt;
     use std::io::{BufReader, Read};
     use std::io::Cursor;
     use std::sync::Arc;
 
-    use crate::walker_print::PrintWalkerData;
+    use crate::walker_print::{PrintWalker, PrintWalkerData};
     use crate::walker::{Walker, WalkerError};
     use crate::xml_document::XmlDocument;
     use crate::xml_schema::{DirectElement, XmlSchema};
@@ -112,7 +113,7 @@ mod tests {
                     <a1 />
                 </a2>
                 </SpaceSystem>
-            </XTCE>"#;
+           </XTCE>"#;
 
         lazy_static!{
             // Wrap PRINT_DESC_TREE in Arc to extend its lifetime and share ownership
@@ -142,19 +143,27 @@ mod tests {
         buf_reader: BufReader<R>,
         print_xml_schema: &'a XmlSchema<'a>) ->
         Result<PrintWalkerResult, Box<dyn Error>> {
-        let mut output = String::new();
-        let mut f = fmt::Formatter::new(&mut output);
+
+        let mut outstr = String::new();
+        let mut formatter = fmt::Formatter::new(&mut outstr);
+        let mut f = &mut formatter;
+/*
+        // Writing formatted output to a custom writer (String in this case)
+        write!(f, "Hello, {}", "world")?;
+
+        // Output will be "Hello, world"
+        println!("Formatted output: {}", outstr);
+*/
 
         let print_xml_document = match XmlDocument::new_from_reader(buf_reader,
             print_xml_schema) {
-            Err(e) => return Err(WalkerError::XmlTreeError(e)),
+            Err(e) => return Err(Box::new(WalkerError::XmlTreeError(e))),
             Ok(print_xml_document) => print_xml_document,
         };
         
-        let pwd = PrintWalkerData::<PrintWalkerResult>::new(0);
-        let w = PrintWalker::<PrintWalkerData<PrintWalkerResult>,
-            PrintWalkerResult>::new(&print_xml_document, f);
-        w.walk(&pwd)
+        let mut pwd = PrintWalkerData::<PrintWalkerResult>::new(&mut f, 0);
+        let mut w = PrintWalker::<PrintWalkerData<PrintWalkerResult>,
+            PrintWalkerResult>::new(&print_xml_document);
+        w.walk(&mut pwd)
     }
 }
-*/
