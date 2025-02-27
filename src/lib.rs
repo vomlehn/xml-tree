@@ -1,15 +1,18 @@
+
+#![feature(try_trait_v2)]
+
 pub mod xml_schema;
 pub mod xml_document;
 pub mod xml_document_error;
 
 mod parser;
 mod multiterator;
-mod walker;
+mod walkable;
 mod walker_print;
 mod xsd_schema;
 mod xml_document_factory;
 
-pub use crate::walker::{*}; // Be more choosy
+pub use crate::walkable::{*}; // Be more choosy
 pub use crate::xml_schema::{XmlSchema, SchemaElement};
 pub use crate::xml_document::{Element, XmlDocument};
 pub use crate::xml_document_factory::XmlDocumentFactory;

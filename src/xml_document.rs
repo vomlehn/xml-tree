@@ -2,6 +2,7 @@
  * Take an XML Definition tree and generate an XmlDocument
  */
 
+//use std::error::Error;
 use std::fmt;
 use std::fs::File;
 use std::io::{BufReader, Read};
@@ -12,8 +13,7 @@ use xml::name::OwnedName;
 use xml::namespace::Namespace;
 use xml::reader::XmlEvent;
 
-use crate::walker::Walker;
-use crate::walker_print::{PrintWalker, PrintWalkerData, PrintWalkerResult};
+//use crate::walker_print::{PrintWalk, PrintWalkData, PrintWalkResult};
 use crate::xml_document_error::XmlDocumentError;
 use crate::xml_document_factory::XmlDocumentFactory;
 use crate::xml_schema::XmlSchema;
@@ -241,14 +241,28 @@ impl XmlDocument {
     }
 }
         
+/*
 impl<'a> fmt::Display for XmlDocument {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let pwd = PrintWalkerData::<PrintWalkerResult>::new(f, 0);
-        let w = PrintWalker::<PrintWalkerData<PrintWalkerResult>,
-            PrintWalkerResult>::new(self);
-        w.walk(&mut pwd)
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let pwd = PrintWalkData::<PrintWalkResult>::new(f, 0);
+/*
+        let mut w = PrintWalk::<PrintWalkData<PrintWalkResult>,
+            PrintWalkResult>::new(self);
+        let walk_result = w.walk(&mut pwd);
+        if let Err(e) = walk_result {
+            println!("walk_result {:?}", e);
+        }
+*/
+        Ok(())
+/* FIXME: restore this
+        match walk_result {
+        Err(Box::<dyn std::error::Error>) => return Err(fmt::Error),
+        Ok(_) => return Ok(()),
+        };
+*/
     }
 }
+*/
 
 #[cfg(test)]
 mod tests {
