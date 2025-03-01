@@ -9,9 +9,11 @@ use std::fmt;
 use crate::xml_document::{Element, XmlDocument};
 use crate::walkable::{Walkable, WalkableData};
 
+/*
 type DATA<'a, 'b, RET1, RET2> = PrintWalkData<'a, 'b, RET1, RET2>;
 type RET1<'a, 'b, RET1, RET2> = Result<DATA<'a, 'b, RET1, RET2>, dyn Error>;
 type RET2 = std::fmt::Result;
+
 
 pub struct PrintWalk<'a, 'b: 'a, DATA: WalkableData<'a, 'b, RET1, RET2>, RET1: std::ops::Try<Output = DATA>,
     RET2: std::ops::FromResidual<<RET1 as std::ops::Try>::Residual> + std::ops::Try<Output = RET2>> {
@@ -62,17 +64,19 @@ impl<'a, 'b, RET1, RET2> PrintWalkData<'a, 'b, RET1, RET2> {
 
 impl<'a, 'b, RET1, RET2> WalkableData<'a, 'b, RET1, RET2> for
 PrintWalkData<'a, 'b, RET1, RET2> {
-    fn element_start<'c>(&'c mut self, element: &Element) -> RET1
+    fn element_start<'c>(&'c mut self, element: &Element) ->
+    Result<WalkableData, dyn Error>
     where
         'a: 'c {
         Ok(PrintWalkData::new(self.f, self.depth + 1))
     }
 
-    fn element_end(&mut self, element: &Element, subelements: Vec<RET2>) ->
-        RET2 {
+    fn element_end(&mut self, _element: &Element, _subelements: Vec<RET2>) ->
+        fmt::Result  {
         Ok(())
     }
 }
+*/
 
 
 
@@ -83,7 +87,7 @@ PrintWalkData<'a, 'b, RET1, RET2> {
 
 
 
-
+// -----------------------------------------------
 /*
 /*
  * Tools for walking the XML document
