@@ -43,6 +43,7 @@ impl ElementInfo {
 #[derive(Clone, Debug)]
 pub struct Element {
     pub name:               OwnedName,
+// FIXME: remove this
     pub depth:              usize,
     pub element_info:       ElementInfo,
     pub subelements:        Vec<Element>,
