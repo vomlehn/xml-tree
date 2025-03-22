@@ -16,71 +16,103 @@ use crate::xml_document::{Element, XmlDocument};
  */
 // -----------------------------------------
 use std::error::Error;
-//use std::fmt;
+use std::fmt;
+use std::ops::Try;
+
+struct A<'a> {
+    xml_document:   &'a XmlDocument,
+}
+
+impl<'a> Walkable for A<'a> {
+    fn xml_document(&self) -> &XmlDocument {
+        self.xml_document
+    }
+}
+
+impl ElementData for A<'_> {
+    type WD = u8;
+    type WS = Result<Self::WD, Box<dyn Error>>;
+    fn xml_document(&self) -> &XmlDocument { self.xml_document }
+    fn element_end(&mut self) -> Self::WS {
+        Ok(37)
+    }
+}
+
+struct B<'a> {
+    xml_document:   &'a XmlDocument,
+}
+
+impl<'a> Walkable for B<'a> {
+    fn xml_document(&self) -> &XmlDocument {
+        self.xml_document
+    }
+}
+
+impl ElementData for B<'_> {
+    type WD = ();
+    type WS = fmt::Result;
+    fn xml_document(&self) -> &XmlDocument { self.xml_document }
+    fn element_end(&mut self) -> Self::WS {
+        Ok(())
+    }
+}
 
 /*
  * This has to be a trait so the functions can be defined by users
  */
-pub trait ElementData: Clone {
+pub trait ElementData:  {
+    type WD;
+    type WS: Try;
+
+    fn xml_document(&self) -> &XmlDocument;
+    fn element_end(&mut self) -> Self::WS;
+/*
     fn element_start(&mut self, element: &Element) ->
-        Result<impl ElementData, Box<dyn Error>>;
-    fn element_end(&mut self, element: &Element, subelements: Vec<Box<dyn WalkData>>) -> Result<impl WalkData, Box<dyn Error>>;
+        Result<Box<dyn E>, Box<dyn Error>>;
+    fn element_end(&mut self, element: &Element,
+        subelements: Vec<Box<dyn W>>) ->
+        Result<Box<dyn W>, Box<dyn Error>>;
+*/
 }
 
+pub trait Walkable {
+    fn xml_document(&self) -> &XmlDocument;
+}
+
+/*
 pub trait WalkData {}
 
 pub trait Walkable {
     fn xml_document(&self) -> &XmlDocument;
 
-    fn walk<'a, D>(&'a mut self, element_data: &'a mut D) ->
-        Result<impl WalkData + 'a, Box<dyn Error + 'a>>
-    where
-        D: ElementData + Drop + Copy,
+    fn walk<'a, ED: ElementData>(&'a mut self, element_data: &'a mut ED) ->
+        Result<dyn WalkData + 'a, Box<dyn Error + 'a>>
     {
         let root = &self.xml_document().root;
         self.walk_i(root, element_data)
     }
 
-    fn walk_i<'a, D>(&self, element: &'a Element, element_data: &'a mut D) ->
-        Result<impl WalkData + 'a, Box<dyn Error + 'a>>
-    where
-        D: ElementData + Clone + Copy,
+    fn walk_i<'a, ED: ElementData>(&self, element: &'a Element,
+        element_data: &'a mut ED) ->
+        Result<dyn WalkData + 'a, Box<dyn Error + 'a>>
     {
-        let mut subelements = Vec::<Box<dyn WalkData + 'a>>::new();
+        let mut subelements = Vec::new();
         let mut d = Vec::new();
 
         for subelement in &element.subelements {
             let mut element_subdata = element_data.clone();
             // Pass the same mutable reference to avoid overlapping borrows
             let subdata = self.walk_i(subelement, &mut element_subdata)?;
-            subelements.push(Box::new(subdata));
+            let s = subdata;
+            subelements.push(Box::new(s));
             d.push(element_data.clone());
         }
 
-        element_data.element_end(element, subelements)
+        let e = element.clone();
+        element_data.element_end(&e, subelements)
     }
-
-/*
-    fn walk_i<'a, D>(&'a self, element: &'a Element, element_data: &'a mut D) ->
-    Result<impl WalkData + 'a, Box<dyn Error + 'a>>
-    where
-        D: ElementData,
-    {
-        let mut subelements = Vec::<Box<dyn WalkData + 'a>>::new();
-        {
-            let subelement_data = element_data.element_start(element)?;
-
-            for subelement in &element.subelements {
-                let subdata = self.walk_i(subelement, &mut subelement_data)?;
-                subelements.push(Box::new(subdata));
-            }
-            subelement_data
-        };
-
-        element_data.element_end(element, subelements)
-    }
-*/
 }
+*/
 
 /*
 pub struct PrintWalk<'a> {
