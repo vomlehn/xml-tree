@@ -11,49 +11,147 @@ use crate::xml_document::{Element, XmlDocument};
  * DATA1    Trait for data passed to walk() and returned as data from
  *          element_start.
  * RET1     Trait for Try value from element_start()
- * DATA2    Trait for data passed from element_end() 
- * RET2     Trait for Try value from element_end() and walk_n()
+ * DATA2    Trait for data passed from end() 
+ * RET2     Trait for Try value from end() and walk_n()
  */
 // -----------------------------------------
 use std::error::Error;
 use std::fmt;
 use std::ops::Try;
 
-struct A<'a> {
-    xml_document:   &'a XmlDocument,
-}
+mod tests {
+    use std::collections::BTreeMap;
+    use crate::xml_document::{Element, ElementInfo, XmlDocument};
+    use crate::xml_document_factory::DocumentInfo;
+    use xml::attribute::OwnedAttribute;
+    use xml::common::XmlVersion;
+    use xml::namespace::Namespace;
+    use xml::name::OwnedName;
+    use xml::reader::XmlEvent;
+    use super::*;
 
-impl<'a> Walkable for A<'a> {
-    fn xml_document(&self) -> &XmlDocument {
-        self.xml_document
+    fn initf() -> XmlDocument {
+        let ns: Namespace = Namespace(BTreeMap::<String, String>::new());
+
+        let ei: ElementInfo = ElementInfo {
+            lineno:     1,
+            attributes: Vec::<OwnedAttribute>::new(),
+            namespace:  ns,
+        };
+
+        let n: OwnedName = OwnedName {
+            local_name: "n1".to_string(),
+            namespace:  None,
+            prefix:     None
+        };
+
+        let e: Element = Element {
+            name:           n,
+            depth:          0,
+            element_info:   ei,
+            subelements:    Vec::<Element>::new(),
+            before_element: Vec::<XmlEvent>::new(),
+            content:        Vec::<XmlEvent>::new(),
+            after_element:  Vec::<XmlEvent>::new(),
+        };
+
+        let di = DocumentInfo {
+            version:    XmlVersion::Version10,
+            encoding:   "xxx".to_string(),
+            standalone: None,
+        };
+
+        let d: XmlDocument = XmlDocument {
+            root:   e,
+            document_info:  di,
+        };
+
+        d
     }
-}
 
-impl ElementData for A<'_> {
-    type WD = u8;
-    type WS = Result<Self::WD, Box<dyn Error>>;
-    fn xml_document(&self) -> &XmlDocument { self.xml_document }
-    fn element_end(&mut self) -> Self::WS {
-        Ok(37)
+    #[test]
+    fn test1() {
+//    f: &'a mut fmt::Formatter<'a>,
+println!("calling test1");
+        let d = initf();
+        frun(&d);
     }
-}
 
-struct B<'a> {
-    xml_document:   &'a XmlDocument,
-}
+    pub fn frun(x: &XmlDocument) {
+        let a = A { xml_document:x };
+        let aa = a.walk();
+        println!("aa: {:?}", aa);
 
-impl<'a> Walkable for B<'a> {
-    fn xml_document(&self) -> &XmlDocument {
-        self.xml_document
+        let b = B { xml_document:x };
+        let bb = b.walk();
+        println!("bb: {:?}", bb);
     }
-}
 
-impl ElementData for B<'_> {
-    type WD = ();
-    type WS = fmt::Result;
-    fn xml_document(&self) -> &XmlDocument { self.xml_document }
-    fn element_end(&mut self) -> Self::WS {
-        Ok(())
+    struct A<'a> {
+        xml_document:   &'a XmlDocument,
+    }
+
+    impl<'a> Walkable for A<'a> {
+        type ED = A<'a>;
+        type ES = Result<Self::ED, Box<dyn Error>>;
+        type WD = u8;
+        type WS = Result<Self::WD, Box<dyn Error>>;
+
+        fn xml_document(&self) -> &XmlDocument {
+            self.xml_document
+        }
+
+        fn walk(&self) -> Self::WS {
+            Ok(0)
+        }
+
+        fn walk_i(&self) -> Self::WS {
+            Ok(1)
+        }
+    }
+
+    impl ElementData for A<'_> {
+        type WD = u8;
+        type WS = Result<Self::WD, Box<dyn Error>>;
+
+        fn xml_document(&self) -> &XmlDocument { self.xml_document }
+        fn end(&mut self) -> Self::WS {
+            Ok(37)
+        }
+    }
+
+    struct B<'a> {
+        xml_document:   &'a XmlDocument,
+    }
+
+    impl<'a> Walkable for B<'a> {
+        type ED = B<'a>;
+        type ES = Result<Self::ED, Box<dyn Error>>;
+        type WD = ();
+        type WS = Result<Self::WD, Box<dyn Error>>;
+
+        fn xml_document(&self) -> &XmlDocument {
+            self.xml_document
+        }
+
+        fn walk(&self) -> Self::WS {
+            Ok(())
+        }
+
+        fn walk_i(&self) -> Self::WS {
+            Ok(())
+        }
+
+    }
+
+    impl ElementData for B<'_> {
+        type WD = ();
+        type WS = fmt::Result;
+
+        fn xml_document(&self) -> &XmlDocument { self.xml_document }
+        fn end(&mut self) -> Self::WS {
+            Ok(())
+        }
     }
 }
 
@@ -65,18 +163,27 @@ pub trait ElementData:  {
     type WS: Try;
 
     fn xml_document(&self) -> &XmlDocument;
-    fn element_end(&mut self) -> Self::WS;
+    fn end(&mut self) -> Self::WS;
 /*
     fn element_start(&mut self, element: &Element) ->
         Result<Box<dyn E>, Box<dyn Error>>;
-    fn element_end(&mut self, element: &Element,
+    fn end(&mut self, element: &Element,
         subelements: Vec<Box<dyn W>>) ->
         Result<Box<dyn W>, Box<dyn Error>>;
 */
 }
 
 pub trait Walkable {
+    type ED;
+    type ES;
+    type WD;
+    type WS: Try;
+
     fn xml_document(&self) -> &XmlDocument;
+
+    fn walk(&self) -> Self::WS;
+
+    fn walk_i(&self) -> Self::WS;
 }
 
 /*
@@ -109,7 +216,7 @@ pub trait Walkable {
         }
 
         let e = element.clone();
-        element_data.element_end(&e, subelements)
+        element_data.end(&e, subelements)
     }
 }
 */
@@ -147,7 +254,7 @@ impl<'a, 'b> ElementData for PrintWalkData<'a, 'b> {
         })
     }
 
-    fn element_end(&mut self, element: &Element, _: Vec<()>) -> Self::EndStatus {
+    fn end(&mut self, element: &Element, _: Vec<()>) -> Self::EndStatus {
         writeln!(self.f, "{}<\{}>", "  ".repeat(self.depth), element.name)
             .map_err(|e| Box::new(e) as Box<dyn Error>)
     }
