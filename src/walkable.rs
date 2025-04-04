@@ -40,17 +40,45 @@ mod tests {
             namespace:  ns,
         };
 
-        let n: OwnedName = OwnedName {
-            local_name: "n1".to_string(),
-            namespace:  None,
-            prefix:     None
+        let e4: Element = Element {
+            name:           OwnedName { local_name: "n4".to_string(), namespace: None,
+                                prefix: None},
+            depth:          0,
+            element_info:   ei.clone(),
+            subelements:    Vec::<Element>::new(),
+            before_element: Vec::<XmlEvent>::new(),
+            content:        Vec::<XmlEvent>::new(),
+            after_element:  Vec::<XmlEvent>::new(),
         };
 
-        let e: Element = Element {
-            name:           n,
+        let e3: Element = Element {
+            name:           OwnedName { local_name: "n3".to_string(), namespace: None,
+                                prefix: None},
             depth:          0,
-            element_info:   ei,
+            element_info:   ei.clone(),
+            subelements:    vec!(e4),
+            before_element: Vec::<XmlEvent>::new(),
+            content:        Vec::<XmlEvent>::new(),
+            after_element:  Vec::<XmlEvent>::new(),
+        };
+
+        let e2: Element = Element {
+            name:           OwnedName { local_name: "n2".to_string(), namespace: None,
+                                prefix: None},
+            depth:          0,
+            element_info:   ei.clone(),
             subelements:    Vec::<Element>::new(),
+            before_element: Vec::<XmlEvent>::new(),
+            content:        Vec::<XmlEvent>::new(),
+            after_element:  Vec::<XmlEvent>::new(),
+        };
+
+        let e1: Element = Element {
+            name:           OwnedName { local_name: "n1".to_string(), namespace: None,
+                                prefix: None},
+            depth:          0,
+            element_info:   ei.clone(),
+            subelements:    vec!(e2, e3),
             before_element: Vec::<XmlEvent>::new(),
             content:        Vec::<XmlEvent>::new(),
             after_element:  Vec::<XmlEvent>::new(),
@@ -63,7 +91,7 @@ mod tests {
         };
 
         let d: XmlDocument = XmlDocument {
-            root:   e,
+            root:   e1,
             document_info:  di,
         };
 
@@ -229,6 +257,10 @@ println!("walk(): start at {}", e.name);
 println!("walk_i: {}", e.name);
         let subd = d.start(e);
         let d = AccumulatorA::new();
+
+        for sub_e in &e.subelements {
+println!("walk_i: subelement {}", sub_e.name);
+        }
 
         d.summary()
     }
