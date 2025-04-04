@@ -21,6 +21,7 @@ use std::ops::Try;
 
 mod tests {
     use std::collections::BTreeMap;
+    use std::marker::PhantomData;
     use crate::xml_document::{Element, ElementInfo, XmlDocument};
     use crate::xml_document_factory::DocumentInfo;
     use xml::attribute::OwnedAttribute;
@@ -73,121 +74,168 @@ mod tests {
     fn test1() {
 //    f: &'a mut fmt::Formatter<'a>,
 println!("calling test1");
-        let d = initf();
-        frun(&d);
+        let xmldoc = initf();
+        frun(&xmldoc);
     }
 
-    pub fn frun(x: &XmlDocument) {
-        let a = A { xml_document:x };
-        let aa = a.walk();
-        println!("aa: {:?}", aa);
-
-        let b = B { xml_document:x };
-        let bb = b.walk();
-        println!("bb: {:?}", bb);
+    // Prints an indented list of elments in the XML document
+    pub fn frun(xmldoc: &XmlDocument) {
+        let elemdata_A: ElementdataA = ElementdataA{};
+        let a = A {
+            xml_document: xmldoc,
+//            marker1: PhantomData,
+//            marker2: PhantomData,
+        };
+        let res_A = a.walk(&elemdata_A);
+        println!("res_A: {:?}", res_A);
     }
 
+    // AC   Accumulator trait
+    // WD   Working data trait
     struct A<'a> {
         xml_document:   &'a XmlDocument,
+//        marker1:    PhantomData<AC>,
+//        marker2:    PhantomData<WD>,
     }
 
-    impl<'a> Walkable for A<'a> {
-        type ED = A<'a>;
+    impl<'a> A<'_> {
+    }
+
+    impl<'a> Walkable for A<'_> {
+        fn xml_document(&self) -> &XmlDocument {
+            self.xml_document
+        }
+    }
+
+/*
+    impl<'a, AC: Accumulator, WD: WalkData> Walkable<AC, WD> for A<'a, AC, WD> {
+//        type AC = dyn Accumulator<WD = WalkdataA>;
+//        type AS = Result<Self::AC, Box<dyn Error>>;
+        type ED = ElementdataA;
         type ES = Result<Self::ED, Box<dyn Error>>;
-        type WD = u8;
-        type WS = Result<Self::WD, Box<dyn Error>>;
+//        type WD = u8;
+        type WS = Result<WD, Box<dyn Error>>;
 
         fn xml_document(&self) -> &XmlDocument {
             self.xml_document
         }
+    }
+*/
 
-        fn walk(&self) -> Self::WS {
-            Ok(0)
-        }
-
-        fn walk_i(&self) -> Self::WS {
-            Ok(1)
-        }
+/*
+    impl WalkdataA {
     }
 
-    impl ElementData for A<'_> {
+    impl WalkData for WalkdataA {
+    }
+*/
+
+/*
+    impl ElementData for ElementdataA {
         type WD = u8;
         type WS = Result<Self::WD, Box<dyn Error>>;
 
-        fn xml_document(&self) -> &XmlDocument { self.xml_document }
-        fn end(&mut self) -> Self::WS {
+        fn summary(&self) -> Self::WS {
             Ok(37)
         }
     }
+*/
 
-    struct B<'a> {
-        xml_document:   &'a XmlDocument,
-    }
-
-    impl<'a> Walkable for B<'a> {
-        type ED = B<'a>;
-        type ES = Result<Self::ED, Box<dyn Error>>;
-        type WD = ();
-        type WS = Result<Self::WD, Box<dyn Error>>;
-
-        fn xml_document(&self) -> &XmlDocument {
-            self.xml_document
-        }
-
-        fn walk(&self) -> Self::WS {
-            Ok(())
-        }
-
-        fn walk_i(&self) -> Self::WS {
-            Ok(())
-        }
-
-    }
-
-    impl ElementData for B<'_> {
-        type WD = ();
-        type WS = fmt::Result;
-
-        fn xml_document(&self) -> &XmlDocument { self.xml_document }
-        fn end(&mut self) -> Self::WS {
-            Ok(())
-        }
-    }
+//     struct B<'a> {
+//         xml_document:   &'a XmlDocument,
+//     }
+// 
+//     impl<'a> Walkable for B<'a> {
+//         type ED = Bd;
+//         type ES = Result<Self::ED, Box<dyn Error>>;
+// //        type WD = ();
+//         type WS = Result<Self::WD, Box<dyn Error>>;
+// 
+//         fn xml_document(&self) -> &XmlDocument {
+//             self.xml_document
+//         }
+//     }
+// 
+//     struct Bd {
+//     }
+// 
+//     impl ElementData for Bd {
+//         type WD = ();
+//         type WS = fmt::Result;
+// 
+//         fn summary(&self) -> Self::WS {
+//             Ok(())
+//         }
+//     }
 }
+
+struct WalkdataA {
+}
+
+type WalkstatusA<T, E> = Result<T, Box<E>>;
 
 /*
  * This has to be a trait so the functions can be defined by users
  */
-pub trait ElementData:  {
-    type WD;
-    type WS: Try;
+pub struct ElementdataA {
+//    type WD;
+//    type WS: Try;
 
-    fn xml_document(&self) -> &XmlDocument;
-    fn end(&mut self) -> Self::WS;
 /*
-    fn element_start(&mut self, element: &Element) ->
-        Result<Box<dyn E>, Box<dyn Error>>;
     fn end(&mut self, element: &Element,
         subelements: Vec<Box<dyn W>>) ->
         Result<Box<dyn W>, Box<dyn Error>>;
 */
 }
 
-pub trait Walkable {
-    type ED;
-    type ES;
-    type WD;
-    type WS: Try;
-
-    fn xml_document(&self) -> &XmlDocument;
-
-    fn walk(&self) -> Self::WS;
-
-    fn walk_i(&self) -> Self::WS;
+impl ElementdataA {
+    fn start(&self, element: &Element) -> ElementstatusA<ElementdataA, dyn Error> {
+        Ok(ElementdataA {
+        })
+    }
+    fn summary(&self) -> WalkstatusA<(), dyn Error> {
+        Ok(())
+    }
 }
 
-/*
+type ElementstatusA<T, E> = Result<T, Box<E>>;
+
+pub struct AccumulatorA {
+}
+
+impl AccumulatorA {
+    fn new() -> Self {
+        AccumulatorA {}
+    }
+    fn add(&mut self, ws: WalkstatusA<(), dyn Error>) {
+    }
+    fn summary(&self) -> WalkstatusA <(), dyn Error>{
+        Ok(())
+    }
+}
+
+pub trait Walkable
+    {
+    fn xml_document(&self) -> &XmlDocument;
+        
+    fn walk(&self, d: &ElementdataA) -> WalkstatusA<(), dyn Error> {
+        let document = self.xml_document();
+        let e = &document.root;
+println!("walk(): start at {}", e.name);
+        self.walk_i(&e, &d)
+    }
+
+    fn walk_i(&self, e: &Element, d: &ElementdataA) -> WalkstatusA<(), dyn Error> {
+println!("walk_i: {}", e.name);
+        let subd = d.start(e);
+        let d = AccumulatorA::new();
+
+        d.summary()
+    }
+}
+
 pub trait WalkData {}
+/*
 
 pub trait Walkable {
     fn xml_document(&self) -> &XmlDocument;
