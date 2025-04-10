@@ -108,14 +108,17 @@ println!("calling test1");
 
     // Prints an indented list of elments in the XML document
     pub fn frun(xmldoc: &XmlDocument) {
-        let elemdata_A: ElementdataA = ElementdataA{};
+        let elemdata_a: ElementdataA = ElementdataA{
+            depth:  0,
+//            f:      0,
+        };
         let a = A {
             xml_document: xmldoc,
 //            marker1: PhantomData,
 //            marker2: PhantomData,
         };
-        let res_A = a.walk(&elemdata_A);
-        println!("res_A: {:?}", res_A);
+        let res_a = a.walk(&elemdata_a);
+        println!("res_a: {:?}", res_a);
     }
 
     // AC   Accumulator trait
@@ -206,6 +209,8 @@ type WalkstatusA<T, E> = Result<T, Box<E>>;
  * This has to be a trait so the functions can be defined by users
  */
 pub struct ElementdataA {
+    depth:  usize,
+//    f:      &'a mut fmt::Formatter<'a>,
 //    type WD;
 //    type WS: Try;
 
@@ -216,9 +221,12 @@ pub struct ElementdataA {
 */
 }
 
-impl ElementdataA {
+impl<'a> ElementdataA {
     fn start(&self, element: &Element) -> ElementstatusA<ElementdataA, dyn Error> {
+        println!("{}{}", "    ".repeat(self.depth), element.name);
         Ok(ElementdataA {
+            depth:  self.depth + 1,
+//            f:      element.f,
         })
     }
     fn summary(&self) -> WalkstatusA<(), dyn Error> {
@@ -254,15 +262,15 @@ println!("walk(): start at {}", e.name);
     }
 
     fn walk_i(&self, e: &Element, d: &ElementdataA) -> WalkstatusA<(), dyn Error> {
-println!("walk_i: {}", e.name);
-        let subd = d.start(e);
+        let subd = d.start(e)?;
         let d = AccumulatorA::new();
 
         for sub_e in &e.subelements {
-println!("walk_i: subelement {}", sub_e.name);
+            self.walk_i(&sub_e, &subd)?;
         }
 
-        d.summary()
+        let result = d.summary();
+        result
     }
 }
 
@@ -304,7 +312,7 @@ pub trait Walkable {
 /*
 pub struct PrintWalk<'a> {
     pub document: &'a XmlDocument,
-    pub f: &'a mut fmt::Formatter<'a>,
+//    pub f: &'a mut fmt::Formatter<'a>,
 }
 
 impl<'a> Walkable for PrintWalk<'a> {
@@ -315,7 +323,7 @@ impl<'a> Walkable for PrintWalk<'a> {
 
 pub struct PrintWalkData<'a, 'b> {
     depth: usize,
-    f: &'a mut fmt::Formatter<'b>,
+//    f: &'a mut fmt::Formatter<'b>,
 }
 
 impl<'a, 'b> WalkData for () {}
@@ -330,7 +338,7 @@ impl<'a, 'b> ElementData for PrintWalkData<'a, 'b> {
 
         Ok(PrintWalkData {
             depth: self.depth + 1,
-            f: self.f,
+//            f: self.f,
         })
     }
 
