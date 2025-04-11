@@ -117,8 +117,13 @@ println!("calling test1");
 //            marker1: PhantomData,
 //            marker2: PhantomData,
         };
+        
         let res_a = a.walk(&elemdata_a);
-        println!("res_a: {:?}", res_a);
+
+        match res_a {
+            Err(e) => { println!("Failed"); assert!(1 == 0); },
+            Ok(d) => println!("Success: {}", d.data),
+        }
     }
 
     // AC   Accumulator trait
@@ -200,7 +205,9 @@ println!("calling test1");
 //     }
 }
 
+#[derive(Debug)]
 struct WalkdataA {
+    data:   String,
 }
 
 type WalkstatusA<T, E> = Result<T, Box<E>>;
@@ -229,24 +236,38 @@ impl<'a> ElementdataA {
 //            f:      element.f,
         })
     }
+/*
     fn summary(&self) -> WalkstatusA<(), dyn Error> {
         Ok(())
     }
+*/
 }
 
 type ElementstatusA<T, E> = Result<T, Box<E>>;
 
+#[derive(Debug)]
 pub struct AccumulatorA {
+    depth:  usize,
+    result: String,
 }
 
 impl AccumulatorA {
-    fn new() -> Self {
-        AccumulatorA {}
+    fn new(e: &Element, ed: &ElementdataA) -> Self {
+        AccumulatorA {
+            depth:  ed.depth,
+            result: e.name.local_name.clone(),
+        }
     }
-    fn add(&mut self, ws: WalkstatusA<(), dyn Error>) {
-    }
-    fn summary(&self) -> WalkstatusA <(), dyn Error>{
+    fn add(&mut self, ws: WalkdataA) -> WalkstatusA<(), dyn Error> {
+println!("add {:?} to {:?}", ws, self);
+        self.result += &("\n".to_owned() +
+            &"    ".repeat(self.depth) + &ws.data);
         Ok(())
+    }
+    fn summary(&self) -> WalkstatusA <WalkdataA, dyn Error>{
+        Ok(WalkdataA {
+            data:   self.result.clone(),
+        })
     }
 }
 
@@ -254,19 +275,21 @@ pub trait Walkable
     {
     fn xml_document(&self) -> &XmlDocument;
         
-    fn walk(&self, d: &ElementdataA) -> WalkstatusA<(), dyn Error> {
+    fn walk(&self, d: &ElementdataA) -> WalkstatusA<WalkdataA, dyn Error> {
         let document = self.xml_document();
         let e = &document.root;
 println!("walk(): start at {}", e.name);
         self.walk_i(&e, &d)
     }
 
-    fn walk_i(&self, e: &Element, d: &ElementdataA) -> WalkstatusA<(), dyn Error> {
-        let subd = d.start(e)?;
-        let d = AccumulatorA::new();
+    fn walk_i(&self, e: &Element, ed: &ElementdataA) -> WalkstatusA<WalkdataA, dyn Error> {
+        let subd = ed.start(e)?;
+        let mut d = AccumulatorA::new(e, ed);
 
         for sub_e in &e.subelements {
-            self.walk_i(&sub_e, &subd)?;
+            let wd = self.walk_i(&sub_e, &subd)?;
+println!("wd {:?}", wd);
+            d.add(wd);
         }
 
         let result = d.summary();
