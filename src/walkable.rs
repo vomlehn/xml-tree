@@ -229,18 +229,14 @@ pub struct ElementdataA {
 }
 
 impl<'a> ElementdataA {
-    fn start(&self, element: &Element) -> ElementstatusA<ElementdataA, dyn Error> {
+    fn start(&self, element: &Element) ->
+        ElementstatusA<ElementdataA, dyn Error> {
         println!("{}{}", "    ".repeat(self.depth), element.name);
         Ok(ElementdataA {
             depth:  self.depth + 1,
 //            f:      element.f,
         })
     }
-/*
-    fn summary(&self) -> WalkstatusA<(), dyn Error> {
-        Ok(())
-    }
-*/
 }
 
 type ElementstatusA<T, E> = Result<T, Box<E>>;
