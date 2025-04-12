@@ -19,6 +19,8 @@ use std::error::Error;
 use std::fmt;
 use std::ops::Try;
 
+const INDENT: &str = "    ";
+
 mod tests {
     use std::collections::BTreeMap;
     use std::marker::PhantomData;
@@ -30,6 +32,8 @@ mod tests {
     use xml::name::OwnedName;
     use xml::reader::XmlEvent;
     use super::*;
+
+    const INDENTA: &str = "    ";
 
     fn initf() -> XmlDocument {
         let ns: Namespace = Namespace(BTreeMap::<String, String>::new());
@@ -120,10 +124,15 @@ println!("calling test1");
         
         let res_a = a.walk(&elemdata_a);
 
-        match res_a {
+        match &res_a {
             Err(e) => { println!("Failed"); assert!(1 == 0); },
-            Ok(d) => println!("Success: {}", d.data),
+            Ok(d) => println!("Success:\n{}", d.data),
         }
+
+        assert_eq!(res_a.unwrap().data, "n1\n".to_owned() +
+            INDENT + "n2\n" +
+            INDENT + "n3\n" +
+            INDENT + INDENT + "n4");
     }
 
     // AC   Accumulator trait
@@ -206,7 +215,7 @@ println!("calling test1");
 }
 
 #[derive(Debug)]
-struct WalkdataA {
+pub struct WalkdataA {
     data:   String,
 }
 
@@ -231,7 +240,7 @@ pub struct ElementdataA {
 impl<'a> ElementdataA {
     fn start(&self, element: &Element) ->
         ElementstatusA<ElementdataA, dyn Error> {
-        println!("{}{}", "    ".repeat(self.depth), element.name);
+        println!("{}{}", INDENT.repeat(self.depth), element.name);
         Ok(ElementdataA {
             depth:  self.depth + 1,
 //            f:      element.f,
@@ -249,15 +258,14 @@ pub struct AccumulatorA {
 
 impl AccumulatorA {
     fn new(e: &Element, ed: &ElementdataA) -> Self {
+        let result = INDENT.repeat(ed.depth) + &e.name.local_name.clone();
         AccumulatorA {
             depth:  ed.depth,
-            result: e.name.local_name.clone(),
+            result: result,
         }
     }
     fn add(&mut self, ws: WalkdataA) -> WalkstatusA<(), dyn Error> {
-println!("add {:?} to {:?}", ws, self);
-        self.result += &("\n".to_owned() +
-            &"    ".repeat(self.depth) + &ws.data);
+        self.result += &("\n".to_owned() + &ws.data);
         Ok(())
     }
     fn summary(&self) -> WalkstatusA <WalkdataA, dyn Error>{
@@ -274,7 +282,6 @@ pub trait Walkable
     fn walk(&self, d: &ElementdataA) -> WalkstatusA<WalkdataA, dyn Error> {
         let document = self.xml_document();
         let e = &document.root;
-println!("walk(): start at {}", e.name);
         self.walk_i(&e, &d)
     }
 
@@ -284,8 +291,7 @@ println!("walk(): start at {}", e.name);
 
         for sub_e in &e.subelements {
             let wd = self.walk_i(&sub_e, &subd)?;
-println!("wd {:?}", wd);
-            d.add(wd);
+            d.add(wd)?;
         }
 
         let result = d.summary();
