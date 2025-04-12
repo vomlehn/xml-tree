@@ -1,3 +1,4 @@
+//    #![feature(trait_alias)]
 /*
  * XML tree walker
  */
@@ -18,6 +19,8 @@ use crate::xml_document::{Element, XmlDocument};
 //use std::error::Error;
 ////use std::fmt;
 use std::ops::{ControlFlow, Try};
+
+type Error = Box<dyn std::error::Error + Send + Sync + 'static>;
 
 mod tests {
     use std::collections::BTreeMap;
@@ -206,7 +209,7 @@ println!("calling test1");
 
     impl<'a> ElementdataA {
         pub fn start(&self, element: &Element) ->
-            ElementResultA<ElementdataA, String> {
+            ElementResultA<ElementdataA, Error> {
             println!("{}{}", INDENT.repeat(self.depth), element.name);
             ElementResultA::<_, _>::Ok(ElementdataA {
                 depth:  self.depth + 1,
@@ -273,15 +276,15 @@ println!("calling test1");
         }
 
         // FIXME: what should this return?
-        pub fn add(&mut self, ws: WalkdataA) -> WalkResultA<WalkdataA, String> {
+        pub fn add(&mut self, ws: WalkdataA) -> WalkResultA<WalkdataA, Error> {
             self.result += &("\n".to_owned() + &ws.data);
-            WalkResultA::<WalkdataA, String>::Ok(WalkdataA {
+            WalkResultA::<WalkdataA, Error>::Ok(WalkdataA {
                 // FIXME: is there a performance impact here?
                 data: self.result.clone()
             })
         }
 
-        pub fn summary(&self) -> WalkResultA<WalkdataA, String>{
+        pub fn summary(&self) -> WalkResultA<WalkdataA, Error>{
             WalkResultA::<_, _>::Ok(WalkdataA {
                 data:   self.result.clone(),
             })
@@ -293,14 +296,14 @@ pub trait Walkable
     {
     fn xml_document(&self) -> &XmlDocument;
         
-    fn walk<'a>(&self, d: &tests::ElementdataA) -> tests::WalkResultA<tests::WalkdataA, String> {
+    fn walk<'a>(&self, d: &tests::ElementdataA) -> tests::WalkResultA<tests::WalkdataA, Error> {
         let document = self.xml_document();
         let e = &document.root;
         self.walk_i(&e, &d)
     }
 
     fn walk_i<'a>(&self, e: &Element, ed: &tests::ElementdataA) ->
-        tests::WalkResultA<tests::WalkdataA, String> {
+        tests::WalkResultA<tests::WalkdataA, Error> {
         let subd = ed.start(e)?;
         let mut d = tests::AccumulatorA::new(e, ed);
 
