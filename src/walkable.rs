@@ -123,11 +123,7 @@ println!("calling test1");
         };
         
         let res_a = a.walk(&elemdata_a);
-
-        match &res_a {
-            Err(e) => { println!("Failed"); assert!(1 == 0); },
-            Ok(d) => println!("Success:\n{}", d.data),
-        }
+        println!("Result:\n{:?}", res_a);
 
         assert_eq!(res_a.unwrap().data, "n1\n".to_owned() +
             INDENT + "n2\n" +
