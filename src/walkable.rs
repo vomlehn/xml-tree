@@ -105,12 +105,9 @@ mod tests {
         pub depth: usize,
     }
 
-    impl ElementdataA {
-    // FIXME: remove tests::ElementResultA
-        pub fn start(&self, element: &Element) -> 
-// tests::ElementResultA<Self, Box<dyn Error + Send + Sync>> {
-// FIXME: need tests::?
-            tests::ElementResultA<ElementdataA, Error> {
+    impl ElementData for ElementdataA {
+        fn start(&self, element: &Element) -> 
+            ElementResultA<ElementdataA, Error> {
             println!("{}{}", INDENT.repeat(self.depth), element.name.local_name);
             ElementResultA::Ok(Self {
                 depth: self.depth + 1,
@@ -125,7 +122,8 @@ mod tests {
 
     impl AccumulatorA {
         pub fn new(e: &Element, ed: &ElementdataA) -> Self {
-            let result = format!("{}{}", INDENT.repeat(ed.depth), e.name.local_name);
+            let result = format!("{}{}", INDENT.repeat(ed.depth),
+                e.name.local_name);
             AccumulatorA { result }
         }
 
@@ -158,6 +156,11 @@ mod tests {
 }
 
 // ----------------- Traits ----------------
+trait ElementData {
+    fn start(&self, element: &Element) -> 
+// FIXME: remove tests::
+        tests::ElementResultA<tests::ElementdataA, Error>;
+}
 
 pub trait Walkable {
     fn xml_document(&self) -> &XmlDocument;
