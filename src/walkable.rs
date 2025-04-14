@@ -3,6 +3,8 @@ use crate::xml_document::{Element, ElementInfo, XmlDocument};
 use crate::xml_document_factory::DocumentInfo;
 
 use std::collections::BTreeMap;
+use std::convert::Infallible;
+use std::ops::{ControlFlow, FromResidual, Try};
 
 use xml::attribute::OwnedAttribute;
 use xml::common::XmlVersion;
@@ -16,40 +18,15 @@ type Error = Box<dyn std::error::Error + Send + Sync + 'static>;
 // ----------------- Traits ----------------
 trait ElementData {
     fn start(&self, element: &Element) -> 
-// FIXME: remove tests::
-        tests::ElementResultA<tests::ElementdataA, Error>;
+        ElementResult<dyn ElementData, Error>;
 }
 
 pub trait Walkable {
     fn xml_document(&self) -> &XmlDocument;
-
-// FIXME: remove tests::WalkResultA
-    fn walk<'a>(&self, d: &tests::ElementdataA) ->
-// FIXME: remove tests::
-    tests::WalkResultA<tests::WalkdataA, Error> {
-// tests::WalkResultA<WalkdataA, Box<dyn Error + Send + Sync>> {
-        let root = &self.xml_document().root;
-        self.walk_i(root, d)
-    }
-
-    fn walk_i<'a>(
-        &self,
-        e: &Element,
-// FIXME: remove tests::
-        ed: &tests::ElementdataA,
-// FIXME: remove tests::
-    ) -> tests::WalkResultA<tests::WalkdataA, Error> {
-        let subd = ed.start(e)?;
-// FIXME: remove tests::
-        let mut d = tests::AccumulatorA::new(e, ed);
-
-        for sub_e in &e.subelements {
-            let wd = self.walk_i(sub_e, &subd)?;
-            d.add(wd)?;
-        }
-
-        d.summary()
-    }
+    fn walk<'a>(&self, d: &dyn ElementData) ->
+        WalkResult<dyn WalkData, Error>;
+    fn walk_i<'a>( &self, e: &Element, ed: &ElementData) ->
+        WalkResult<dyn WalkData, Error>;
 }
 
 pub trait WalkData {}
@@ -59,77 +36,68 @@ pub trait XmlWalker {
     fn end(&mut self, _element: &Element, _depth: usize) {}
 }
 
-// ----------------- Data Types ----------------
+// ----------------- Result Enums ----------------
 
-fn create_test_doc() -> XmlDocument {
-println!("In create_test_doc");
-    let ns: Namespace = Namespace(BTreeMap::<String, String>::new());
+#[derive(Debug)]
+pub enum ElementResult<T, E> {
+    Ok(T),
+    Err(E),
+}
 
-    let ei: ElementInfo = ElementInfo {
-        lineno:     1,
-        attributes: Vec::<OwnedAttribute>::new(),
-        namespace:  ns,
-    };
+impl<T, E> Try for ElementResult<T, E> {
+    type Output = T;
+    type Residual = Result<Infallible, E>;
 
-    let e4: Element = Element {
-        name:           OwnedName {
-            local_name: "n4".to_string(),
-            namespace: None,
-            prefix: None,
-        },
-        depth:          0,
-        element_info:   ei.clone(),
-        subelements:    Vec::<Element>::new(),
-        before_element: Vec::<XmlEvent>::new(),
-        content:        Vec::<XmlEvent>::new(),
-        after_element:  Vec::<XmlEvent>::new(),
-    };
+    fn from_output(output: T) -> Self {
+        ElementResult::Ok(output)
+    }
 
-    let e3: Element = Element {
-        name:           OwnedName { local_name: "n3".to_string(), namespace: None,
-                            prefix: None},
-        depth:          0,
-        element_info:   ei.clone(),
-        subelements:    vec!(e4),
-        before_element: Vec::<XmlEvent>::new(),
-        content:        Vec::<XmlEvent>::new(),
-        after_element:  Vec::<XmlEvent>::new(),
-    };
+    fn branch(self) -> ControlFlow<Self::Residual, Self::Output> {
+        match self {
+            ElementResult::Ok(v) => ControlFlow::Continue(v),
+            ElementResult::Err(e) => ControlFlow::Break(Err(e)),
+        }
+    }
+}
 
-    let e2: Element = Element {
-        name:           OwnedName { local_name: "n2".to_string(), namespace: None,
-                            prefix: None},
-        depth:          0,
-        element_info:   ei.clone(),
-        subelements:    Vec::<Element>::new(),
-        before_element: Vec::<XmlEvent>::new(),
-        content:        Vec::<XmlEvent>::new(),
-        after_element:  Vec::<XmlEvent>::new(),
-    };
+impl<T, E> FromResidual<Result<Infallible, E>> for ElementResult<T, E> {
+    fn from_residual(residual: Result<Infallible, E>) -> Self {
+        match residual {
+            Err(e) => ElementResult::Err(e),
+            Ok(_) => unreachable!(),
+        }
+    }
+}
 
-    let e1: Element = Element {
-        name:           OwnedName { local_name: "n1".to_string(), namespace: None,
-                            prefix: None},
-        depth:          0,
-        element_info:   ei.clone(),
-        subelements:    vec!(e2, e3),
-        before_element: Vec::<XmlEvent>::new(),
-        content:        Vec::<XmlEvent>::new(),
-        after_element:  Vec::<XmlEvent>::new(),
-    };
+#[derive(Debug)]
+pub enum WalkResult<T, E> {
+    Ok(T),
+    Err(E),
+}
 
-    let di = DocumentInfo {
-        version:    XmlVersion::Version10,
-        encoding:   "xxx".to_string(),
-        standalone: None,
-    };
+impl<T, E> Try for WalkResult<T, E> {
+    type Output = T;
+    type Residual = Result<Infallible, E>;
 
-    let d: XmlDocument = XmlDocument {
-        root:   e1,
-        document_info:  di,
-    };
+    fn from_output(output: T) -> Self {
+        WalkResult::Ok(output)
+    }
 
-    d
+    fn branch(self) -> ControlFlow<Self::Residual, Self::Output> {
+        match self {
+            WalkResult::Ok(v) => ControlFlow::Continue(v),
+            WalkResult::Err(e) => ControlFlow::Break(Err(e)),
+        }
+    }
+}
+
+impl<T, E> FromResidual<Result<Infallible, E>> for WalkResult<T, E> {
+    fn from_residual(residual: Result<Infallible, E>) -> Self {
+        match residual {
+            Err(e) => WalkResult::Err(e),
+            Ok(_) => unreachable!(),
+        }
+    }
 }
 
 //#[cfg(test)]
@@ -155,6 +123,33 @@ mod tests {
             tests::WalkResultA::Ok(data) => println!("Output:\n{}", data.data),
     // FIXME: Remove tests::
             tests::WalkResultA::Err(e) => eprintln!("Error: {}", e),
+        }
+    }
+
+    struct WalkableA {
+    }
+
+    impl Walkable for WalkableA {
+        fn walk<'a>(&self, d: &ElementdataA) ->
+        tests::WalkResultA<tests::WalkdataA, Error> {
+            let root = &self.xml_document().root;
+            self.walk_i(root, d)
+        }
+
+        fn walk_i<'a>(
+            &self,
+            e: &Element,
+            ed: &ElementdataA,
+        ) -> WalkResultA<WalkdataA, Error> {
+            let subd = ed.start(e)?;
+            let mut d = AccumulatorA::new(e, ed);
+
+            for sub_e in &e.subelements {
+                let wd = self.walk_i(sub_e, &subd)?;
+                d.add(wd)?;
+            }
+
+            d.summary()
         }
     }
 
@@ -281,5 +276,78 @@ mod tests {
                 Ok(_) => unreachable!(),
             }
         }
+    }
+
+    // ----------------- Data Types ----------------
+
+    fn create_test_doc() -> XmlDocument {
+    println!("In create_test_doc");
+        let ns: Namespace = Namespace(BTreeMap::<String, String>::new());
+
+        let ei: ElementInfo = ElementInfo {
+            lineno:     1,
+            attributes: Vec::<OwnedAttribute>::new(),
+            namespace:  ns,
+        };
+
+        let e4: Element = Element {
+            name:           OwnedName {
+                local_name: "n4".to_string(),
+                namespace: None,
+                prefix: None,
+            },
+            depth:          0,
+            element_info:   ei.clone(),
+            subelements:    Vec::<Element>::new(),
+            before_element: Vec::<XmlEvent>::new(),
+            content:        Vec::<XmlEvent>::new(),
+            after_element:  Vec::<XmlEvent>::new(),
+        };
+
+        let e3: Element = Element {
+            name:           OwnedName { local_name: "n3".to_string(), namespace: None,
+                                prefix: None},
+            depth:          0,
+            element_info:   ei.clone(),
+            subelements:    vec!(e4),
+            before_element: Vec::<XmlEvent>::new(),
+            content:        Vec::<XmlEvent>::new(),
+            after_element:  Vec::<XmlEvent>::new(),
+        };
+
+        let e2: Element = Element {
+            name:           OwnedName { local_name: "n2".to_string(), namespace: None,
+                                prefix: None},
+            depth:          0,
+            element_info:   ei.clone(),
+            subelements:    Vec::<Element>::new(),
+            before_element: Vec::<XmlEvent>::new(),
+            content:        Vec::<XmlEvent>::new(),
+            after_element:  Vec::<XmlEvent>::new(),
+        };
+
+        let e1: Element = Element {
+            name:           OwnedName { local_name: "n1".to_string(), namespace: None,
+                                prefix: None},
+            depth:          0,
+            element_info:   ei.clone(),
+            subelements:    vec!(e2, e3),
+            before_element: Vec::<XmlEvent>::new(),
+            content:        Vec::<XmlEvent>::new(),
+            after_element:  Vec::<XmlEvent>::new(),
+        };
+
+        let di = DocumentInfo {
+            version:    XmlVersion::Version10,
+            encoding:   "xxx".to_string(),
+            standalone: None,
+        };
+
+        let d: XmlDocument = XmlDocument {
+            root:   e1,
+            document_info:  di,
+        };
+
+        d
     }
 }
