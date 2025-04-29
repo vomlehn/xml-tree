@@ -1,36 +1,44 @@
-// FIXME: remove tests:: everywhere
-use crate::xml_document::{Element, ElementInfo, XmlDocument};
-use crate::xml_document_factory::DocumentInfo;
+use crate::xml_document::{Element, XmlDocument};
 
-use std::collections::BTreeMap;
 use std::convert::Infallible;
 use std::ops::{ControlFlow, FromResidual, Try};
-
-use xml::attribute::OwnedAttribute;
-use xml::common::XmlVersion;
-use xml::name::OwnedName;
-use xml::namespace::Namespace;
-use xml::reader::XmlEvent;
 
 type Error = Box::<dyn std::error::Error + Send + Sync + 'static>;
 
 // ----------------- Traits ----------------
-trait ElementDataTrait {
+// Information that supplements the Element to produce a piece of the overall
+// result.
+pub trait ElementSup {
     fn start(&self, element: &Element) -> 
-        ElementResult<Box<dyn ElementDataTrait>, Error>;
+        ElementResult<Box<dyn ElementSup>, Error>;
 }
 
-// It seems as though ED and WD should be traits
-pub trait Walkable<ED, WD>
+// It seems as though ES and WD should be traits
+pub trait Walkable<ES, WD>
     where
-        ED: ElementDataTrait,
+        ES: ElementSup,
         WD: WalkData
     {
     fn xml_document(&self) -> &XmlDocument;
-    fn walk<'a>(&self, d: &ED) ->
-        WalkResult<&WD, Error>;
-    fn walk_i<'a>(&self, e: &Element, ed: Box<dyn ElementDataTrait>) ->
-        WalkResult<&WD, Error>;
+
+    // Start the walk at the root of the document
+    fn walk<'a>(&self, d: Box<&dyn ElementSup>) -> WalkResult<&WD, Error> {
+        let xml_doc = self.xml_document();
+        let root = &xml_doc.root;
+        self.walk_i(root, d)
+    }
+
+    fn walk_i<'a>(&self, e: &Element, ed: Box<&dyn ElementSup>) ->
+        WalkResult<&WD, Error> {
+        let next_es = ed.start(e);
+
+        let acc = Accumulator::new(e, ed);
+
+        for element in e.subelements {
+        }
+
+        WalkResult::Ok()
+    }
 }
 
 pub trait WalkData {}
@@ -104,23 +112,33 @@ impl<T, E> FromResidual<Result<Infallible, E>> for WalkResult<T, E> {
     }
 }
 
-trait Accumulator<ED, WD>
+trait Accumulator<ES, WD>
 where
-    ED: ElementDataTrait,
+    ES: ElementSup,
     WD: WalkData,
  {
-        fn new(e: &Element, ed: &ED) -> Self;
+        fn new(e: &Element, ed: Box<&dyn ElementSup>) -> Self;
         fn add(&mut self, ws: &WD) -> WalkResult<WD, Error>;
         fn summary(&self) -> WalkResult<WD, Error>;
 }
-/*
 
+/*
 // FIXME: uncover this
 //#[cfg(test)]
 mod tests {
+    use std::collections::BTreeMap;
     use std::convert::Infallible;
     use std::ops::{ControlFlow, FromResidual, Try};
-    use super::*;
+    use xml::attribute::OwnedAttribute;
+    use xml::common::XmlVersion;
+    use xml::name::OwnedName;
+    use xml::namespace::Namespace;
+    use xml::reader::XmlEvent;
+
+    use crate::xml_document::{Element, ElementInfo, XmlDocument};
+    use crate::xml_document_factory::DocumentInfo;
+
+    use super::{Accumulator, ElementSup, Error, Walkable, WalkData, XmlWalker, ElementResult, WalkResult};
 
     const INDENT: &str = "    ";
 
@@ -140,30 +158,29 @@ mod tests {
         xml_document:   &'a XmlDocument,
     }
 
-    impl<ED, WD> Walkable<ED, WD> for WalkableA<'_>
-        where
-            // Must be traits
-            ED: ElementData,
-            WD: WalkData,
+    impl Walkable<ElementdataA, WalkdataA> for WalkableA<'_>
+//        where
+//            // Must be traits
+//            ES: ElementSup,
+//            WD: WalkData,
     {
         fn xml_document(&self) -> &XmlDocument {
             self.xml_document
         }
 
-        fn walk<'a>(&self, d: &ED) ->
-            WalkResult<&WD, Error> {
-            let root = &<WalkableA<'_> as Walkable<ED, WD>>::xml_document(self).root;
-            self.walk_i(root, Box::newi(d))
+        fn walk<'a>(&self, d: &ElementdataA) ->
+            WalkResult<&WalkdataA, Error> {
+            let root = &<WalkableA<'_> as Walkable<ElementdataA, WalkdataA>>::xml_document(self).root;
+            self.walk_i(root, Box::new(d))
         }
 
-        fn walk_i<'a>(&self, e: &Element, ed: Box<&ED>) ->
-            WalkResult<&WD, Error> {
+        fn walk_i<'a>(&self, e: &Element, ed: Box<dyn ElementSup>) ->
+            WalkResult<&WalkdataA, Error> {
             let subd = ed.start(e)?;
-            let mut d = AccumulatorA::new(e, ed);
+            let mut d = AccumulatorA::new(e, &ed);
 
-let x: i8 = subd;
             for sub_e in &e.subelements {
-                let wd = self.walk_i(sub_e, Box::new(subd))?;
+                let wd = self.walk_i(sub_e, subd)?;
                 d.add(wd)?;
             }
 
@@ -187,9 +204,9 @@ let x: i8 = subd;
         pub depth: usize,
     }
 
-    impl ElementData for ElementdataA {
+    impl ElementSup for ElementdataA {
         fn start(&self, element: &Element) -> 
-            ElementResult<Box<dyn ElementData>, Error> {
+            ElementResult<Box<dyn ElementSup>, Error> {
             println!("{}{}", INDENT.repeat(self.depth), element.name.local_name);
             let ed = ElementdataA {
                 depth: self.depth + 1,
@@ -211,25 +228,22 @@ let x: i8 = subd;
         }
     }
 
-    impl<ED, WD> Accumulator<ED, WD> for AccumulatorA
-    where
-        ED: ElementData,
-        WD: WalkData,
+    impl Accumulator<ElementdataA, WalkdataA> for AccumulatorA
      {
-        fn new(e: &Element, ed: &ED) -> Self {
+        fn new(e: &Element, ed: &ElementdataA) -> Self {
             let result = format!("{}{}", INDENT.repeat(ed.depth),
                 e.name.local_name);
             AccumulatorA { result }
         }
 
-        fn add(&mut self, ws: &WD) -> WalkResult<WD, Error> {
+        fn add(&mut self, ws: &WalkdataA) -> WalkResult<WalkdataA, Error> {
             self.result += &format!("\n{}", ws.data);
             WalkResult::Ok(WalkdataA {
                 data: self.result.clone(),
             })
         }
 
-        fn summary(&self) -> WalkResult<WD, Error> {
+        fn summary(&self) -> WalkResult<WalkdataA, Error> {
             WalkResult::Ok(WalkdataA {
                 data: self.result.clone(),
             })
