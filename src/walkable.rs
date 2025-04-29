@@ -3,41 +3,59 @@ use crate::xml_document::{Element, XmlDocument};
 use std::convert::Infallible;
 use std::ops::{ControlFlow, FromResidual, Try};
 
-type Error = Box::<dyn std::error::Error + Send + Sync + 'static>;
+type WalkError = Box::<dyn std::error::Error + Send + Sync + 'static>;
 
 // ----------------- Traits ----------------
 // Information that supplements the Element to produce a piece of the overall
 // result.
-pub trait ElementSup {
+pub trait ElementSup<ES>
+    where 
+        ES: ElementSup<ES>
+    {
     fn start(&self, element: &Element) -> 
-        ElementResult<Box<dyn ElementSup>, Error>;
+        ElementResult<ES, WalkError>;
 }
 
 // It seems as though ES and WD should be traits
-pub trait Walkable<ES, WD>
+pub trait Walkable<ES, WD, AC>
     where
-        ES: ElementSup,
-        WD: WalkData
+        ES: ElementSup<ES>,
+        WD: WalkData,
+        AC: Accumulator<ES, WD>,
     {
     fn xml_document(&self) -> &XmlDocument;
 
     // Start the walk at the root of the document
-    fn walk<'a>(&self, d: Box<&dyn ElementSup>) -> WalkResult<&WD, Error> {
+    fn walk<'a>(&self, d: &ES) -> WalkResult<WD, WalkError> {
         let xml_doc = self.xml_document();
         let root = &xml_doc.root;
         self.walk_i(root, d)
     }
 
-    fn walk_i<'a>(&self, e: &Element, ed: Box<&dyn ElementSup>) ->
-        WalkResult<&WD, Error> {
-        let next_es = ed.start(e);
+    fn walk_i<'a>(&self, element: &Element, es: &ES) ->
+        WalkResult<WD, WalkError> {
+        let next_es = match es.start(element) {
+            // FIXME: return WalkError here and below
+            ElementResult::Err(e) => panic!("es.start {:?}", e),
+            ElementResult::Ok(next_es) => next_es,
+        };
 
-        let acc = Accumulator::new(e, ed);
+        let mut acc = AC::new(element, &next_es);
 
-        for element in e.subelements {
+        for elem in &element.subelements {
+            let wd = match self.walk_i(&elem, &next_es) {
+                WalkResult::Err(e) => panic!("self.walk_i {:?}", e),
+                WalkResult::Ok(wd) => wd,
+            };
+
+            match acc.add(wd) {
+                WalkResult::Err(e) => panic!("acc.add {:?}", e),
+                WalkResult::Ok(wr) => wr,
+            };
         }
 
-        WalkResult::Ok()
+        let wr = acc.summary();
+        wr
     }
 }
 
@@ -112,14 +130,14 @@ impl<T, E> FromResidual<Result<Infallible, E>> for WalkResult<T, E> {
     }
 }
 
-trait Accumulator<ES, WD>
+pub trait Accumulator<ES, WD>
 where
-    ES: ElementSup,
+    ES: ElementSup<ES>,
     WD: WalkData,
  {
-        fn new(e: &Element, ed: Box<&dyn ElementSup>) -> Self;
-        fn add(&mut self, ws: &WD) -> WalkResult<WD, Error>;
-        fn summary(&self) -> WalkResult<WD, Error>;
+        fn new(e: &Element, es: &ES) -> Self;
+        fn add(&mut self, wd: WD) -> WalkResult<WD, WalkError>;
+        fn summary(&self) -> WalkResult<WD, WalkError>;
 }
 
 /*
