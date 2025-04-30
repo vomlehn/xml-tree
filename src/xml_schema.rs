@@ -24,12 +24,12 @@ pub type SubelementsType<'a> = Vec<SchemaElementType<'a>>;
  */
 #[derive(Clone)]
 pub struct XmlSchemaInner<'a> {
-    pub name:       &'a str,
-    pub element:    Arc<Mutex<SchemaElementType<'a>>>,
+    pub name: &'a str,
+    pub element: Arc<Mutex<SchemaElementType<'a>>>,
 }
 
 pub struct XmlSchema<'a> {
-    inner:      XmlSchemaInner<'a>,
+    inner: XmlSchemaInner<'a>,
 }
 
 /*
@@ -39,13 +39,13 @@ pub struct XmlSchema<'a> {
  * subelements: All the elements under this element
  */
 struct DirectElementInner<'a> {
-    name:           &'a str,
-    _attributes:     Vec<SchemaAttribute>,
-    subelements:    Arc<Mutex<SubelementsType<'a>>>,
+    name: &'a str,
+    _attributes: Vec<SchemaAttribute>,
+    subelements: Arc<Mutex<SubelementsType<'a>>>,
 }
 
 pub struct DirectElement<'a> {
-    inner:     DirectElementInner<'a>,
+    inner: DirectElementInner<'a>,
 }
 
 #[derive(Clone)]
@@ -54,14 +54,13 @@ pub struct IndirectElement<'a> {
 }
 
 #[derive(Clone, Debug)]
-pub struct SchemaAttribute {
-}
+pub struct SchemaAttribute {}
 
 impl<'a> XmlSchemaInner<'a> {
     pub fn new(name: &'a str, element: SchemaElementType<'a>) -> Self {
         Self {
-            name:       name,
-            element:    Arc::new(Mutex::new(element)),
+            name: name,
+            element: Arc::new(Mutex::new(element)),
         }
     }
 }
@@ -102,12 +101,11 @@ impl fmt::Display for XmlSchema<'_> {
  * DirectElementInner
  */
 impl<'a> DirectElementInner<'a> {
-    pub fn new(name: &'a str, subelements: SubelementsType<'a>) ->
-        DirectElementInner<'a> {
+    pub fn new(name: &'a str, subelements: SubelementsType<'a>) -> DirectElementInner<'a> {
         DirectElementInner {
-            name:           name,
-            _attributes:     vec!(),
-            subelements:    Arc::new(Mutex::new(subelements)),
+            name: name,
+            _attributes: vec![],
+            subelements: Arc::new(Mutex::new(subelements)),
         }
     }
 }
@@ -116,8 +114,7 @@ impl<'a> DirectElementInner<'a> {
  * DirectElement
  */
 impl<'a> DirectElement<'a> {
-    pub fn new(name: &'a str, subelements: SubelementsType<'a>) ->
-        DirectElement<'a> {
+    pub fn new(name: &'a str, subelements: SubelementsType<'a>) -> DirectElement<'a> {
         DirectElement {
             inner: DirectElementInner::new(name, subelements),
         }
@@ -140,8 +137,9 @@ impl<'a> SchemaElement<'a> for DirectElement<'a> {
     // Find an element whose name matches the given one
     fn get(&self, name: &str) -> Option<SchemaElementType<'a>> {
         let subelements = self.subelements();
-        subelements.iter()
-            .find(move |element| {element.name() == name})
+        subelements
+            .iter()
+            .find(move |element| element.name() == name)
             .cloned()
     }
 
@@ -286,13 +284,13 @@ impl<'a> IntoIterator for &'a mut DirectElementCollection<'a> {
 }
 */
 
-
 /*
  * IndirectElement
  */
 impl IndirectElement<'_> {
-    pub fn new<'bbb, 'aaa: 'bbb>(direct_element: &'aaa DirectElement<'aaa>) ->
-        Arc<dyn SchemaElement<'aaa> + 'bbb> {
+    pub fn new<'bbb, 'aaa: 'bbb>(
+        direct_element: &'aaa DirectElement<'aaa>,
+    ) -> Arc<dyn SchemaElement<'aaa> + 'bbb> {
         Arc::new(IndirectElement {
             direct_element: direct_element,
         })
@@ -334,8 +332,7 @@ pub trait SchemaElement<'aaa>: Sync + Send {
     fn name(&self) -> &'aaa str;
     fn subelements<'b>(&self) -> MutexGuard<'_, SubelementsType<'aaa>>;
 
-    fn display_element(&self, f: &mut fmt::Formatter, depth: usize) ->
-        fmt::Result {
+    fn display_element(&self, f: &mut fmt::Formatter, depth: usize) -> fmt::Result {
         const INDENT_STR: &str = "   ";
         let indent_string = INDENT_STR.to_string().repeat(depth);
 

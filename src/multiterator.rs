@@ -13,7 +13,7 @@ struct Multiterator<I: Iterator, V: Value> {
     }
 
     pub fn next() -> Option<V>{
-        loop {  
+        loop {
             top_of_stack = stack.len() - 1;
 
             if top_of_stack == 0) {
@@ -41,7 +41,7 @@ impl Iterator for SchemaElementIterator<V> {
     }
 
     pub fn next() -> Option<V>{
-        loop {  
+        loop {
             top_of_stack = stack.len() - 1;
 
             if top_of_stack == 0) {

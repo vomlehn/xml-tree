@@ -2,7 +2,7 @@ use std::sync::Arc;
 use thiserror::Error;
 use xml::reader::XmlEvent;
 
-use crate::parser::{LineNumber};
+use crate::parser::LineNumber;
 
 #[derive(Debug, Error)]
 pub enum XmlDocumentError {
@@ -26,7 +26,7 @@ pub enum XmlDocumentError {
     InternalError(LineNumber, String),
 
     #[error("line {0}: Misplaced element end: {1}, found {2}")]
-    MisplacedElementEnd(LineNumber, String, String), 
+    MisplacedElementEnd(LineNumber, String, String),
 
     // FIXME: need to fix this
     #[error("No end element in input")]
@@ -52,7 +52,7 @@ pub enum XmlDocumentError {
     UnresolvedRef(String),
 
     #[error("line {0}: StartDocument after StartDocument")]
-    StartAfterStart(LineNumber), 
+    StartAfterStart(LineNumber),
 
     #[error("ElementDef name \"{0}\" not in ElementDescs")]
     ElementDefNotInElementDescs(String),
@@ -80,4 +80,3 @@ pub enum XmlDocumentError {
     #[error("No elements defined")]
     XmlNoElementDefined(),
 }
-

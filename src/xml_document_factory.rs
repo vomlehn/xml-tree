@@ -5,14 +5,14 @@
 // FIXME: delete all uses of expect(), everywhere
 
 use std::fmt;
-use std::io::{Read};
+use std::io::Read;
 use xml::name::OwnedName;
 use xml::reader::XmlEvent;
 
 use crate::parser::Parser;
-use crate::xml_schema::{SchemaElementType, XmlSchema};
 pub use crate::xml_document::{DocumentInfo, Element, ElementInfo, XmlDocument};
 pub use crate::xml_document_error::XmlDocumentError;
+use crate::xml_schema::{SchemaElementType, XmlSchema};
 
 /*
  * Structure used to hold parsing information
@@ -20,20 +20,20 @@ pub use crate::xml_document_error::XmlDocumentError;
  * xml_schema:  Definition of what the input is expected to look like
  */
 pub struct XmlDocumentFactory<'a, R: Read + 'a> {
-    parser:             Parser<R>,
-    pub xml_schema:     &'a XmlSchema<'a>,
+    parser: Parser<R>,
+    pub xml_schema: &'a XmlSchema<'a>,
 }
 
 impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
-    pub fn new_from_reader<T: Read + 'a>(reader: T,
-        xml_schema: &'a XmlSchema<'a>) ->
-        Result<XmlDocument, XmlDocumentError> {
-        
+    pub fn new_from_reader<T: Read + 'a>(
+        reader: T,
+        xml_schema: &'a XmlSchema<'a>,
+    ) -> Result<XmlDocument, XmlDocumentError> {
         let parser = Parser::<T>::new(reader);
 
         let xml_factory = XmlDocumentFactory::<T> {
-            parser:         parser,
-            xml_schema:     xml_schema,
+            parser: parser,
+            xml_schema: xml_schema,
         };
 
         xml_factory.parse_end_document()
@@ -42,116 +42,130 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
     /*
      * Parse the StartDocument event.
      */
-    fn parse_start_document(&mut self) ->
-        Result<DocumentInfo, XmlDocumentError> {
+    fn parse_start_document(&mut self) -> Result<DocumentInfo, XmlDocumentError> {
         let mut comments_before = Vec::<XmlEvent>::new();
 
         let document_info = loop {
             let xml_element = self.parser.next()?;
 
             match &xml_element.event {
-                XmlEvent::StartDocument{version, encoding, standalone} => {
-                    let document_info = DocumentInfo::new(version.clone(),
-                        encoding.clone(), standalone.clone());
+                XmlEvent::StartDocument {
+                    version,
+                    encoding,
+                    standalone,
+                } => {
+                    let document_info =
+                        DocumentInfo::new(version.clone(), encoding.clone(), standalone.clone());
                     break document_info;
-                },
+                }
                 XmlEvent::EndDocument => {
                     return Err(XmlDocumentError::NoEndDocument());
-                },
+                }
                 XmlEvent::Comment(cmnt) => {
                     comments_before.push(XmlEvent::Comment(cmnt.clone()));
                     continue;
-                },
+                }
                 XmlEvent::Whitespace(ws) => {
                     comments_before.push(XmlEvent::Whitespace(ws.clone()));
                     continue;
-                },
+                }
                 XmlEvent::Characters(characters) => {
                     comments_before.push(XmlEvent::Comment(characters.clone()));
                     continue;
-                },
+                }
                 XmlEvent::CData(cdata) => {
                     comments_before.push(XmlEvent::Comment(cdata.clone()));
                     continue;
-                },
+                }
                 _ => return Err(XmlDocumentError::UnexpectedXml(xml_element.event.clone())),
-            }; 
+            };
         };
 
-        return Ok(document_info)
+        return Ok(document_info);
     }
 
     /*
-     * Parse until we find an EndDocument, filling in the 
+     * Parse until we find an EndDocument, filling in the
      */
-    fn parse_end_document(mut self) ->
-        Result<XmlDocument, XmlDocumentError> {
+    fn parse_end_document(mut self) -> Result<XmlDocument, XmlDocumentError> {
         let mut pieces = Vec::<XmlEvent>::new();
         let document_info = self.parse_start_document()?;
-        let start_name =
-            OwnedName { local_name: "".to_string(), prefix: None, namespace: None };
+        let start_name = OwnedName {
+            local_name: "".to_string(),
+            prefix: None,
+            namespace: None,
+        };
 
         let root_element = loop {
             let xml_element = self.parser.next()?;
             let lineno = xml_element.lineno;
 
             match &xml_element.event {
-                XmlEvent::StartDocument{..} => {
+                XmlEvent::StartDocument { .. } => {
                     return Err(XmlDocumentError::StartAfterStart(lineno));
-                },
+                }
                 XmlEvent::EndDocument => {
                     return Err(XmlDocumentError::Unknown(0));
-                },
-                XmlEvent::StartElement{name, attributes, namespace} => {
+                }
+                XmlEvent::StartElement {
+                    name,
+                    attributes,
+                    namespace,
+                } => {
                     let start_name = name.clone();
                     let depth = 0;
-                    let element_info = ElementInfo::new(lineno, attributes.clone(),
-                        namespace.clone());
-                    
+                    let element_info =
+                        ElementInfo::new(lineno, attributes.clone(), namespace.clone());
+
                     let root_element = self.xml_schema.element().clone();
-                    let mut element = self.parse_element::<R>(root_element,
-                        depth, start_name.clone(), element_info)?;
+                    let mut element = self.parse_element::<R>(
+                        root_element,
+                        depth,
+                        start_name.clone(),
+                        element_info,
+                    )?;
                     element.before_element = pieces;
                     break element;
-                },
-                XmlEvent::EndElement{name} => {
+                }
+                XmlEvent::EndElement { name } => {
                     let end_name = name.clone();
-                    return Err(XmlDocumentError::MisplacedElementEnd(lineno,
-                        start_name.local_name, end_name.local_name));
-                },
+                    return Err(XmlDocumentError::MisplacedElementEnd(
+                        lineno,
+                        start_name.local_name,
+                        end_name.local_name,
+                    ));
+                }
                 XmlEvent::Comment(cmnt) => {
                     pieces.push(XmlEvent::Comment(cmnt.clone()));
                     continue;
-                },
+                }
                 XmlEvent::Whitespace(ws) => {
                     pieces.push(XmlEvent::Comment(ws.clone()));
                     continue;
-                },
+                }
                 XmlEvent::Characters(characters) => {
                     pieces.push(XmlEvent::Comment(characters.clone()));
                     continue;
-                },
+                }
                 XmlEvent::CData(cdata) => {
                     pieces.push(XmlEvent::Comment(cdata.clone()));
                     continue;
-                },
-/*
-                XmlEvent::ProcessingInstruction(processing_instruction, name, data) => {
-println!("Skipping processing_instruction");
-                    continue;
-                },
-*/
-                _ => {
-                    return Err(XmlDocumentError::UnexpectedXml(xml_element.event.clone()))
-                },
+                }
+                /*
+                                XmlEvent::ProcessingInstruction(processing_instruction, name, data) => {
+                println!("Skipping processing_instruction");
+                                    continue;
+                                },
+                */
+                _ => return Err(XmlDocumentError::UnexpectedXml(xml_element.event.clone())),
             };
         };
 
-         let xml_document = XmlDocument {
-            document_info:  document_info,
-            root:           root_element,
-         };
-         Ok(xml_document)
+        let xml_document = XmlDocument {
+            document_info: document_info,
+            root: root_element,
+        };
+        Ok(xml_document)
     }
 
     /*
@@ -162,10 +176,13 @@ println!("Skipping processing_instruction");
      * name_in:                 Name of the element
      * element_info_in:         Other information about the element
      */
-    fn parse_element<T: Read>(&mut self,
+    fn parse_element<T: Read>(
+        &mut self,
         schema_element: SchemaElementType,
-            depth: usize, name_in: OwnedName, element_info_in: ElementInfo) ->
-        Result<Element, XmlDocumentError> {
+        depth: usize,
+        name_in: OwnedName,
+        element_info_in: ElementInfo,
+    ) -> Result<Element, XmlDocumentError> {
         // First, we set up the element
         let mut pieces = Vec::<XmlEvent>::new();
 
@@ -176,13 +193,17 @@ println!("Skipping processing_instruction");
             let lineno = xml_element.lineno;
 
             match &xml_element.event {
-                XmlEvent::StartDocument{..} => {
+                XmlEvent::StartDocument { .. } => {
                     return Err(XmlDocumentError::StartAfterStart(lineno));
-                },
+                }
                 XmlEvent::EndDocument => {
                     return Err(XmlDocumentError::Unknown(0));
-                },
-                XmlEvent::StartElement{name, attributes, namespace} => {
+                }
+                XmlEvent::StartElement {
+                    name,
+                    attributes,
+                    namespace,
+                } => {
                     // See if we support this element under the current element
                     let start_name = name.clone();
                     let attributes2 = attributes.clone();
@@ -190,47 +211,56 @@ println!("Skipping processing_instruction");
 
                     let next_schema_element =
                         match schema_element.get(start_name.local_name.as_str()) {
-                            None => return Err(XmlDocumentError::UnknownElement(lineno,
-                                start_name.local_name.to_string())),
+                            None => {
+                                return Err(XmlDocumentError::UnknownElement(
+                                    lineno,
+                                    start_name.local_name.to_string(),
+                                ))
+                            }
                             Some(elem) => elem,
-                    };
-                    
-                    let element_info = ElementInfo::new(lineno,
-                        attributes2.clone(), namespace2.clone());
+                        };
+
+                    let element_info =
+                        ElementInfo::new(lineno, attributes2.clone(), namespace2.clone());
                     let subelement = self.parse_element::<R>(
-                        next_schema_element, depth,
-                        start_name.clone(), element_info.clone())?;
+                        next_schema_element,
+                        depth,
+                        start_name.clone(),
+                        element_info.clone(),
+                    )?;
                     element.before_element = pieces;
                     element.subelements.push(subelement);
                     pieces = Vec::<XmlEvent>::new();
-                },
-                XmlEvent::EndElement{name} => {
+                }
+                XmlEvent::EndElement { name } => {
                     if name.local_name != *schema_element.name() {
-                        return Err(XmlDocumentError::MisplacedElementEnd(lineno,
+                        return Err(XmlDocumentError::MisplacedElementEnd(
+                            lineno,
                             schema_element.name().to_string(),
-                            name.local_name.to_string()));
+                            name.local_name.to_string(),
+                        ));
                     }
 
                     element.content = pieces;
                     return Ok(element);
-                },
+                }
                 XmlEvent::Comment(cmnt) => {
                     pieces.push(XmlEvent::Comment(cmnt.clone()));
-                },
+                }
                 XmlEvent::Whitespace(ws) => {
                     pieces.push(XmlEvent::Whitespace(ws.clone()));
-                },
+                }
                 XmlEvent::Characters(characters) => {
                     pieces.push(XmlEvent::Characters(characters.clone()));
-                },
+                }
                 XmlEvent::CData(cdata) => {
                     pieces.push(XmlEvent::CData(cdata.clone()));
-                },
-/*
-                XmlEvent::ProcessingInstruction(processing_instruction, name, data) => {
-println!("Skipping processing_instruction");
-                },
-*/
+                }
+                /*
+                                XmlEvent::ProcessingInstruction(processing_instruction, name, data) => {
+                println!("Skipping processing_instruction");
+                                },
+                */
                 _ => {
                     return Err(XmlDocumentError::UnexpectedXml(xml_element.event.clone()));
                 }
