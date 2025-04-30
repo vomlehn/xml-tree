@@ -140,11 +140,9 @@ where
         fn summary(&self) -> WalkResult<WD, WalkError>;
 }
 
-//#[cfg(test)]
+#[cfg(test)]
 mod tests {
     use std::collections::BTreeMap;
-    use std::convert::Infallible;
-    use std::ops::{ControlFlow, FromResidual, Try};
     use xml::attribute::OwnedAttribute;
     use xml::common::XmlVersion;
     use xml::name::OwnedName;
@@ -154,13 +152,9 @@ mod tests {
     use crate::xml_document::{Element, ElementInfo, XmlDocument};
     use crate::xml_document_factory::DocumentInfo;
 
-    use super::{Accumulator, ElementSup, WalkError, Walkable, WalkData, XmlWalker, ElementResult, WalkResult};
+    use super::{Accumulator, ElementSup, WalkError, Walkable, WalkData, ElementResult, WalkResult};
 
     const INDENT: &str = "    ";
-
-    struct A<'a> {
-        xml_document: &'a XmlDocument,
-    }
 
     #[test]
     fn test_walk_tree_names() {
@@ -179,12 +173,6 @@ mod tests {
     }
 
     impl Walkable<ElementdataA, WalkdataA, AccumulatorA> for WalkableA<'_>
-/*
-    where
-        ES_A: ElementSup<ES_A>,
-        WD_A: WalkData,
-        AC_A: Accumulator<ES_A, WD_A>,
-*/
     {
         fn xml_document(&self) -> &XmlDocument {
             self.xml_document
@@ -206,7 +194,6 @@ mod tests {
                 d.add(&wd)?;
             }
 
-// FIXME: clone() to right solution?
             d.clone().summary()
         }
     }
@@ -271,75 +258,6 @@ mod tests {
             })
         }
     }
-
-/*
-    // ----------------- Result Enums ----------------
-
-    #[derive(Debug)]
-    pub enum ElementResultA<T, E> {
-        Ok(T),
-        Err(E),
-    }
-
-    impl<T, E> ElementResult for ElementResultA<T, E> {
-    }
-
-    impl<T, E> Try for ElementResultA<T, E> {
-        type Output = T;
-        type Residual = Result<Infallible, E>;
-
-        fn from_output(output: T) -> Self {
-            ElementResultA::Ok(output)
-        }
-
-        fn branch(self) -> ControlFlow<Self::Residual, Self::Output> {
-            match self {
-                ElementResultA::Ok(v) => ControlFlow::Continue(v),
-                ElementResultA::Err(e) => ControlFlow::Break(Err(e)),
-            }
-        }
-    }
-
-    impl<T, E> FromResidual<Result<Infallible, E>> for ElementResultA<T, E> {
-        fn from_residual(residual: Result<Infallible, E>) -> Self {
-            match residual {
-                Err(e) => ElementResultA::Err(e),
-                Ok(_) => unreachable!(),
-            }
-        }
-    }
-
-    #[derive(Debug)]
-    pub enum WalkresultA<T, E> {
-        Ok(T),
-        Err(E),
-    }
-
-    impl<T, E> Try for WalkresultA<T, E> {
-        type Output = T;
-        type Residual = Result<Infallible, E>;
-
-        fn from_output(output: T) -> Self {
-            WalkresultA::Ok(output)
-        }
-
-        fn branch(self) -> ControlFlow<Self::Residual, Self::Output> {
-            match self {
-                WalkresultA::Ok(v) => ControlFlow::Continue(v),
-                WalkresultA::Err(e) => ControlFlow::Break(Err(e)),
-            }
-        }
-    }
-
-    impl<T, E> FromResidual<Result<Infallible, E>> for WalkresultA<T, E> {
-        fn from_residual(residual: Result<Infallible, E>) -> Self {
-            match residual {
-                Err(e) => WalkresultA::Err(e),
-                Ok(_) => unreachable!(),
-            }
-        }
-    }
-*/
 
     // ----------------- Data Types ----------------
 
