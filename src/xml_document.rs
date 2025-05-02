@@ -19,6 +19,117 @@ use crate::xml_document_error::XmlDocumentError;
 use crate::xml_document_factory::XmlDocumentFactory;
 use crate::xml_schema::XmlSchema;
 
+/*
+ * Parsed XML document
+ *
+ * document_info    Information about the document
+ * elements         The oarsed document
+ */
+#[derive(Debug)]
+pub struct XmlDocument {
+    pub document_info: DocumentInfo,
+    pub root: Element,
+}
+
+impl XmlDocument {
+    pub fn new<'a>(
+        path: &str,
+        xml_schema: &'a XmlSchema<'a>,
+    ) -> Result<XmlDocument, XmlDocumentError> {
+        let file = match File::open(path) {
+            Err(e) => return Err(XmlDocumentError::Error(Arc::new(e))),
+            Ok(f) => f,
+        };
+        let reader = BufReader::new(file);
+        XmlDocument::new_from_reader(reader, xml_schema)
+    }
+}
+
+impl XmlDocument {
+    pub fn new_from_reader<'a, R: Read + 'a>(
+        buf_reader: BufReader<R>,
+        xml_schema: &'a XmlSchema<'a>,
+    ) -> Result<XmlDocument, XmlDocumentError> {
+        // Create the factory using the reader and XML definition
+        let xml_document = XmlDocumentFactory::<R>::new_from_reader(buf_reader, xml_schema)?;
+        Ok(xml_document)
+    }
+
+    fn _display_piece(&self, f: &mut fmt::Formatter<'_>, pieces: &Vec<XmlEvent>) -> fmt::Result {
+        let result = for piece in pieces {
+            match piece {
+                XmlEvent::Comment(cmnt) => write!(f, "<!-- {} -->", cmnt)?,
+                XmlEvent::Whitespace(ws) => write!(f, "{}", ws)?,
+                XmlEvent::Characters(characters) => write!(f, "{}", characters)?,
+                XmlEvent::CData(cdata) => write!(f, "{}", cdata)?,
+                _ => return Err(fmt::Error),
+            }
+        };
+
+        Ok(result)
+    }
+
+    pub fn display_element(
+        &self,
+        f: &mut fmt::Formatter<'_>,
+        depth: usize,
+        element: &Element,
+    ) -> fmt::Result {
+        const INDENT_STR: &str = "   ";
+        let indent_string = INDENT_STR.to_string().repeat(depth);
+
+        //        self.display_piece(f, &element.before_element)?;
+
+        write!(f, "{}<{}", indent_string, element)?;
+
+        if element.subelements.len() != 0 || element.content.len() != 0 {
+            for element in &element.subelements {
+                self.display_element(f, depth + 1, element)?;
+            }
+
+            write!(f, "{}</{}>\n", indent_string, element.name.local_name)?;
+        }
+
+        Ok(())
+    }
+
+    pub fn display(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "<?xml {} {} {:?}>\n",
+            self.document_info.version, self.document_info.encoding, self.document_info.standalone
+        )?;
+
+        let depth = 0;
+        self.display_element(f, depth, &self.root)?;
+
+        Ok(())
+    }
+}
+
+/*
+impl<'a> fmt::Display for XmlDocument {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let pwd = PrintWalkData::<PrintWalkResult>::new(f, 0);
+/*
+        let mut w = PrintWalk::<PrintWalkData<PrintWalkResult>,
+            PrintWalkResult>::new(self);
+        let walk_result = w.walk(&mut pwd);
+        if let Err(e) = walk_result {
+            println!("walk_result {:?}", e);
+        }
+*/
+        Ok(())
+/* FIXME: restore this
+        match walk_result {
+        Err(Box::<dyn std::error::Error>) => return Err(fmt::Error),
+        Ok(_) => return Ok(()),
+        };
+*/
+    }
+}
+*/
+
 #[derive(Clone, Debug)]
 pub struct ElementInfo {
     pub lineno: LineNumber,
@@ -160,117 +271,6 @@ impl DocumentInfo {
         }
     }
 }
-
-/*
- * Parsed XML document
- *
- * document_info    Information about the document
- * elements         The oarsed document
- */
-#[derive(Debug)]
-pub struct XmlDocument {
-    pub document_info: DocumentInfo,
-    pub root: Element,
-}
-
-impl XmlDocument {
-    pub fn new<'a>(
-        path: &str,
-        xml_schema: &'a XmlSchema<'a>,
-    ) -> Result<XmlDocument, XmlDocumentError> {
-        let file = match File::open(path) {
-            Err(e) => return Err(XmlDocumentError::Error(Arc::new(e))),
-            Ok(f) => f,
-        };
-        let reader = BufReader::new(file);
-        XmlDocument::new_from_reader(reader, xml_schema)
-    }
-}
-
-impl XmlDocument {
-    pub fn new_from_reader<'a, R: Read + 'a>(
-        buf_reader: BufReader<R>,
-        xml_schema: &'a XmlSchema<'a>,
-    ) -> Result<XmlDocument, XmlDocumentError> {
-        // Create the factory using the reader and XML definition
-        let xml_document = XmlDocumentFactory::<R>::new_from_reader(buf_reader, xml_schema)?;
-        Ok(xml_document)
-    }
-
-    fn _display_piece(&self, f: &mut fmt::Formatter<'_>, pieces: &Vec<XmlEvent>) -> fmt::Result {
-        let result = for piece in pieces {
-            match piece {
-                XmlEvent::Comment(cmnt) => write!(f, "<!-- {} -->", cmnt)?,
-                XmlEvent::Whitespace(ws) => write!(f, "{}", ws)?,
-                XmlEvent::Characters(characters) => write!(f, "{}", characters)?,
-                XmlEvent::CData(cdata) => write!(f, "{}", cdata)?,
-                _ => return Err(fmt::Error),
-            }
-        };
-
-        Ok(result)
-    }
-
-    pub fn display_element(
-        &self,
-        f: &mut fmt::Formatter<'_>,
-        depth: usize,
-        element: &Element,
-    ) -> fmt::Result {
-        const INDENT_STR: &str = "   ";
-        let indent_string = INDENT_STR.to_string().repeat(depth);
-
-        //        self.display_piece(f, &element.before_element)?;
-
-        write!(f, "{}<{}", indent_string, element)?;
-
-        if element.subelements.len() != 0 || element.content.len() != 0 {
-            for element in &element.subelements {
-                self.display_element(f, depth + 1, element)?;
-            }
-
-            write!(f, "{}</{}>\n", indent_string, element.name.local_name)?;
-        }
-
-        Ok(())
-    }
-
-    pub fn display(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "<?xml {} {} {:?}>\n",
-            self.document_info.version, self.document_info.encoding, self.document_info.standalone
-        )?;
-
-        let depth = 0;
-        self.display_element(f, depth, &self.root)?;
-
-        Ok(())
-    }
-}
-
-/*
-impl<'a> fmt::Display for XmlDocument {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let pwd = PrintWalkData::<PrintWalkResult>::new(f, 0);
-/*
-        let mut w = PrintWalk::<PrintWalkData<PrintWalkResult>,
-            PrintWalkResult>::new(self);
-        let walk_result = w.walk(&mut pwd);
-        if let Err(e) = walk_result {
-            println!("walk_result {:?}", e);
-        }
-*/
-        Ok(())
-/* FIXME: restore this
-        match walk_result {
-        Err(Box::<dyn std::error::Error>) => return Err(fmt::Error),
-        Ok(_) => return Ok(()),
-        };
-*/
-    }
-}
-*/
 
 #[cfg(test)]
 mod tests {
