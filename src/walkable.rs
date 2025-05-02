@@ -3,40 +3,40 @@ use crate::xml_document::{Element, XmlDocument};
 use std::convert::Infallible;
 use std::ops::{ControlFlow, FromResidual, Try};
 
-type WalkError = Box<dyn std::error::Error + Send + Sync + 'static>;
+pub type WalkError = Box<dyn std::error::Error + Send + Sync + 'static>;
 
 // ----------------- Traits ----------------
 // Information that supplements the Element to produce a piece of the overall
 // result.
-pub trait ElementSup<ES>
+pub trait ElemData<ED>
 where
-    ES: ElementSup<ES>,
+    ED: ElemData<ED>,
 {
-    fn start(&self, element: &Element) -> WalkResult<ES, WalkError>;
+    fn start(&self, element: &Element) -> WalkResult<ED, WalkError>;
 }
 
-// It seems as though ES and WD should be traits
-pub trait Walkable<ES, WD, AC>
+// It seems as though ED and WD should be traits
+pub trait Walkable<ED, WD, AC>
 where
-    ES: ElementSup<ES>,
+    ED: ElemData<ED>,
     WD: WalkData,
-    AC: Accumulator<ES, WD>,
+    AC: Accumulator<ED, WD>,
 {
     fn xml_document(&self) -> &XmlDocument;
 
     // Start the walk at the root of the document
-    fn walk<'a>(&self, d: &ES) -> WalkResult<WD, WalkError> {
+    fn walk<'a>(&self, d: &ED) -> WalkResult<WD, WalkError> {
         let xml_doc = self.xml_document();
         let root = &xml_doc.root;
         self.walk_i(root, d)
     }
 
-    fn walk_i<'a>(&self, element: &Element, es: &ES) -> WalkResult<WD, WalkError> {
-        let next_es = es.start(element)?;
-        let mut acc = AC::new(element, &next_es);
+    fn walk_i<'a>(&self, element: &Element, ed: &ED) -> WalkResult<WD, WalkError> {
+        let mut acc = AC::new(element, &ed);
+        let next_ed = ed.start(element)?;
 
         for elem in &element.subelements {
-            let wd = self.walk_i(&elem, &next_es)?;
+            let wd = self.walk_i(&elem, &next_ed)?;
             acc.add(&wd);
         }
 
@@ -46,11 +46,6 @@ where
 }
 
 pub trait WalkData {}
-
-pub trait XmlWalker {
-    fn start(&mut self, element: &Element, depth: usize);
-    fn end(&mut self, _element: &Element, _depth: usize) {}
-}
 
 // ----------------- Result Enums ----------------
 
@@ -85,12 +80,12 @@ impl<T, E> FromResidual<Result<Infallible, E>> for WalkResult<T, E> {
     }
 }
 
-pub trait Accumulator<ES, WD>
+pub trait Accumulator<ED, WD>
 where
-    ES: ElementSup<ES>,
+    ED: ElemData<ED>,
     WD: WalkData,
 {
-    fn new(e: &Element, es: &ES) -> Self;
+    fn new(e: &Element, ed: &ED) -> Self;
     fn add(&mut self, wd: &WD) -> WalkResult<WD, WalkError>;
     fn summary(&self) -> WalkResult<WD, WalkError>;
 }
@@ -107,71 +102,60 @@ mod tests {
     use crate::xml_document::{Element, ElementInfo, XmlDocument};
     use crate::xml_document_factory::DocumentInfo;
 
-    use super::{Accumulator, ElementSup, WalkData, WalkError, WalkResult, Walkable};
+    use super::{Accumulator, ElemData, WalkData, WalkError, WalkResult, Walkable};
 
     const INDENT: &str = "    ";
 
     #[test]
     fn test_walk_tree_names() {
         let doc = create_test_doc(); // build a sample XmlDocument
-        let walker = WalkableA { xml_document: &doc };
-        let result = walker.walk(&ElementdataA { depth: 0 });
+        let walker = WalkableTest { xml_document: &doc };
+        println!("Processing:");
+        let result = walker.walk(&ElemDataTest { depth: 0 });
 
-        match result {
-            WalkResult::Ok(data) => println!("Output:\n{}", data.data),
-            WalkResult::Err(e) => eprintln!("Error: {}", e),
-        }
+        let res = match result {
+            WalkResult::Ok(data) => {
+                let res = format!("{}", data.data);
+                println!("Output:\n{}", res);
+                res
+            }
+            WalkResult::Err(e) => {
+                let res = format!("{}", e);
+                eprintln!("Error: {}", res);
+                res
+            }
+        };
+        assert_eq!(res, concat!("n1\n", "    n2\n", "    n3\n", "        n4"));
     }
 
-    struct WalkableA<'a> {
+    struct WalkableTest<'a> {
         xml_document: &'a XmlDocument,
     }
 
-    impl Walkable<ElementdataA, WalkdataA, AccumulatorA> for WalkableA<'_> {
+    impl Walkable<ElemDataTest, WalkDataTest, AccumulatorTest> for WalkableTest<'_> {
         fn xml_document(&self) -> &XmlDocument {
             self.xml_document
-        }
-
-        fn walk<'a>(&self, d: &ElementdataA) -> WalkResult<WalkdataA, WalkError> {
-            let root =
-                &<WalkableA<'_> as Walkable<ElementdataA, WalkdataA, AccumulatorA>>::xml_document(
-                    self,
-                )
-                .root;
-            self.walk_i(root, &d)
-        }
-
-        fn walk_i<'a>(&self, e: &Element, ed: &ElementdataA) -> WalkResult<WalkdataA, WalkError> {
-            let subd = ed.start(e)?;
-            let mut d = AccumulatorA::new(e, &ed);
-
-            for sub_e in &e.subelements {
-                let wd = self.walk_i(sub_e, &subd)?;
-                d.add(&wd)?;
-            }
-
-            d.clone().summary()
         }
     }
 
     // ----------------- Data Types ----------------
 
     #[derive(Debug)]
-    pub struct WalkdataA {
+    pub struct WalkDataTest {
         pub data: String,
     }
 
-    impl WalkData for WalkdataA {}
+    impl WalkData for WalkDataTest {}
 
     #[derive(Debug)]
-    pub struct ElementdataA {
+    pub struct ElemDataTest {
         pub depth: usize,
     }
 
-    impl ElementSup<ElementdataA> for ElementdataA {
-        fn start(&self, element: &Element) -> WalkResult<ElementdataA, WalkError> {
+    impl ElemData<ElemDataTest> for ElemDataTest {
+        fn start(&self, element: &Element) -> WalkResult<ElemDataTest, WalkError> {
             println!("{}{}", INDENT.repeat(self.depth), element.name.local_name);
-            let ed = ElementdataA {
+            let ed = ElemDataTest {
                 depth: self.depth + 1,
             };
             WalkResult::Ok(ed)
@@ -179,33 +163,25 @@ mod tests {
     }
 
     #[derive(Debug)]
-    pub struct AccumulatorA {
+    pub struct AccumulatorTest {
         result: String,
     }
 
-    impl AccumulatorA {
-        fn clone(&self) -> AccumulatorA {
-            AccumulatorA {
-                result: self.result.clone(),
-            }
-        }
-    }
-
-    impl Accumulator<ElementdataA, WalkdataA> for AccumulatorA {
-        fn new(e: &Element, ed: &ElementdataA) -> Self {
+    impl Accumulator<ElemDataTest, WalkDataTest> for AccumulatorTest {
+        fn new(e: &Element, ed: &ElemDataTest) -> Self {
             let result = format!("{}{}", INDENT.repeat(ed.depth), e.name.local_name);
-            AccumulatorA { result }
+            AccumulatorTest { result }
         }
 
-        fn add(&mut self, ws: &WalkdataA) -> WalkResult<WalkdataA, WalkError> {
-            self.result += &format!("\n{}", ws.data);
-            WalkResult::Ok(WalkdataA {
+        fn add(&mut self, wd: &WalkDataTest) -> WalkResult<WalkDataTest, WalkError> {
+            self.result += &format!("\n{}", wd.data);
+            WalkResult::Ok(WalkDataTest {
                 data: self.result.clone(),
             })
         }
 
-        fn summary(&self) -> WalkResult<WalkdataA, WalkError> {
-            WalkResult::Ok(WalkdataA {
+        fn summary(&self) -> WalkResult<WalkDataTest, WalkError> {
+            WalkResult::Ok(WalkDataTest {
                 data: self.result.clone(),
             })
         }
@@ -214,7 +190,6 @@ mod tests {
     // ----------------- Data Types ----------------
 
     fn create_test_doc() -> XmlDocument {
-        println!("In create_test_doc");
         let ns: Namespace = Namespace(BTreeMap::<String, String>::new());
 
         let ei: ElementInfo = ElementInfo {
@@ -223,11 +198,11 @@ mod tests {
             namespace: ns,
         };
 
-        let e1 = branch(
-            "n1",
-            vec![leaf("n2", &ei), branch("n3", vec![leaf("n4", &ei)], &ei)],
-            &ei,
-        );
+        let e1 = branch("n1", &ei, vec![
+            leaf("n2", &ei),
+            branch("n3", &ei, vec![
+                leaf("n4", &ei)])
+        ]);
 
         let di = DocumentInfo {
             version: XmlVersion::Version10,
@@ -244,22 +219,14 @@ mod tests {
     }
 
     fn leaf(name: &str, ei: &ElementInfo) -> Element {
-        Element {
-            name: OwnedName {
-                local_name: name.to_string(),
-                namespace: None,
-                prefix: None,
-            },
-            depth: 0,
-            element_info: ei.clone(),
-            subelements: Vec::<Element>::new(),
-            before_element: Vec::<XmlEvent>::new(),
-            content: Vec::<XmlEvent>::new(),
-            after_element: Vec::<XmlEvent>::new(),
-        }
+        node(name, ei, Vec::<Element>::new())
     }
 
-    fn branch(name: &str, subelements: Vec<Element>, ei: &ElementInfo) -> Element {
+    fn branch(name: &str, ei: &ElementInfo, subelements: Vec<Element>) -> Element {
+        node(name, ei, subelements)
+    }
+
+    fn node(name: &str, ei: &ElementInfo, subelements: Vec<Element>) -> Element {
         Element {
             name: OwnedName {
                 local_name: name.to_string(),
