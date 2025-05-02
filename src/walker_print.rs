@@ -2,78 +2,174 @@
  * Recursive print
  */
 
-/*
-use std::error::Error;
-use std::fmt;
-
+use crate::{Accumulator, ElemData, WalkData, WalkError, WalkResult, Walkable};
 use crate::xml_document::{Element, XmlDocument};
-use crate::walkable::{Walkable, WalkableData};
 
-/*
-type D<'a, 'b> = PrintWalkData<'a, 'b>;
-type R1<'a, 'b> = Result<D<'a, 'b>, Box<dyn Error>>;
-type R2 = fmt::Result;
-*/
+const INDENT: &str = "    ";
 
-// ---------------------------
-
-pub struct PrintWalk<'a> {
-    document: &'a XmlDocument,
-    f: &'a mut fmt::Formatter<'a>,
+struct WalkablePrint<'a> {
+    xml_document: &'a XmlDocument,
 }
 
-impl<'a> PrintWalk<'a> {
-    pub fn new(document: &'a XmlDocument, f: &'a mut fmt::Formatter<'a>) -> Self {
-        Self { document, f }
+impl WalkablePrint<'_> {
+    pub fn new<'a>(xml_document: &'a XmlDocument) -> WalkablePrint<'a> {
+        WalkablePrint {
+            xml_document:   xml_document,
+        }
     }
 }
 
-impl<'a, 'b> Walkable<'a, 'b, PrintWalkData<'a, 'b>, Result<PrintWalkData<'a, 'b>, Box<dyn Error>>, fmt::Result> for PrintWalk<'a> {
-    fn xml_document(&self) -> &'a XmlDocument {
-        self.document
+impl Walkable<ElemDataPrint, WalkDataPrint, AccumulatorPrint> for WalkablePrint<'_> {
+    fn xml_document(&self) -> &XmlDocument {
+        self.xml_document
     }
 }
 
-/*
-impl<'a, 'b> Walkable<'a, 'b, PrintWalkData<'a, 'b>, Result<PrintWalkData<'a, 'b>, Box<dyn Error>>, fmt::Result> for PrintWalk<'a> {
-    fn xml_document(&self) -> &'a XmlDocument {
-        self.document
-    }
-}
-*/
+// ----------------- Data Types ----------------
 
-pub struct PrintWalkData<'a, 'b> {
-    depth: usize,
-    f: &'a mut fmt::Formatter<'b>,
+pub struct WalkDataPrint {
+    pub data: String,
 }
 
-impl<'a, 'b> PrintWalkData<'a, 'b> {
-    pub fn new(depth: usize, f: &'a mut fmt::Formatter<'b>) -> Self {
-        Self { depth, f }
+impl WalkDataPrint {
+    pub fn new() -> WalkDataPrint {
+        WalkDataPrint {
+            data:   "".to_string(),
+        }
     }
 }
 
-impl<'a, 'b> WalkableData<'a, 'b, Result<PrintWalkData<'a, 'b>, Box<dyn Error>>, (), fmt::Result> for PrintWalkData<'a, 'b> {
-    fn element_start<'c>(&'c mut self, element: &Element) -> Result<PrintWalkData<'a, 'b>, Box<dyn Error>>
-    where
-        'a: 'c,
-    {
-        writeln!(self.f, "{}<{}>", "  ".repeat(self.depth), element.name)?;
-        Ok(PrintWalkData {
+impl WalkData for WalkDataPrint {}
+
+#[derive(Debug)]
+pub struct ElemDataPrint {
+    pub depth: usize,
+}
+
+impl ElemData<ElemDataPrint> for ElemDataPrint {
+    fn start(&self, element: &Element) -> WalkResult<ElemDataPrint, WalkError> {
+        println!("{}<{}>", INDENT.repeat(self.depth), element.name);
+        let ed = ElemDataPrint {
             depth: self.depth + 1,
-            f: self.f,
+        };
+        WalkResult::Ok(ed)
+    }
+}
+
+#[derive(Debug)]
+pub struct AccumulatorPrint {
+    result: String,
+}
+
+impl Accumulator<ElemDataPrint, WalkDataPrint> for AccumulatorPrint {
+    fn new(e: &Element, ed: &ElemDataPrint) -> Self {
+        let result = format!("{}<{}>", INDENT.repeat(ed.depth), e.name.local_name);
+        AccumulatorPrint { result }
+    }
+
+    fn add(&mut self, wd: &WalkDataPrint) -> WalkResult<WalkDataPrint, WalkError> {
+        self.result += &format!("\n{}", wd.data);
+        WalkResult::Ok(WalkDataPrint {
+            data: self.result.clone(),
         })
     }
 
-    fn element_end(&mut self, element: &Element, _: Vec<Result<(), std::fmt::Error>>) -> std::fmt::Error {
-        writeln!(self.f, "{}</{}>", "  ".repeat(self.depth), element.name).map_err(|e| Box::new(e) as Box<dyn Error>)
+    fn summary(&self) -> WalkResult<WalkDataPrint, WalkError> {
+        WalkResult::Ok(WalkDataPrint {
+            data: self.result.clone(),
+        })
     }
-
-
-/*
-    fn element_end(&mut self, element: &Element, _: Vec<fmt::Result>) -> fmt::Result {
-        writeln!(self.f, "{}</{}>", "  ".repeat(self.depth), element.name)
-    }
-*/
 }
-*/
+
+#[cfg(test)]
+mod test {
+    use std::collections::BTreeMap;
+    use xml::attribute::OwnedAttribute;
+    use xml::common::XmlVersion;
+    use xml::name::OwnedName;
+    use xml::namespace::Namespace;
+    use xml::reader::XmlEvent;
+
+    use crate::{Accumulator, WalkResult, Walkable};
+    use crate::xml_document::{Element, XmlDocument};
+    use crate::xml_document_factory::{DocumentInfo, ElementInfo};
+    use super::{ElemDataPrint, WalkablePrint};
+
+    #[test]
+    fn test_walk_tree_print() {
+        println!("\nStart test_walk_tree_print");
+        let doc = create_test_doc(); // build a sample XmlDocument
+        let walker = WalkablePrint { xml_document: &doc };
+        let result = walker.walk(&ElemDataPrint { depth: 0 });
+
+        let res = match result {
+            WalkResult::Ok(data) => {
+                let res = format!("{}", data.data);
+                println!("Output:\n{}", res);
+                res
+            }
+            WalkResult::Err(e) => {
+                let res = format!("{}", e);
+                eprintln!("Error: {}", res);
+                res
+            }
+        };
+        assert_eq!(res, concat!("<n1>\n",
+            "    <n2>\n",
+            "    <n3>\n",
+            "        <n4>"));
+    }
+
+    fn create_test_doc() -> XmlDocument {
+        let ns: Namespace = Namespace(BTreeMap::<String, String>::new());
+
+        let ei: ElementInfo = ElementInfo {
+            lineno: 1,
+            attributes: Vec::<OwnedAttribute>::new(),
+            namespace: ns,
+        };
+
+        let e1 = branch("n1", &ei, vec![
+            leaf("n2", &ei),
+            branch("n3", &ei, vec![
+                leaf("n4", &ei)])
+        ]);
+
+        let di = DocumentInfo {
+            version: XmlVersion::Version10,
+            encoding: "xxx".to_string(),
+            standalone: None,
+        };
+
+        let d: XmlDocument = XmlDocument {
+            root: e1,
+            document_info: di,
+        };
+
+        d
+    }
+
+    fn leaf(name: &str, ei: &ElementInfo) -> Element {
+        node(name, ei, Vec::<Element>::new())
+    }
+
+    fn branch(name: &str, ei: &ElementInfo, subelements: Vec<Element>) -> Element {
+        node(name, ei, subelements)
+    }
+
+    fn node(name: &str, ei: &ElementInfo, subelements: Vec<Element>) -> Element {
+        Element {
+            name: OwnedName {
+                local_name: name.to_string(),
+                namespace: None,
+                prefix: None,
+            },
+            depth: 0,
+            element_info: ei.clone(),
+            subelements: subelements,
+            before_element: Vec::<XmlEvent>::new(),
+            content: Vec::<XmlEvent>::new(),
+            after_element: Vec::<XmlEvent>::new(),
+        }
+    }
+}

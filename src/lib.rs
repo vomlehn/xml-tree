@@ -11,9 +11,8 @@ mod walker_print;
 mod xml_document_factory;
 mod xsd_schema;
 
-pub use crate::walkable::*; // Be more choosy
+pub use crate::walkable::{Accumulator, ElemData, WalkData, WalkError, WalkResult, Walkable};
 pub use crate::xml_document::{Element, XmlDocument};
 pub use crate::xml_document_error::XmlDocumentError;
 pub use crate::xml_document_factory::XmlDocumentFactory;
 pub use crate::xml_schema::{SchemaElement, XmlSchema};
-//pub use crate::multiterator::Multiterator;
