@@ -10,24 +10,24 @@ pub type WalkError = Box<dyn std::error::Error + Send + Sync + 'static>;
 //pub trait WalkableResult: FromResidual + Try<Output = dyn WalkData> {}
 //pub trait WalkableResult<E>: FromResidual<Result<Infallible, E>> +
 //    Try<Output = WalkData, Residual = E> {}
-pub type WalkableResult<T, E> = Result<T, E>;
+pub type WalkableResult<E> = Result<WalkDataType, E>;
 
 // Information that supplements the Element to produce a piece of the overall
 // result.
 pub trait ElemData
 where
 {
-    fn new_level(&self, element: &Element) -> Result<ElemDataType, WalkError>;
+    fn next_level(&self, element: &Element) -> Result<ElemDataType, WalkError>;
 }
 
 pub struct ElemDataType {
-    x:  u8,
+    _x:  u8,
 }
 
 impl ElemData for ElemDataType {
-    fn new_level(&self, _element: &Element) -> Result<ElemDataType, WalkError> {
+    fn next_level(&self, _element: &Element) -> Result<ElemDataType, WalkError> {
         Ok(ElemDataType {
-            x:  0,
+            _x:  0,
         })
     }
 }
@@ -43,18 +43,13 @@ impl Accumulator<'_> for AccumulatorType {
         AccumulatorType {}
     }
 
-    fn add(&mut self, _wd: &WalkDataType) -> WalkableResult<WalkDataType, WalkError> {
-        Ok(WalkDataType {
-        })
+    fn add(&mut self, _wd: &WalkDataType) -> Result<(), WalkError> {
+        Ok(())
     }
 
-    fn summary(&self) -> WalkableResult<(WalkDataType, ElemDataType), WalkError> {
-        Ok((WalkDataType {
-            },
-            ElemDataType {
-                x: 3,
-            },
-        ))
+    fn summary(&self) -> WalkableResult<WalkError> {
+        Ok(WalkDataType {
+        })
     }
 }
 
@@ -71,7 +66,7 @@ where
     fn xml_document(&self) -> &XmlDocument;
 
     // Start the walk at the root of the document
-    fn walk(&self, d: ElemDataType) -> WalkableResult<(WalkDataType, ElemDataType), WalkError>
+    fn walk(&self, d: ElemDataType) -> WalkableResult<WalkError>
     where
         Self:   Sized,
     {
@@ -80,19 +75,18 @@ where
         self.walk_i(root, &d)
     }
 
-    fn walk_i<'e>(&self, element: &'e Element, ed: &ElemDataType) -> WalkableResult<(WalkDataType, ElemDataType), WalkError>
+    fn walk_i<'e>(&self, element: &'e Element, ed: &ElemDataType) -> WalkableResult<WalkError>
     where
         Self:   Sized,
     {
         let mut acc = AccumulatorType::new(element, ed);
-        let mut next_ed = ed.new_level(element)?;
+        let next_ed = ed.next_level(element)?;
 
         let mut wd_vec = Vec::<WalkDataType>::new();
 
         for elem in &element.subelements {
-            let (wd, updated_ed) = self.walk_i(elem, &next_ed)?;
+            let wd = self.walk_i(elem, &next_ed)?;
             wd_vec.push(wd);
-            next_ed = updated_ed;
         }
 
         for wd in &wd_vec {
@@ -161,8 +155,8 @@ where
     fn new(e: &Element, ed: &ElemDataType) -> Self
     where
         Self: Sized;
-    fn add(&mut self, wd: &WalkDataType) -> WalkableResult<WalkDataType, WalkError>;
-    fn summary(&self) -> WalkableResult<(WalkDataType, ElemDataType), WalkError>;
+    fn add(&mut self, wd: &WalkDataType) -> Result<(), WalkError>;
+    fn summary(&self) -> WalkableResult<WalkError>;
 }
 
 /*
