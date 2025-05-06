@@ -10,53 +10,14 @@ pub type WalkError = Box<dyn std::error::Error + Send + Sync + 'static>;
 //pub trait WalkableResult: FromResidual + Try<Output = dyn WalkData> {}
 //pub trait WalkableResult<E>: FromResidual<Result<Infallible, E>> +
 //    Try<Output = WalkData, Residual = E> {}
-pub type WalkableResult<E> = Result<WalkDataType, E>;
+pub type WalkableResult<E> = Result<tests::WalkDataType, E>;
 
 // Information that supplements the Element to produce a piece of the overall
 // result.
 pub trait ElemData
 where
 {
-    fn next_level(&self, element: &Element) -> Result<ElemDataType, WalkError>;
-}
-
-pub struct ElemDataType {
-    _x:  u8,
-}
-
-impl ElemData for ElemDataType {
-    fn next_level(&self, _element: &Element) -> Result<ElemDataType, WalkError> {
-        Ok(ElemDataType {
-            _x:  0,
-        })
-    }
-}
-
-pub struct AccumulatorType {
-}
-
-impl Accumulator<'_> for AccumulatorType {
-    fn new(_e: &Element, _ed: &ElemDataType) -> Self
-    where
-        Self: Sized
-    {
-        AccumulatorType {}
-    }
-
-    fn add(&mut self, _wd: &WalkDataType) -> Result<(), WalkError> {
-        Ok(())
-    }
-
-    fn summary(&self) -> WalkableResult<WalkError> {
-        Ok(WalkDataType {
-        })
-    }
-}
-
-pub struct WalkDataType {
-}
-
-impl WalkData for WalkDataType {
+    fn next_level(&self, element: &Element) -> Result<tests::ElemDataType, WalkError>;
 }
 
 // It seems as though ED and WalkDataType should be traits
@@ -66,7 +27,7 @@ where
     fn xml_document(&self) -> &XmlDocument;
 
     // Start the walk at the root of the document
-    fn walk(&self, d: ElemDataType) -> WalkableResult<WalkError>
+    fn walk(&self, d: tests::ElemDataType) -> WalkableResult<WalkError>
     where
         Self:   Sized,
     {
@@ -75,14 +36,14 @@ where
         self.walk_i(root, &d)
     }
 
-    fn walk_i<'e>(&self, element: &'e Element, ed: &ElemDataType) -> WalkableResult<WalkError>
+    fn walk_i<'e>(&self, element: &'e Element, ed: &tests::ElemDataType) -> WalkableResult<WalkError>
     where
         Self:   Sized,
     {
-        let mut acc = AccumulatorType::new(element, ed);
         let next_ed = ed.next_level(element)?;
 
-        let mut wd_vec = Vec::<WalkDataType>::new();
+        let mut acc = tests::AccumulatorType::new(element, ed);
+        let mut wd_vec = Vec::<tests::WalkDataType>::new();
 
         for elem in &element.subelements {
             let wd = self.walk_i(elem, &next_ed)?;
@@ -152,16 +113,110 @@ where
 pub trait Accumulator<'a>
 where
 {
-    fn new(e: &Element, ed: &ElemDataType) -> Self
+    fn new(e: &Element, ed: &tests::ElemDataType) -> Self
     where
         Self: Sized;
-    fn add(&mut self, wd: &WalkDataType) -> Result<(), WalkError>;
+    fn add(&mut self, wd: &tests::WalkDataType) -> Result<(), WalkError>;
     fn summary(&self) -> WalkableResult<WalkError>;
 }
 
-/*
 #[cfg(test)]
 mod tests {
+//    use thiserror::Error;
+
+    use std::collections::BTreeMap;
+    use xml::attribute::OwnedAttribute;
+    use xml::common::XmlVersion;
+    use xml::name::OwnedName;
+    use xml::namespace::Namespace;
+    use xml::reader::XmlEvent;
+
+    use crate::xml_document::{Element, ElementInfo, XmlDocument};
+    use crate::xml_document_factory::DocumentInfo;
+    use super::{Accumulator, ElemData, WalkData, WalkError, Walkable};
+    use super::{WalkableResult};
+
+    pub struct AccumulatorType {
+        z:  u8,
+    }
+
+    impl Accumulator<'_> for AccumulatorType {
+        fn new(_e: &Element, _ed: &ElemDataType) -> Self
+        where
+            Self: Sized
+        {
+            AccumulatorType {
+                z:  0
+            }
+        }
+
+        fn add(&mut self, _wd: &WalkDataType) -> Result<(), WalkError> {
+            self.z += 1;
+            Ok(())
+        }
+
+        fn summary(&self) -> WalkableResult<WalkError> {
+            Ok(WalkDataType {
+            })
+        }
+    }
+
+
+    pub struct ElemDataType {
+        x:  u8,
+    }
+
+    impl ElemData for ElemDataType {
+        fn next_level(&self, _element: &Element) -> Result<ElemDataType, WalkError> {
+    println!("next_level:");
+            Ok(ElemDataType {
+                x:  0,
+            })
+        }
+    }
+    
+    #[derive(Debug)]
+    pub struct WalkDataType {
+    }
+
+    impl WalkData for WalkDataType {
+    }
+
+    #[test]
+    fn build_to_traits() {
+        struct WalkableType<'a> {
+            xml_doc:    &'a XmlDocument,
+            count:      u8,
+        }
+
+        impl<'a> Walkable<'a> for WalkableType<'_> {
+            fn xml_document(&self) -> &XmlDocument {
+                self.xml_doc
+            }
+        }
+
+        let xml_doc = create_test_doc();
+
+        let w = WalkableType {
+            xml_doc:    &xml_doc,
+            count:      0,
+        };
+
+        let e = ElemDataType {
+            x:  100,
+        };
+
+        let result = match w.walk(e) {
+            Err(e) => panic!("walk() error: {:?}", e),
+            Ok(result) => result,
+        };
+        println!("walk() result: {:?}", result);
+        println!("count {}", w.count);
+    }
+
+    
+    
+/*
     use thiserror::Error;
 
     use std::collections::BTreeMap;
@@ -174,7 +229,6 @@ mod tests {
     use crate::xml_document::{Element, ElementInfo, XmlDocument};
     use crate::xml_document_factory::DocumentInfo;
 
-    use super::{Accumulator, ElemData, WalkData, WalkError, WalkResult, Walkable};
 
     const INDENT: &str = "    ";
 
@@ -280,6 +334,7 @@ mod tests {
             })
         }
     }
+*/
 
     // ----------------- Data Types ----------------
 
@@ -335,7 +390,6 @@ mod tests {
         }
     }
 }
-*/
 
 /*
 enum MyResult<T, E> {
