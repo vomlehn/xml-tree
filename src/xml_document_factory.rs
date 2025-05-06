@@ -4,7 +4,6 @@
  */
 // FIXME: delete all uses of expect(), everywhere
 
-use std::fmt;
 use std::io::Read;
 use xml::name::OwnedName;
 use xml::reader::XmlEvent;
@@ -113,14 +112,15 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
                     namespace,
                 } => {
                     let start_name = name.clone();
-                    let depth = 0;
+// FIXME: no depth anywhere in this file
+//                    let depth = 0;
                     let element_info =
                         ElementInfo::new(lineno, attributes.clone(), namespace.clone());
 
                     let root_element = self.xml_schema.element().clone();
                     let mut element = self.parse_element::<R>(
                         root_element,
-                        depth,
+//                        depth,
                         start_name.clone(),
                         element_info,
                     )?;
@@ -172,21 +172,21 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
      * Parse the current element and subelements. The <StartElement> has
      * already been read, read up to, and including, the <EndElement>
      * schema_element_in:   Definition for this element
-     * depth:                   Number of levels of element nesting
+//     * depth:                   Number of levels of element nesting
      * name_in:                 Name of the element
      * element_info_in:         Other information about the element
      */
     fn parse_element<T: Read>(
         &mut self,
         schema_element: SchemaElementType,
-        depth: usize,
+//        depth: usize,
         name_in: OwnedName,
         element_info_in: ElementInfo,
     ) -> Result<Element, XmlDocumentError> {
         // First, we set up the element
         let mut pieces = Vec::<XmlEvent>::new();
 
-        let mut element = Element::new(name_in.clone(), depth, element_info_in.clone());
+        let mut element = Element::new(name_in.clone(), element_info_in.clone());
 
         loop {
             let xml_element = self.parser.next()?;
@@ -224,7 +224,7 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
                         ElementInfo::new(lineno, attributes2.clone(), namespace2.clone());
                     let subelement = self.parse_element::<R>(
                         next_schema_element,
-                        depth,
+//                        depth,
                         start_name.clone(),
                         element_info.clone(),
                     )?;
@@ -269,8 +269,10 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
     }
 }
 
+/*
 impl<R: Read> fmt::Display for XmlDocumentFactory<'_, R> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.xml_schema)
     }
 }
+*/

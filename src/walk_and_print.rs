@@ -1,25 +1,29 @@
 /*
+/*
  * Recursive print
  */
 
-use crate::{Accumulator, ElemData, WalkData, WalkError, WalkResult, Walkable};
+use std::fmt;
+
+use crate::{Accumulator, ElemData, WalkData, Walkable};
 use crate::xml_document::{Element, XmlDocument};
 
 const INDENT: &str = "    ";
 
-struct WalkablePrint<'a> {
-    xml_document: &'a XmlDocument,
+pub struct WalkAndPrint<'a> {
+    xml_document:   &'a XmlDocument,
+    f:              &'a mut fmt::Formatter<'a>,
 }
 
-impl WalkablePrint<'_> {
-    pub fn new<'a>(xml_document: &'a XmlDocument) -> WalkablePrint<'a> {
-        WalkablePrint {
+impl<'a> WalkAndPrint<'a> {
+    pub fn new<'b>(xml_document: &'a XmlDocument, f: &'b mut fmt::Formatter<'b>) -> WalkAndPrint<'b> {
+        WalkAndPrint {
             xml_document:   xml_document,
         }
     }
 }
 
-impl Walkable<ElemDataPrint, WalkDataPrint, AccumulatorPrint> for WalkablePrint<'_> {
+impl<'a> Walkable<'a, PrintElemData, (), PrintAccumulator, fmt::Result> for WalkAndPrint<'a> {
     fn xml_document(&self) -> &XmlDocument {
         self.xml_document
     }
@@ -27,57 +31,54 @@ impl Walkable<ElemDataPrint, WalkDataPrint, AccumulatorPrint> for WalkablePrint<
 
 // ----------------- Data Types ----------------
 
-pub struct WalkDataPrint {
-    pub data: String,
+pub struct PrintWalkData {}
+
+//impl () for PrintWalkData {}
+
+impl WalkData for PrintWalkData {}
+
+pub struct PrintElemData {
+    pub depth:  usize,
 }
 
-impl WalkDataPrint {
-    pub fn new() -> WalkDataPrint {
-        WalkDataPrint {
-            data:   "".to_string(),
+impl PrintElemData {
+    pub fn new(depth: usize) -> PrintElemData {
+        PrintElemData {
+            depth:  depth,
         }
     }
+
+    fn indent(&self) -> String {
+        INDENT.repeat(self.depth)
+    }
 }
 
-impl WalkData for WalkDataPrint {}
-
-#[derive(Debug)]
-pub struct ElemDataPrint {
-    pub depth: usize,
-}
-
-impl ElemData<ElemDataPrint> for ElemDataPrint {
-    fn start(&self, element: &Element) -> WalkResult<ElemDataPrint, WalkError> {
-        println!("{}<{}>", INDENT.repeat(self.depth), element.name);
-        let ed = ElemDataPrint {
-            depth: self.depth + 1,
-        };
-        WalkResult::Ok(ed)
+impl ElemData<'_, PrintElemData, PrintWalkData, PrintAccumulator, fmt::Result> for PrintElemData {
+    fn start(&mut self, w: new(&WalkAndPrint), element: &Element) -> fmt::Result {
+        write!(w.f, "{}<{}>", self.indent(), element.name);
+        let ed = PrintElemData::new(self.depth + 1);
+        fmt::Result::Ok(ed)
     }
 }
 
 #[derive(Debug)]
-pub struct AccumulatorPrint {
+pub struct PrintAccumulator {
     result: String,
 }
 
-impl Accumulator<ElemDataPrint, WalkDataPrint> for AccumulatorPrint {
-    fn new(e: &Element, ed: &ElemDataPrint) -> Self {
-        let result = format!("{}<{}>", INDENT.repeat(ed.depth), e.name.local_name);
-        AccumulatorPrint { result }
+impl<'a> Accumulator<'a, PrintElemData, PrintWalkData, PrintAccumulator, fmt::Result> for PrintAccumulator {
+    fn new(e: &Element, ed: &PrintElemData) -> Self {
+        let result = format!("{}<{}>", ed.indent(), e.name.local_name);
+        PrintAccumulator { result }
     }
 
-    fn add(&mut self, wd: &WalkDataPrint) -> WalkResult<WalkDataPrint, WalkError> {
+    fn add(&mut self, wd: PrintWalkData) -> fmt::Result {
         self.result += &format!("\n{}", wd.data);
-        WalkResult::Ok(WalkDataPrint {
-            data: self.result.clone(),
-        })
+        fmt::Result::Ok(())
     }
 
-    fn summary(&self) -> WalkResult<WalkDataPrint, WalkError> {
-        WalkResult::Ok(WalkDataPrint {
-            data: self.result.clone(),
-        })
+    fn summary(&self) -> fmt::Result {
+        fmt::Result::Ok(())
     }
 }
 
@@ -90,25 +91,25 @@ mod test {
     use xml::namespace::Namespace;
     use xml::reader::XmlEvent;
 
-    use crate::{Accumulator, WalkResult, Walkable};
+    use crate::{Accumulator, Walkable};
     use crate::xml_document::{Element, XmlDocument};
     use crate::xml_document_factory::{DocumentInfo, ElementInfo};
-    use super::{ElemDataPrint, WalkablePrint};
+    use super::{PrintElemData, WalkAndPrint};
 
     #[test]
     fn test_walk_tree_print() {
         println!("\nStart test_walk_tree_print");
         let doc = create_test_doc(); // build a sample XmlDocument
-        let walker = WalkablePrint { xml_document: &doc };
-        let result = walker.walk(&ElemDataPrint { depth: 0 });
+        let walker = WalkAndPrint::new(&doc);
+        let result = walker.walk(&PrintElemData { depth: 0 });
 
         let res = match result {
-            WalkResult::Ok(data) => {
+            fmt::Result::Ok(data) => {
                 let res = format!("{}", data.data);
                 println!("Output:\n{}", res);
                 res
             }
-            WalkResult::Err(e) => {
+            io::Result::Err(e) => {
                 let res = format!("{}", e);
                 eprintln!("Error: {}", res);
                 res
@@ -173,3 +174,4 @@ mod test {
         }
     }
 }
+*/

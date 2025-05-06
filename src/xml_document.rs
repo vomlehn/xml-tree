@@ -13,11 +13,13 @@ use xml::name::OwnedName;
 use xml::namespace::Namespace;
 use xml::reader::XmlEvent;
 
-//use crate::walker_print::{PrintWalk, PrintWalkData, PrintWalkResult};
+//use crate::walk_and_print::{PrintWalk, PrintWalkData, PrintWalkResult};
 use crate::parser::LineNumber;
 use crate::xml_document_error::XmlDocumentError;
 use crate::xml_document_factory::XmlDocumentFactory;
 use crate::xml_schema::XmlSchema;
+//use crate::walk_and_print::{PrintElemData, WalkAndPrint};
+//use crate::walkable::Walkable;
 
 /*
  * Parsed XML document
@@ -43,9 +45,7 @@ impl XmlDocument {
         let reader = BufReader::new(file);
         XmlDocument::new_from_reader(reader, xml_schema)
     }
-}
 
-impl XmlDocument {
     pub fn new_from_reader<'a, R: Read + 'a>(
         buf_reader: BufReader<R>,
         xml_schema: &'a XmlSchema<'a>,
@@ -68,67 +68,18 @@ impl XmlDocument {
 
         Ok(result)
     }
-
-    pub fn display_element(
-        &self,
-        f: &mut fmt::Formatter<'_>,
-        depth: usize,
-        element: &Element,
-    ) -> fmt::Result {
-        const INDENT_STR: &str = "   ";
-        let indent_string = INDENT_STR.to_string().repeat(depth);
-
-        //        self.display_piece(f, &element.before_element)?;
-
-        write!(f, "{}<{}", indent_string, element)?;
-
-        if element.subelements.len() != 0 || element.content.len() != 0 {
-            for element in &element.subelements {
-                self.display_element(f, depth + 1, element)?;
-            }
-
-            write!(f, "{}</{}>\n", indent_string, element.name.local_name)?;
-        }
-
-        Ok(())
-    }
-
-    pub fn display(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "<?xml {} {} {:?}>\n",
-            self.document_info.version, self.document_info.encoding, self.document_info.standalone
-        )?;
-
-        let depth = 0;
-        self.display_element(f, depth, &self.root)?;
-
-        Ok(())
-    }
 }
 
-/*
 impl<'a> fmt::Display for XmlDocument {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let pwd = PrintWalkData::<PrintWalkResult>::new(f, 0);
+    fn fmt(&self, _f: &mut fmt::Formatter<'_>) -> fmt::Result {
 /*
-        let mut w = PrintWalk::<PrintWalkData<PrintWalkResult>,
-            PrintWalkResult>::new(self);
-        let walk_result = w.walk(&mut pwd);
-        if let Err(e) = walk_result {
-            println!("walk_result {:?}", e);
-        }
+        let walkable_print = WalkAndPrint::new(&self, f);
+        let ed = PrintElemData::new(0);
+        walkable_print.walk(&mut ed);
 */
-        Ok(())
-/* FIXME: restore this
-        match walk_result {
-        Err(Box::<dyn std::error::Error>) => return Err(fmt::Error),
-        Ok(_) => return Ok(()),
-        };
-*/
+panic!("Fix walk() return type");
     }
 }
-*/
 
 #[derive(Clone, Debug)]
 pub struct ElementInfo {
@@ -157,8 +108,6 @@ impl ElementInfo {
 #[derive(Clone, Debug)]
 pub struct Element {
     pub name: OwnedName,
-    // FIXME: remove this
-    pub depth: usize,
     pub element_info: ElementInfo,
     pub subelements: Vec<Element>,
     pub before_element: Vec<XmlEvent>,
@@ -167,10 +116,9 @@ pub struct Element {
 }
 
 impl Element {
-    pub fn new(name: OwnedName, depth: usize, element_info: ElementInfo) -> Element {
+    pub fn new(name: OwnedName, element_info: ElementInfo) -> Element {
         Element {
             name: name,
-            depth: depth,
             element_info: element_info,
             subelements: Vec::<Element>::new(),
             before_element: Vec::<XmlEvent>::new(),
@@ -189,10 +137,7 @@ impl Element {
         return None;
     }
 
-    fn indent(depth: usize) -> String {
-        "   ".repeat(depth)
-    }
-
+/*
     pub fn start_string(&self, depth: usize) -> String {
         format!("{}<{}", Self::indent(depth), self.name.local_name)
     }
@@ -244,15 +189,7 @@ impl Element {
         }
         Ok(())
     }
-}
-
-impl fmt::Display for Element {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.display_start(f, 0)?;
-        self.display_end(f, 0)?;
-
-        Ok(())
-    }
+*/
 }
 
 #[derive(Clone, Debug)]
@@ -274,7 +211,7 @@ impl DocumentInfo {
 
 #[cfg(test)]
 mod tests {
-    /*
+/*
         use lazy_static::lazy_static;
 
         use std::io::Cursor;

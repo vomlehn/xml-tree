@@ -1,8 +1,9 @@
 #TEST = test3
 TEST = test_walk_tree_print
+TEST = test_walk_tree_names
 
-#RUN_FILE = test/test5.xtce
-RUN_FILE = schema/SpaceSystem-patched.xtce
+RUN_FILE = test/test5.xtce
+#RUN_FILE = schema/SpaceSystem-patched.xtce
 
 
 TEE = 2>&1 | tee make.out
