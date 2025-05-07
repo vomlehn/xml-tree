@@ -28,7 +28,7 @@ where
 pub trait Walkable<'a, AC, ED, WD>
 where
     AC: Accumulator<'a, ED, WD>,
-    ED: ElemData,
+    ED: ElemData<Output = ED>,  // This restriction ensures ED::Output is the same as ED
     WD: WalkData,
 {
     fn xml_document(&self) -> &XmlDocument;
@@ -64,7 +64,6 @@ where
         Ok(wr)
     }
 }
-
 /*
 #[cfg(test)]
 mod tests {
