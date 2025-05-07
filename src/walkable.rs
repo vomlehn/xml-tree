@@ -1,125 +1,71 @@
 use crate::xml_document::{Element, XmlDocument};
-
-//use std::convert::Infallible;
-//use std::ops::{/*ControlFlow, */FromResidual, Try};
-
 pub type WalkError = Box<dyn std::error::Error + Send + Sync + 'static>;
+pub type WalkableResult<E, WD> = Result<WD, E>;
 
 // ----------------- Traits ----------------
-
-//pub trait WalkableResult: FromResidual + Try<Output = dyn WalkData> {}
-//pub trait WalkableResult<E>: FromResidual<Result<Infallible, E>> +
-//    Try<Output = WalkData, Residual = E> {}
-pub type WalkableResult<E> = Result<tests::WalkDataType, E>;
-
 // Information that supplements the Element to produce a piece of the overall
 // result.
-pub trait ElemData
-where
-{
-    fn next_level(&self, element: &Element) -> Result<tests::ElemDataType, WalkError>;
+pub trait ElemData {
+    type Output;
+    
+    fn next_level(&self, element: &Element) -> Result<Self::Output, WalkError>;
 }
 
-// It seems as though ED and WalkDataType should be traits
-pub trait Walkable<'a>
+pub trait WalkData {}
+
+pub trait Accumulator<'a, ED, WD> 
 where
+    ED: ElemData,
+    WD: WalkData,
+{
+    fn new(e: &Element, ed: &ED) -> Self
+    where
+        Self: Sized;
+    fn add(&mut self, wd: &WD) -> Result<(), WalkError>;
+    fn summary(&self) -> WalkableResult<WalkError, WD>;
+}
+
+pub trait Walkable<'a, AC, ED, WD>
+where
+    AC: Accumulator<'a, ED, WD>,
+    ED: ElemData,
+    WD: WalkData,
 {
     fn xml_document(&self) -> &XmlDocument;
-
+    
     // Start the walk at the root of the document
-    fn walk(&self, d: tests::ElemDataType) -> WalkableResult<WalkError>
+    fn walk(&self, d: ED) -> WalkableResult<WalkError, WD>
     where
-        Self:   Sized,
+        Self: Sized,
     {
         let xml_doc = self.xml_document();
         let root = &xml_doc.root;
         self.walk_i(root, &d)
     }
-
-    fn walk_i<'e>(&self, element: &'e Element, ed: &tests::ElemDataType) -> WalkableResult<WalkError>
+    
+    fn walk_i<'e>(&self, element: &'e Element, ed: &ED) -> WalkableResult<WalkError, WD>
     where
-        Self:   Sized,
+        Self: Sized,
     {
         let next_ed = ed.next_level(element)?;
-
-        let mut acc = tests::AccumulatorType::new(element, ed);
-        let mut wd_vec = Vec::<tests::WalkDataType>::new();
-
+        let mut acc = AC::new(element, ed);
+        let mut wd_vec = Vec::<WD>::new();
+        
         for elem in &element.subelements {
             let wd = self.walk_i(elem, &next_ed)?;
             wd_vec.push(wd);
         }
-
+        
         for wd in &wd_vec {
             acc.add(&wd)?;
         }
-
+        
         let wr = acc.summary()?;
         Ok(wr)
     }
 }
 
-pub trait WalkData {}
-
-// ----------------- Result Enums ----------------
-
 /*
-trait WalkResult: Try + FromResidual<Result<Infallible, E>> {
-}
-*/
-
-/*
-#[derive(Debug)]
-pub enum WalkResult<T, E>
-where
-    T:  WalkData
-{
-    Ok(T),
-    Err(E),
-}
-
-impl<T, E> Try for WalkResult<T, E>
-where
-    T:  WalkData
-{
-    type Output = T;
-    type Residual = Result<Infallible, E>;
-
-    fn from_output(output: T) -> Self {
-        WalkResult::Ok(output)
-    }
-
-    fn branch(self) -> ControlFlow<Self::Residual, Self::Output> {
-        match self {
-            WalkResult::Ok(v) => ControlFlow::Continue(v),
-            WalkResult::Err(e) => ControlFlow::Break(Err(e)),
-        }
-    }
-}
-
-impl<T, E> FromResidual<Result<Infallible, E>> for WalkResult<T, E>
-where
-    T:  WalkData
-{
-    fn from_residual(residual: Result<Infallible, E>) -> Self {
-        match residual {
-            Err(e) => WalkResult::Err(e),
-            Ok(_) => unreachable!(),
-        }
-    }
-}
-*/
-
-pub trait Accumulator<'a>
-where
-{
-    fn new(e: &Element, ed: &tests::ElemDataType) -> Self
-    where
-        Self: Sized;
-    fn add(&mut self, wd: &tests::WalkDataType) -> Result<(), WalkError>;
-    fn summary(&self) -> WalkableResult<WalkError>;
-}
-
 #[cfg(test)]
 mod tests {
 //    use thiserror::Error;
@@ -421,4 +367,54 @@ impl<T, E, F: From<E>> FromResidual<Result<Infallible, E>> for MyResult<T, F> {
         }
     }
 }
+*/
+
+// ----------------- Result Enums ----------------
+
+/*
+trait WalkResult: Try + FromResidual<Result<Infallible, E>> {
+}
+*/
+
+/*
+#[derive(Debug)]
+pub enum WalkResult<T, E>
+where
+    T:  WalkData
+{
+    Ok(T),
+    Err(E),
+}
+
+impl<T, E> Try for WalkResult<T, E>
+where
+    T:  WalkData
+{
+    type Output = T;
+    type Residual = Result<Infallible, E>;
+
+    fn from_output(output: T) -> Self {
+        WalkResult::Ok(output)
+    }
+
+    fn branch(self) -> ControlFlow<Self::Residual, Self::Output> {
+        match self {
+            WalkResult::Ok(v) => ControlFlow::Continue(v),
+            WalkResult::Err(e) => ControlFlow::Break(Err(e)),
+        }
+    }
+}
+
+impl<T, E> FromResidual<Result<Infallible, E>> for WalkResult<T, E>
+where
+    T:  WalkData
+{
+    fn from_residual(residual: Result<Infallible, E>) -> Self {
+        match residual {
+            Err(e) => WalkResult::Err(e),
+            Ok(_) => unreachable!(),
+        }
+    }
+}
+*/
 */
