@@ -21,7 +21,7 @@ where
     fn new(e: &Element, ed: &ED) -> Self
     where
         Self: Sized;
-    fn add(&mut self, wd: &WD) -> Result<(), WalkError>;
+    fn add(&mut self, wd: &WD) -> Result<impl WalkData, WalkError>;
     fn summary(&self) -> WalkableResult<WalkError, WD>;
 }
 
@@ -64,9 +64,10 @@ where
         Ok(wr)
     }
 }
-/*
+
 #[cfg(test)]
 mod tests {
+/*
 //    use thiserror::Error;
 
     use std::collections::BTreeMap;
@@ -95,7 +96,8 @@ mod tests {
             }
         }
 
-        fn add(&mut self, _wd: &WalkDataType) -> Result<(), WalkError> {
+        fn add(&mut self, _wd: &WalkDataType) -> 
+            WalkResult<TestWalkData, WalkError> {
             self.z += 1;
             Ok(())
         }
@@ -159,10 +161,9 @@ mod tests {
         println!("count {}", w.count);
     }
 
+*/   
     
-    
-/*
-    use thiserror::Error;
+//    use thiserror::Error;
 
     use std::collections::BTreeMap;
     use xml::attribute::OwnedAttribute;
@@ -174,9 +175,12 @@ mod tests {
     use crate::xml_document::{Element, ElementInfo, XmlDocument};
     use crate::xml_document_factory::DocumentInfo;
 
+    use super::{Accumulator, ElemData, WalkData, WalkError, Walkable};
+    use super::{WalkableResult};
 
     const INDENT: &str = "    ";
 
+/*
     #[derive(Debug, Error)]
     pub enum TestError {
         #[error("Error1")]
@@ -188,22 +192,23 @@ mod tests {
         #[error("Error3")]
         Error3(),
     }
+*/
 
     #[test]
     fn test_walk_tree_names() {
         let doc = create_test_doc(); // build a sample XmlDocument
         let walker = TestWalkable { xml_document: &doc };
         println!("Processing:");
-        let ed = &TestElemData::new(0);
-        let result = walker.walk(&ed);
+        let ed = TestElemData::new(0);
+        let result = walker.walk(ed);
 
         let res = match result {
-            WalkResult::Ok(data) => {
+            Result::Ok(data) => {
                 let res = format!("{}", data.data);
                 println!("Output:\n{}", res);
                 res
             }
-            WalkResult::Err(e) => {
+            Result::Err(e) => {
                 let res = format!("{}", e);
                 eprintln!("Error: {}", res);
                 res
@@ -216,7 +221,7 @@ mod tests {
         xml_document: &'a XmlDocument,
     }
 
-    impl Walkable<'_, TestElemData, TestWalkData, TestAccumulator, Result<TestWalkData, TestError>> for TestWalkable<'_> {
+    impl Walkable<'_, TestAccumulator, TestElemData, TestWalkData> for TestWalkable<'_> {
         fn xml_document(&self) -> &XmlDocument {
             self.xml_document
         }
@@ -224,8 +229,8 @@ mod tests {
 
     // ----------------- Data Types ----------------
 
-    type TestWalkableType<'a> = Box<&'a dyn Walkable<'a, TestElemData, TestWalkData, TestAccumulator, TestResultType>>;
-    type TestResultType = Result<TestWalkData, WalkError>;
+//    type TestWalkableType<'a> = Box<&'a dyn Walkable<'a, TestAccumulator, TestElemData, TestWalkData>>;
+//    type TestResultType = Result<TestWalkData, WalkError>;
 
     #[derive(Debug)]
     pub struct TestWalkData {
@@ -239,17 +244,25 @@ mod tests {
         pub depth: usize,
     }
 
-    impl<TestElemData, TestElemResult>
-        ElemData<'_, TestElemData, TestElemResult>
-        for TestElemData {
-        fn start<'a>(&'a mut self, w: TestWalkableType, element: Element) ->
-            WalkResult<TestElemData, WalkError> {
+    impl TestElemData {
+        fn new(depth: usize) -> TestElemData {
+            TestElemData {
+                depth:  depth,
+            }
+        }
+    }
+
+    impl ElemData for TestElemData {
+        type Output = TestElemData;
+
+        fn next_level<'a>(&'a self, element: &Element) ->
+            Result<Self::Output, WalkError> {
             println!("{}{}", INDENT.repeat(self.depth), element.name.local_name);
             let ed = TestElemData {
                 depth: self.depth + 1,
             };
 
-            ElemResult::Ok(ed)
+            Result::Ok(ed)
         }
     }
 
@@ -259,27 +272,26 @@ mod tests {
     }
 
     impl
-//<TestElemData, TestWalkData, TestAccumulator, TestResult>
-         Accumulator<'_, TestElemData, TestWalkData, TestAccumulator, TestResultType> for TestAccumulator {
+         Accumulator<'_, TestElemData, TestWalkData> for TestAccumulator {
         fn new(e: &Element, ed: &TestElemData) -> Self {
             let result = format!("{}{}", INDENT.repeat(ed.depth), e.name.local_name);
             TestAccumulator { result }
         }
 
-        fn add(&mut self, wd: &TestWalkData) -> WalkResult<TestWalkData, WalkError> {
+        fn add(&mut self, wd: &TestWalkData) -> 
+            Result<TestWalkData, WalkError> {
             self.result += &format!("\n{}", wd.data);
-            WalkResult::Ok(TestWalkData {
+            Result::Ok(TestWalkData {
                 data: self.result.clone(),
             })
         }
 
-        fn summary(&self) -> WalkResult<TestWalkData, WalkError> {
-            WalkResult::Ok(TestWalkData {
+        fn summary(&self) -> WalkableResult<WalkError, TestWalkData> {
+            Result::Ok(TestWalkData {
                 data: self.result.clone(),
             })
         }
     }
-*/
 
     // ----------------- Data Types ----------------
 
@@ -415,5 +427,4 @@ where
         }
     }
 }
-*/
 */
