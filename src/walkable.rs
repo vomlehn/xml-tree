@@ -157,9 +157,7 @@ mod tests {
         type Output = TestElemData;
 
         fn next_level<'a>(&'a self, element: &Element) ->
-//            TestWalkableResult {
             Result<Self::Output, WalkError> {
-//            Result<TestElemData, WalkError> {
             println!("{}{}", INDENT.repeat(self.depth), element.name.local_name);
             let ed = TestElemData {
                 depth: self.depth + 1,
