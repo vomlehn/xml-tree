@@ -76,11 +76,9 @@ where
     }
 }
 
-/*
 #[cfg(test)]
 mod tests {
     use std::collections::BTreeMap;
-    use std::ops::{FromResidual, Try};
     use xml::attribute::OwnedAttribute;
     use xml::common::XmlVersion;
     use xml::name::OwnedName;
@@ -91,7 +89,7 @@ mod tests {
     use crate::xml_document_factory::DocumentInfo;
 
     use super::{Accumulator, ElemData, WalkData, WalkError, Walkable};
-    use super::{WalkableResult};
+    use super::WalkableResult;
 
     const INDENT: &str = "    ";
 
@@ -130,22 +128,10 @@ mod tests {
 
     // ----------------- Data Types ----------------
 
-    enum TestWalkableResult {
-        Err(),
-        Ok(),
-    }
+    type TestWalkableResult = Result<TestWalkData, WalkError>;
 
     impl WalkableResult for TestWalkableResult {
     }
-
-    impl Try for TestWalkableResult {
-    }
-
-    impl FromResidual for TestWalkableResult {
-    }
-
-//    impl Result<TestWalkData, _> for TestWalkableResult {
-//    }
 
     #[derive(Debug)]
     pub struct TestWalkData {
@@ -171,7 +157,9 @@ mod tests {
         type Output = TestElemData;
 
         fn next_level<'a>(&'a self, element: &Element) ->
+//            TestWalkableResult {
             Result<Self::Output, WalkError> {
+//            Result<TestElemData, WalkError> {
             println!("{}{}", INDENT.repeat(self.depth), element.name.local_name);
             let ed = TestElemData {
                 depth: self.depth + 1,
@@ -186,8 +174,7 @@ mod tests {
         result: String,
     }
 
-    impl
-         Accumulator<'_, TestElemData, TestWalkData, TestWalkableResult> for TestAccumulator {
+    impl Accumulator<'_, TestElemData, TestWalkData, TestWalkableResult> for TestAccumulator {
         fn new(e: &Element, ed: &TestElemData) -> Self {
             let result = format!("{}{}", INDENT.repeat(ed.depth), e.name.local_name);
             TestAccumulator { result }
@@ -260,4 +247,3 @@ mod tests {
         }
     }
 }
-*/
