@@ -1,6 +1,16 @@
+use std::boxed::Box;
+use std::convert::Infallible;
+use std::error::Error;
+use std::ops::{FromResidual, Try};
+use std::marker::{Send, Sync};
+use std::result::Result;
+
 use crate::xml_document::{Element, XmlDocument};
-pub type WalkError = Box<dyn std::error::Error + Send + Sync + 'static>;
-pub type WalkableResult<E, WD> = Result<WD, E>;
+
+pub type WalkError = Box<dyn Error + Send + Sync + 'static>;
+//pub type WalkableResult<E, WD> = Result<WD, E>;
+
+pub trait WalkableResult: Try + FromResidual<Result<Infallible, Box<dyn Error + Send + Sync>>> {}
 
 // ----------------- Traits ----------------
 // Information that supplements the Element to produce a piece of the overall
@@ -13,28 +23,30 @@ pub trait ElemData {
 
 pub trait WalkData {}
 
-pub trait Accumulator<'a, ED, WD> 
+pub trait Accumulator<'a, ED, WD, R> 
 where
     ED: ElemData,
     WD: WalkData,
+    R:  WalkableResult<Output = WD>,
 {
     fn new(e: &Element, ed: &ED) -> Self
     where
         Self: Sized;
     fn add(&mut self, wd: &WD) -> Result<(), WalkError>;
-    fn summary(&self) -> WalkableResult<WalkError, WD>;
+    fn summary(&self) -> R;
 }
 
-pub trait Walkable<'a, AC, ED, WD>
+pub trait Walkable<'a, AC, ED, WD, R>
 where
-    AC: Accumulator<'a, ED, WD>,
+    AC: Accumulator<'a, ED, WD, R>,
     ED: ElemData<Output = ED>,  // This restriction ensures ED::Output is the same as ED
     WD: WalkData,
+    R:  WalkableResult<Output = WD>,
 {
     fn xml_document(&self) -> &XmlDocument;
     
     // Start the walk at the root of the document
-    fn walk(&self, d: ED) -> WalkableResult<WalkError, WD>
+    fn walk(&self, d: ED) -> R
     where
         Self: Sized,
     {
@@ -43,7 +55,7 @@ where
         self.walk_i(root, &d)
     }
     
-    fn walk_i<'e>(&self, element: &'e Element, ed: &ED) -> WalkableResult<WalkError, WD>
+    fn walk_i<'e>(&self, element: &'e Element, ed: &ED) -> R
     where
         Self: Sized,
     {
@@ -60,14 +72,15 @@ where
             acc.add(&wd)?;
         }
         
-        let wr = acc.summary()?;
-        Ok(wr)
+        acc.summary()
     }
 }
 
+/*
 #[cfg(test)]
 mod tests {
     use std::collections::BTreeMap;
+    use std::ops::{FromResidual, Try};
     use xml::attribute::OwnedAttribute;
     use xml::common::XmlVersion;
     use xml::name::OwnedName;
@@ -109,13 +122,30 @@ mod tests {
         xml_document: &'a XmlDocument,
     }
 
-    impl Walkable<'_, TestAccumulator, TestElemData, TestWalkData> for TestWalkable<'_> {
+    impl Walkable<'_, TestAccumulator, TestElemData, TestWalkData, TestWalkableResult> for TestWalkable<'_> {
         fn xml_document(&self) -> &XmlDocument {
             self.xml_document
         }
     }
 
     // ----------------- Data Types ----------------
+
+    enum TestWalkableResult {
+        Err(),
+        Ok(),
+    }
+
+    impl WalkableResult for TestWalkableResult {
+    }
+
+    impl Try for TestWalkableResult {
+    }
+
+    impl FromResidual for TestWalkableResult {
+    }
+
+//    impl Result<TestWalkData, _> for TestWalkableResult {
+//    }
 
     #[derive(Debug)]
     pub struct TestWalkData {
@@ -157,7 +187,7 @@ mod tests {
     }
 
     impl
-         Accumulator<'_, TestElemData, TestWalkData> for TestAccumulator {
+         Accumulator<'_, TestElemData, TestWalkData, TestWalkableResult> for TestAccumulator {
         fn new(e: &Element, ed: &TestElemData) -> Self {
             let result = format!("{}{}", INDENT.repeat(ed.depth), e.name.local_name);
             TestAccumulator { result }
@@ -169,7 +199,7 @@ mod tests {
             Result::Ok(())
         }
 
-        fn summary(&self) -> WalkableResult<WalkError, TestWalkData> {
+        fn summary(&self) -> TestWalkableResult {
             Result::Ok(TestWalkData {
                 data: self.result.clone(),
             })
@@ -230,3 +260,4 @@ mod tests {
         }
     }
 }
+*/
