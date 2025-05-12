@@ -5,7 +5,7 @@ TEST = test_walk_tree_names
 RUN_FILE = test/test5.xtce
 #RUN_FILE = schema/SpaceSystem-patched.xtce
 
-
+TEE =
 TEE = 2>&1 | tee make.out
 TEE_A = 2>&1 | tee -a make.out
 
@@ -32,7 +32,7 @@ run:
 
 test:
 	clear
-	cargo test --jobs=1 $(TEST) -- --nocapture 
+	cargo test --jobs=1 $(TEST) -- --nocapture $(TEE)
 
 .PHONY: clean
 clean:

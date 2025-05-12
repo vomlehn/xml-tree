@@ -1,7 +1,7 @@
 use std::boxed::Box;
 use std::convert::Infallible;
 use std::error::Error;
-use std::ops::{ControlFlow, FromResidual, Try};
+use std::ops::{FromResidual, Try};
 use std::marker::{Send, Sync};
 use std::result::Result;
 
@@ -9,82 +9,73 @@ use crate::xml_document::{Element, XmlDocument};
 
 // From Claude Code
 pub type WalkError = Box<dyn Error + Send + Sync + 'static>;
-//pub type WalkableResult<E, WD> = Result<WD, E>;
-
-//pub trait WalkableResult: Try + FromResidual<Result<Infallible, Box<dyn Error + Send + Sync>>> {}
 
 // ----------------- Traits ----------------
 // Information that supplements the Element to produce a piece of the overall
 // result.
-pub trait ElemData {
-    type Output;
-    
-    fn next_level(&self, element: &Element) -> Result<Self::Output, WalkError>;
+pub trait ElemData<ER>
+where
+    ER: Try,
+{
+    fn next_level(&mut self, element: &Element) -> ER;
 }
 
 pub trait WalkData {}
 
-pub trait Accumulator<'a, ED, WD, R> 
+// FIXME: get ride of numeric lifetimes, like 'e
+//pub trait Accumulator<'e, 'a, ED, ER, WD, WR> 
+pub trait Accumulator<'e, 'a, ED, ER, WD, WR> 
 where
-    ED: ElemData,
+    ED: ElemData<ER>,
+    ER: Try,
     WD: WalkData,
-    // This is what Claude Code gave us
-//    R: Try + FromResidual<Result<Infallible, WalkError>>,
-    // Then, it suggested this:
-    R:  Try<Output = WD> + FromResidual<Result<Infallible, WalkError>>,
+    WR: Try,
 {
-    fn new(e: &Element, ed: &ED) -> Self
+    fn new<'b>(e: &'e Element, ed: &'b mut ED) -> Self
     where
         Self: Sized;
     fn add(&mut self, wd: &WD) -> Result<(), WalkError>;
-    fn summary(&self) -> R;
+    fn summary(&self) -> WR;
 }
 
-pub trait Walkable<'a, AC, ED, WD, R>
+pub trait Walkable<'e, 'a, AC, ED, ER, WD, WR>
 where
-    AC: Accumulator<'a, ED, WD, R>,
-    ED: ElemData<Output = ED>,  // This restriction ensures ED::Output is the same as ED
+    AC: Accumulator<'e, 'a, ED, ER, WD, WR>,
+    ED: ElemData<ER>,
+    ER: Try<Output = ED>,
     WD: WalkData,
-//    R:  WalkableResult<Output = WD>,
-//    R:  WalkableResult,
-//    R:  Try + FromResidual<Result<Infallible, Box<dyn Error + Send + Sync>>>,
-    // This is what Claude Code gave us
-//    R: Try + FromResidual<Result<Infallible, WalkError>>,
-    // Then, it suggested this:
-//    R:  Try + FromResidual<Result<T, WalkError>>,
-//    R:  Try,
-//    R:  for<T> FromResidual<T>,
-    R:  Try<Output = WD> + FromResidual<Result<Infallible, WalkError>>,
+    WR: Try<Output = WD>,
+    WR: FromResidual<<ER as Try>::Residual>,
+    WR: FromResidual<Result<Infallible, WalkError>>,
 {
     fn xml_document(&self) -> &XmlDocument;
     
     // Start the walk at the root of the document
-    fn walk(&self, d: ED) -> R
+    fn walk<'g: 'e>(&'g self, d: &mut ED) -> WR
     where
         Self: Sized,
     {
         let xml_doc = self.xml_document();
         let root = &xml_doc.root;
-        self.walk_i(root, &d)
+        self.walk_i(root, d)
     }
     
-    fn walk_i<'e>(&self, element: &'e Element, ed: &ED) -> R
+    fn walk_i<'f: 'e>(&self, element: &'f Element, ed: &mut ED) -> WR
     where
-        Self:   Sized,
-//        R:      Try,
+        Self: Sized,
     {
-        let next_ed = match ed.next_level(element) {
-            Err(e) => return FromResidual::from_residual(Err(e)),
-            Ok(next_ed) => next_ed,
+        let mut next_ed: ED = match Try::branch(ed.next_level(element)) {
+            std::ops::ControlFlow::Continue(val) => val,
+            std::ops::ControlFlow::Break(residual) => return FromResidual::from_residual(residual),
         };
 
         let mut acc = AC::new(element, ed);
         let mut wd_vec = Vec::<WD>::new();
         
         for elem in &element.subelements {
-            let wd = match Try::branch(self.walk_i(elem, &next_ed)) {
-                ControlFlow::Continue(wd) => wd,
-                ControlFlow::Break(e) => return FromResidual::from_residual(e),
+            let wd: WD = match Try::branch(self.walk_i(elem, &mut next_ed)) {
+                std::ops::ControlFlow::Continue(val) => val,
+                std::ops::ControlFlow::Break(residual) => return FromResidual::from_residual(residual),
             };
 
             wd_vec.push(wd);
@@ -92,7 +83,9 @@ where
         
         for wd in &wd_vec {
             if let Err(e) = acc.add(&wd) {
-                return FromResidual::from_residual(Err(e));
+                // Create a properly typed error result using the standard error conversion method
+                let result: Result<Infallible, WalkError> = Err(e);
+                return FromResidual::from_residual(result);
             }
         }
         
@@ -105,7 +98,6 @@ mod tests {
     use std::collections::BTreeMap;
     use std::convert::Infallible;
     use std::error::Error;
-//    use std::fmt;
     use std::ops::{FromResidual, Try};
     use xml::attribute::OwnedAttribute;
     use xml::common::XmlVersion;
@@ -117,7 +109,6 @@ mod tests {
     use crate::xml_document_factory::DocumentInfo;
 
     use super::{Accumulator, ElemData, WalkData, WalkError, Walkable};
-//    use super::WalkableResult;
 
     const INDENT: &str = "    ";
 
@@ -126,22 +117,47 @@ mod tests {
     {
         // Call a non-generic test function directly
         test_walk_tree_names_concrete();
-/*
-        test_walk_tree_names1::<TestAccumulator, TestElemData, TestWalkData,
-            Result<TestWalkData, WalkError>>();
-*/
     }
 
-    fn test_walk_tree_names_concrete() {
+    fn test_walk_tree_names_concrete<'e>() {
         // Use concrete types directly without generics
         let doc = create_test_doc();
+
+        // Create a closure that has access to doc
+        let test_fn = || {
+            let walker = TestWalkable { xml_document: &doc };
+            println!("Processing:");
+            let mut ed = TestElemData::new(0);
+            
+            // Use the walker
+/*
+            let result: Result<TestWalkData, WalkError> = walker.walk(&mut ed);
+*/
+            let result: Result<TestWalkData, WalkError> = <TestWalkable<'_> as Walkable<'_, '_, TestAccumulator, TestElemData, Result<TestElemData, Box<(dyn std::error::Error + Send + Sync + 'static)>>, TestWalkData, Result<TestWalkData, Box<dyn std::error::Error + Send + Sync>>>>::walk::<'_>(&walker, &mut ed);
+            // Process result...
+            let res = match result {
+                Result::Ok(data) => {
+                    let res = format!("{}", data.data);
+                    println!("Output:\n{}", res);
+                    res
+                }
+                Result::Err(e) => {
+                    let res = format!("{}", e);
+                    eprintln!("Error: {}", res);
+                    res
+                }
+            };
+
+            res
+        };
+/*
         let walker = TestWalkable { xml_document: &doc };
         println!("Processing:");
-        let ed = TestElemData::new(0);
+        let mut ed = TestElemData::new(0);
         
-//        let result: Result<TestWalkData, WalkError> = walker.walk(ed);
-         let result: Result<TestWalkData, WalkError> = 
-            <TestWalkable<'_> as Walkable<'_, TestAccumulator, TestElemData, TestWalkData, Result<TestWalkData, WalkError>>>::walk(&walker, ed);
+        let result: Result<TestWalkData, WalkError> = 
+            <TestWalkable<'_> as Walkable<'e, '_, TestAccumulator, TestElemData, Result<TestElemData, WalkError>, TestWalkData, Result<TestWalkData, WalkError>>>::walk(&walker, &mut ed);
+drop(&walker);
 
         let res = match result {
             Result::Ok(data) => {
@@ -155,51 +171,27 @@ mod tests {
                 res
             }
         };
-        assert_eq!(res, concat!("n1\n", "    n2\n", "    n3\n", "        n4"));
-    }
-
-/*
-    fn test_walk_tree_names1<'a, AC, ED, WD, R>()
-    where
-        AC: Accumulator<'a, ED, WD, R>,
-        ED: ElemData<Output = ED>,
-        WD: WalkData,
-        R:  Try<Output = WD> + FromResidual<Result<Infallible, WalkError>>,
-    {
-        let doc = create_test_doc(); // build a sample XmlDocument
-        let walker = TestWalkable { xml_document: &doc };
-        println!("Processing:");
-        let ed = TestElemData::new(0);
-        let result = <TestWalkable<'_> as Walkable<'_, AC, ED, WD, Result<WD, WalkError>>>::walk(&walker, ed);
-
-        let res = match result {
-            Result::Ok(data) => {
-                let res = format!("{:?}", data.data);
-                println!("Output:\n{}", res);
-                res
-            }
-            Result::Err(e) => {
-                let res = format!("{}", e);
-                eprintln!("Error: {}", res);
-                res
-            }
-        };
-        assert_eq!(res, concat!("n1\n", "    n2\n", "    n3\n", "        n4"));
-    }
 */
+
+        let res = test_fn();
+
+        assert_eq!(res, concat!("n1\n", "    n2\n", "    n3\n", "        n4"));
+    }
 
     struct TestWalkable<'a> {
         xml_document: &'a XmlDocument,
     }
 
-//    impl<R> Walkable<'_, TestAccumulator, TestElemData, TestWalkData, Result<TestWalkData, WalkError>>
-    impl<'a, AC, ED, WD, R> Walkable<'a, AC, ED, WD, R>
+    impl<'e, 'a, AC, ED, ER, WD, WR> Walkable<'e, 'a, AC, ED, ER, WD, WR>
     for TestWalkable<'a>
     where
-        AC: Accumulator<'a, ED, WD, R>,
-        ED: ElemData<Output = ED>,
+        AC: Accumulator<'e, 'a, ED, ER, WD, WR>,
+        ED: ElemData<ER>,
+        ER: Try<Output = ED>,
         WD: WalkData,
-        R:  Try<Output = WD> + FromResidual<Result<Infallible, WalkError>>,
+        WR: Try<Output = WD>,
+        WR: FromResidual<<ER as Try>::Residual>,
+        WR: FromResidual<Result<Infallible, WalkError>>,
     {
         fn xml_document(&self) -> &XmlDocument {
             self.xml_document
@@ -207,7 +199,6 @@ mod tests {
     }
 
     // ----------------- Data Types ----------------
-//    R:  FromResidual<Result<Infallible, Box<dyn Error + Send + Sync>>>,
     struct TestWalkableResult {
     }
     impl FromResidual<Result<Infallible, Box<dyn Error + Send + Sync>>> for
@@ -217,7 +208,6 @@ mod tests {
         {
             todo!()
         }
-
     }
 
     #[derive(Debug)]
@@ -225,15 +215,10 @@ mod tests {
         result: String,
     }
 
-//    impl<'a, ED, WD, R> Accumulator<'a, ED, WD, R>
-    impl Accumulator<'_, TestElemData, TestWalkData, Result<TestWalkData, WalkError>>
+    impl<'e> Accumulator<'e, '_, TestElemData, Result<TestElemData, WalkError>, TestWalkData, Result<TestWalkData, WalkError>>
     for TestAccumulator
-//    where
-//        ED: ElemData,
-//        WD: WalkData,
-//        R:  Try,
     {
-        fn new(e: &Element, ed: &TestElemData) -> Self {
+        fn new(e: &Element, ed: &mut TestElemData) -> Self {
             let result = format!("{}{}", INDENT.repeat(ed.depth), e.name.local_name);
             TestAccumulator { result }
         }
@@ -250,16 +235,6 @@ mod tests {
             })
         }
     }
-
-//    struct TestWalkableResult {
-//    }
-
-//    impl WalkableResult for TestWalkableResult {
-//    }
-
-//    impl WalkableResult for TestWalkableResult {
-//    }
-//    type TestWalkableResult = Result<TestWalkData, Box<dyn Error>>;
 
     #[derive(Debug)]
     pub struct TestWalkData {
@@ -281,16 +256,10 @@ mod tests {
         }
     }
 
-    impl ElemData for TestElemData {
-        type Output = TestElemData;
-
-        fn next_level<'a>(&'a self, element: &Element) ->
-            Result<Self::Output, WalkError> {
+    impl ElemData<Result<TestElemData, WalkError>> for TestElemData {
+        fn next_level(&mut self, element: &Element) -> Result<TestElemData, WalkError> {
             println!("{}{}", INDENT.repeat(self.depth), element.name.local_name);
-            let ed = TestElemData {
-                depth: self.depth + 1,
-            };
-
+            let ed = TestElemData::new(self.depth + 1);
             Result::Ok(ed)
         }
     }
@@ -359,15 +328,48 @@ mod tests {
  */
 
 use std::fmt;
-/*
-
-use crate::xml_document::{Element, XmlDocument};
-
-use super::{Accumulator, ElemData, WalkData, WalkError, Walkable};
-//use super::WalkableResult;
-*/
+use std::convert::From;
 
 const INDENT: &str = "    ";
+
+// Custom adapter type for use with fmt::Display
+#[derive(Debug)]
+pub struct CustomWalkResult<T>(Result<T, WalkError>);
+
+impl<T> Try for CustomWalkResult<T> {
+    type Output = T;
+    type Residual = Result<Infallible, WalkError>;
+
+    fn from_output(output: T) -> Self {
+        CustomWalkResult(Ok(output))
+    }
+
+    fn branch(self) -> std::ops::ControlFlow<Self::Residual, Self::Output> {
+        match self.0 {
+            Ok(v) => std::ops::ControlFlow::Continue(v),
+            Err(e) => std::ops::ControlFlow::Break(Err(e)),
+        }
+    }
+}
+
+impl<T> FromResidual<Result<Infallible, WalkError>> for CustomWalkResult<T> {
+    fn from_residual(residual: Result<Infallible, WalkError>) -> Self {
+        match residual {
+            Ok(_) => unreachable!(),
+            Err(e) => CustomWalkResult(Err(e)),
+        }
+    }
+}
+
+// Now implement From for fmt::Result to handle the ? in fmt::Display
+impl From<CustomWalkResult<PrintWalkData>> for fmt::Result {
+    fn from(res: CustomWalkResult<PrintWalkData>) -> Self {
+        match res.0 {
+            Ok(_) => Ok(()),
+            Err(_) => Err(fmt::Error),
+        }
+    }
+}
 
 struct WalkAndPrint<'a> {
     xml_document: &'a XmlDocument,
@@ -377,84 +379,85 @@ struct WalkAndPrint<'a> {
 impl<'a> WalkAndPrint<'a> {
     pub fn new(xml_document: &'a XmlDocument, f: &'a mut fmt::Formatter<'a>) -> WalkAndPrint<'a> {
         WalkAndPrint {
-            xml_document:   xml_document,
-            f:              f,
+            xml_document: xml_document,
+            f: f,
         }
     }
 }
 
-impl Walkable<'_, PrintAccumulator, PrintElemData, PrintWalkData, fmt::Result>
-for WalkAndPrint<'_> {
+impl<'e, 'a, AC, ED, ER, WD, WR> Walkable<'e, 'a, AC, ED, ER, WD, WR>
+for WalkAndPrint<'a>
+where
+    AC: Accumulator<'e, 'a, ED, ER, WD, WR>,
+    ED: ElemData<ER>,
+    ER: Try<Output = ED>,
+    WD: WalkData,
+    WR: Try<Output = WD>,
+    WR: FromResidual<<ER as Try>::Residual>,
+    WR: FromResidual<Result<Infallible, WalkError>>,
+{
     fn xml_document(&self) -> &XmlDocument {
         self.xml_document
     }
 }
 
-#[derive(Debug)]
-pub struct PrintAccumulator {
-    result: String,
+pub struct PrintAccumulator<'a> {
+    f: &'a mut fmt::Formatter<'a>,
+    depth: usize,
 }
 
-impl Accumulator<'_, PrintElemData, PrintWalkData, fmt::Result> for PrintAccumulator {
-    fn new(e: &Element, ed: &PrintElemData) -> Self {
-        let result = format!("{}{}", INDENT.repeat(ed.depth), e.name.local_name);
-        PrintAccumulator { result }
+impl<'e, 'a, 'g: 'a, 'f: 'a> Accumulator<'e, 'a, PrintElemData<'a>, Result<PrintElemData<'a>, WalkError>, PrintWalkData, CustomWalkResult<PrintWalkData>>
+for PrintAccumulator<'g>
+{
+    fn new<'b>(e: &'e Element, ed: &'f mut PrintElemData<'g>) -> PrintAccumulator<'a> {
+        // Write the element name at the correct indentation level
+        let _ = write!(ed.f, "{}{}\n", INDENT.repeat(ed.depth), e.name.local_name);
+        
+        PrintAccumulator { 
+            f: ed.f,
+            depth: ed.depth,
+        }
     }
 
-    fn add(&mut self, wd: &PrintWalkData) -> 
-        Result<(), WalkError> {
-        self.result += &format!("\n{}", wd.data);
-        Result::Ok(())
+    fn add(&mut self, _wd: &PrintWalkData) -> Result<(), WalkError> {
+        Ok(())
     }
 
-    fn summary(&self) -> fmt::Result {
-        Result::Ok(())
+    fn summary(&self) -> CustomWalkResult<PrintWalkData> {
+        CustomWalkResult(Ok(PrintWalkData {}))
     }
 }
 
 // ----------------- Data Types ----------------
 
-//type PrintWalkableResult = Result<PrintWalkData, WalkError>;
-
-//impl WalkableResult for PrintWalkableResult {
-//}
-
 #[derive(Debug)]
 pub struct PrintWalkData {
-    pub data: String,
 }
 
 impl WalkData for PrintWalkData {}
 
-#[derive(Debug)]
-pub struct PrintElemData {
+pub struct PrintElemData<'a> {
     pub depth: usize,
+    pub f: &'a mut fmt::Formatter<'a>,
 }
 
-impl PrintElemData {
-    fn new(depth: usize) -> PrintElemData {
+impl<'a> PrintElemData<'a> {
+    fn new(depth: usize, f: &'a mut fmt::Formatter<'a>) -> PrintElemData<'a> {
         PrintElemData {
-            depth:  depth,
+            depth,
+            f,
         }
     }
 }
 
-impl ElemData for PrintElemData {
-    type Output = PrintElemData;
-
-    fn next_level<'a>(&'a self, element: &Element) ->
-        Result<Self::Output, WalkError> {
-        println!("{}{}", INDENT.repeat(self.depth), element.name.local_name);
-        let ed = PrintElemData {
-            depth: self.depth + 1,
-        };
-
-        Result::Ok(ed)
+impl<'a, 'e: 'a, 'f> ElemData<Result<PrintElemData<'a>, WalkError>> for PrintElemData<'f> {
+    fn next_level(&'f mut self, _element: &Element) -> Result<PrintElemData<'a>, WalkError> {
+        let next_ed = PrintElemData::new(self.depth + 1, self.f);
+        Result::Ok(next_ed)
     }
 }
 
 #[cfg(test)]
-// FIXME: restore name to tests
 mod tests2 {
     use std::collections::BTreeMap;
     use xml::attribute::OwnedAttribute;
@@ -463,32 +466,40 @@ mod tests2 {
     use xml::name::OwnedName;
     use xml::namespace::Namespace;
     use xml::reader::XmlEvent;
+//    use std::convert::Infallible;
 
-    use crate::Walkable;
     use crate::xml_document::{Element, XmlDocument};
     use crate::xml_document_factory::{DocumentInfo, ElementInfo};
-    use super::{PrintElemData, WalkAndPrint};
-
+    use super::{PrintElemData, WalkAndPrint, Walkable, PrintAccumulator, PrintWalkData/*, PrintResult*/, WalkError};
+    use super::CustomWalkResult;
 
     struct TestWalk<'a> {
-        xml_doc:    &'a XmlDocument,
+        xml_doc: &'a XmlDocument,
     }
 
     impl<'a> TestWalk<'a> {
-        fn new(doc: &'_ XmlDocument) -> TestWalk {
+        fn new(doc: &'a XmlDocument) -> TestWalk<'a> {
             TestWalk {
-                xml_doc:    doc,
+                xml_doc: doc,
             }
         }
     }
 
-    impl<'a> fmt::Display for TestWalk<'a> {
+    impl<'e, 'a: 'e, 'b: 'e, 'c: 'b> fmt::Display for TestWalk<'a> {
         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
             let walker = WalkAndPrint::new(&self.xml_doc, f);
-            let ped = PrintElemData {
-                depth:  0,
-            };
-            walker.walk(ped)
+            let mut ped = PrintElemData::new(0, f);
+            
+            // Use the CustomWalkResult directly
+            let result: CustomWalkResult<PrintWalkData> = <WalkAndPrint<'_> as Walkable<'e, '_, 
+                PrintAccumulator<'_>, 
+                PrintElemData<'_>, 
+                Result<PrintElemData<'_>, WalkError>, 
+                PrintWalkData, 
+                CustomWalkResult<PrintWalkData>>>::walk(&walker, &mut ped);
+                
+            // Convert CustomWalkResult to fmt::Result
+            result.into()
         }
     }
 
@@ -497,25 +508,8 @@ mod tests2 {
         println!("\nStart test_walk_tree_print");
         let test_doc = create_test_doc(); // build a sample XmlDocument
         println!("doc: {}", test_doc);
-
-/*
-        let res = match result {
-            fmt::Result::Ok(data) => {
-                let res = format!("{}", data.data);
-                println!("Output:\n{}", res);
-                res
-            }
-            io::Result::Err(e) => {
-                let res = format!("{}", e);
-                eprintln!("Error: {}", res);
-                res
-            }
-        };
-        assert_eq!(res, concat!("<n1>\n",
-            "    <n2>\n",
-            "    <n3>\n",
-            "        <n4>"));
-*/
+        let test_walk = TestWalk::new(&test_doc);
+        println!("walk: {}", test_walk);
     }
 
     fn create_test_doc() -> XmlDocument {
