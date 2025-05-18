@@ -316,8 +316,6 @@ mod tests {
 }
 
 /*
-
-/*
  * Recursive print
  */
 
@@ -446,9 +444,9 @@ impl<'a> BaseLevel for PrintBaseLevel<'a> {
 
 // 4. Update your Accumulator trait implementation
 // Replace the fmt::Result with PrintResult
-impl<'a, 'e> Accumulator<'a, 'a, PrintBaseLevel<'_>, PrintElemData, Result<PrintElemData, WalkError>, PrintWalkData, PrintResult>
+impl<'a> Accumulator<'a, PrintBaseLevel<'_>, PrintElemData, Result<PrintElemData, WalkError>, PrintWalkData, PrintResult>
     for PrintAccumulator {
-    fn new(_e: &'a Element, _ed: &'a PrintElemData) -> Self {
+    fn new(_e: &'a Element, ed: &PrintElemData) -> Self {
         PrintAccumulator { 
             depth:  0,
         }
@@ -464,39 +462,6 @@ impl<'a, 'e> Accumulator<'a, 'a, PrintBaseLevel<'_>, PrintElemData, Result<Print
     }
 }
 
-// 5. Update the Walkable implementation to use PrintResult
-impl<a, 'e: 'a> Walkable<'e, 'a, PrintBaseLevel<'_>, PrintAccumulator, PrintElemData, Result<PrintElemData, WalkError>, PrintWalkData, PrintResult> 
-    for WalkAndPrint<'a> {
-    fn xml_document(&self) -> &XmlDocument {
-        self.xml_document
-    }
-/*
-    fn base_level<'b: 'a>(&'b self) -> &'b PrintBaseLevel<'b> {
-        &self.base
-    }
-*/
-}
-
-// 6. Update the Display implementation to convert PrintResult to fmt::Result
-// In your Display implementation, you'll need to convert PrintResult to fmt::Result:
-impl<'a> fmt::Display for WalkAndPrint<'a> {
-    fn fmt(&self, _f: &mut fmt::Formatter<'_>) -> fmt::Result {
-/*
-        let walker = WalkAndPrint::new(self.xml_doc, f);
-        let mut ped = PrintElemData::new(0);
-        
-        // Get the PrintResult from walk
-        let result: PrintResult = Walkable::walk(&walker, &mut ped);
-        
-        // Convert PrintResult to fmt::Result
-        result.into()
-*/
-        todo!();
-    }
-}
-
-/*
-
 #[cfg(test)]
 mod tests2 {
     use std::collections::BTreeMap;
@@ -511,7 +476,7 @@ mod tests2 {
     use crate::xml_document::{Element, XmlDocument};
     use crate::xml_document_factory::{DocumentInfo, ElementInfo};
     use super::{PrintElemData, WalkAndPrint, Walkable, PrintAccumulator, PrintWalkData/*, PrintResult*/, WalkError};
-    use super::CustomWalkResult;
+//    use super::CustomWalkResult;
 
     struct TestWalk<'a> {
         xml_doc: &'a XmlDocument,
@@ -525,22 +490,10 @@ mod tests2 {
         }
     }
 
-    impl<'e, 'a: 'e, 'b: 'e, 'c: 'b> fmt::Display for TestWalk<'a> {
+    impl<'a> fmt::Display for TestWalk<'a> {
         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-            let base = PrintBaseLevel::new(f);
-            let walker = WalkAndPrint::new(&self.xml_doc, base);
-            let mut ped = PrintElemData::new(0);
-            
-            // Use the CustomWalkResult directly
-            let result: CustomWalkResult<PrintWalkData> = <WalkAndPrint<'_> as Walkable<'e, '_, 
-                PrintAccumulator<'_>, 
-                PrintElemData<'a>, 
-                Result<PrintElemData<'a>, WalkError>, 
-                PrintWalkData, 
-                CustomWalkResult<PrintWalkData>>>::walk(&walker, &mut ped);
-                
-            // Convert CustomWalkResult to fmt::Result
-            result.into()
+            write!(f, "TestWalk::Display not done");
+            todo!();
         }
     }
 
@@ -605,5 +558,3 @@ mod tests2 {
         }
     }
 }
-*/
-*/
