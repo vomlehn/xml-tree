@@ -1,4 +1,5 @@
 #![feature(try_trait_v2)]
+#![feature(try_trait_v2_residual)]
 
 pub mod xml_document;
 pub mod xml_document_error;
