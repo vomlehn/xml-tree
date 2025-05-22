@@ -1,487 +1,93 @@
-/*
-/*
- * Recursive print
+use crate::walkable::{Accumulator, BaseLevel, ElemData, Walkable};
+use crate::xml_document::{Element, XmlDocument};
+use std::fmt;
+
+const INDENT: &str = "    ";
+
+fn indent(n: usize) -> String {
+    INDENT.repeat(n)
+}
+
+/**
+ * Basic structure for recursive printing
  */
-
-use std::fmt;
-
-use crate::xml_document::{Element, XmlDocument};
-
-use super::{Accumulator, ElemData, WalkData, WalkError, Walkable};
-//use super::WalkableResult;
-
-const INDENT: &str = "    ";
-
-struct WalkAndPrint<'a> {
-    xml_document: &'a XmlDocument,
-    f: &'a mut fmt::Formatter<'a>,
+pub struct WalkAndPrint<'a, 'fmt> {
+    xml_doc:    &'a XmlDocument,
+    base:       PrintBaseLevel<'a, 'fmt>,
 }
 
-impl<'a> WalkAndPrint<'a> {
-    pub fn new(xml_document: &'a XmlDocument, f: &'a mut fmt::Formatter<'a>) -> WalkAndPrint<'a> {
-        WalkAndPrint {
-            xml_document:   xml_document,
-            f:              f,
-        }
+impl<'a, 'fmt> WalkAndPrint<'a, 'fmt> {
+    pub fn new(xml_doc: &'a XmlDocument, base: PrintBaseLevel<'a, 'fmt>) -> WalkAndPrint<'a, 'fmt> {
+        WalkAndPrint{
+            xml_doc:    xml_doc,
+            base:       base,}
     }
 }
 
-impl Walkable<'_, PrintAccumulator, PrintElemData, PrintWalkData, fmt::Result>
-for WalkAndPrint<'_> {
+impl<'a, 'fmt> Walkable<'a, PrintAccumulator, PrintBaseLevel<'a, 'fmt>, PrintElemData, PrintWalkData, PrintWalkResult> for WalkAndPrint<'_, 'fmt> {
     fn xml_document(&self) -> &XmlDocument {
-        self.xml_document
+        self.xml_doc
+    }
+    fn base_level(&'a self) -> &'a PrintBaseLevel<'a, 'fmt> {
+        &self.base
     }
 }
 
-#[derive(Debug)]
+/**
+ * Since we're printing, our return type is the same as the type
+ * returned from std::fmt::Display::fmt(). This means we have to
+ * returns one of the fmt::Error types if we encounter another
+ * error, or simply panic!.
+ */
+pub type PrintWalkResult = fmt::Result;
+
+/**
+ * We don't return any data, but do print the element name each
+ * time we enter WalkAndPrint::walk_down().
+ */
 pub struct PrintAccumulator {
-    result: String,
 }
 
-impl Accumulator<'_, PrintElemData, PrintWalkData, fmt::Result> for PrintAccumulator {
-    fn new(e: &Element, ed: &PrintElemData) -> Self {
-        let result = format!("{}{}", INDENT.repeat(ed.depth), e.name.local_name);
-        PrintAccumulator { result }
+impl<'a, 'fmt> Accumulator<'a, PrintBaseLevel<'a, 'fmt>, PrintElemData, PrintWalkData, PrintWalkResult>
+for PrintAccumulator {
+    fn new(_bl: &PrintBaseLevel, e: &'a Element, ed: &PrintElemData) -> Self {
+        println!("{}{}", indent(ed.depth), e.name);
+        PrintAccumulator {
+        }
     }
 
-    fn add(&mut self, wd: &PrintWalkData) -> 
-        Result<(), WalkError> {
-        self.result += &format!("\n{}", wd.data);
-        Result::Ok(())
+    fn add(&mut self, _wd: &PrintWalkData) -> PrintWalkResult {
+        Ok(())
     }
 
-    fn summary(&self) -> fmt::Result {
-        Result::Ok(())
+    fn summary(&self) -> PrintWalkResult {
+        Ok(())
     }
 }
 
-// ----------------- Data Types ----------------
-
-//type PrintWalkableResult = Result<PrintWalkData, WalkError>;
-
-//impl WalkableResult for PrintWalkableResult {
-//}
-
-#[derive(Debug)]
-pub struct PrintWalkData {
-    pub data: String,
+/**
+ * The BaseLevel data consists of just an fmt::Formatter passed to
+ * fmt::Display::fmt().
+ */
+pub struct PrintBaseLevel<'a, 'fmt> {
+    f: &'a mut fmt::Formatter<'fmt>,
 }
 
-impl WalkData for PrintWalkData {}
+impl<'a, 'fmt> PrintBaseLevel<'a, 'fmt> {
+    pub fn new(f: &'a mut fmt::Formatter<'fmt>) -> Self {
+        PrintBaseLevel {
+            f:  f,
+        }
+    }
+}
 
-#[derive(Debug)]
+impl<'a, 'fmt> BaseLevel for PrintBaseLevel<'a, 'fmt> {}
+
+/**
+ * Keep track of the depth so we can do proper indentation
+ */
 pub struct PrintElemData {
-    pub depth: usize,
-}
-
-impl PrintElemData {
-    fn new(depth: usize) -> PrintElemData {
-        PrintElemData {
-            depth:  depth,
-        }
-    }
-}
-
-impl ElemData for PrintElemData {
-    type Output = PrintElemData;
-
-    fn next_level<'a>(&'a self, element: &Element) ->
-        Result<Self::Output, WalkError> {
-        println!("{}{}", INDENT.repeat(self.depth), element.name.local_name);
-        let ed = PrintElemData {
-            depth: self.depth + 1,
-        };
-
-        Result::Ok(ed)
-    }
-}
-
-/*
-#[cfg(test)]
-mod tests {
-    use std::collections::BTreeMap;
-    use xml::attribute::OwnedAttribute;
-    use xml::common::XmlVersion;
-    use std::fmt;
-    use xml::name::OwnedName;
-    use xml::namespace::Namespace;
-    use xml::reader::XmlEvent;
-
-    use crate::Walkable;
-    use crate::xml_document::{Element, XmlDocument};
-    use crate::xml_document_factory::{DocumentInfo, ElementInfo};
-    use super::{PrintElemData, WalkAndPrint};
-
-
-    struct TestWalk<'a> {
-        xml_doc:    &'a XmlDocument,
-    }
-
-    impl<'a> TestWalk<'a> {
-        fn new(doc: &'_ XmlDocument) -> TestWalk {
-            TestWalk {
-                xml_doc:    doc,
-            }
-        }
-    }
-
-    impl<'a> fmt::Display for TestWalk<'a> {
-        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-            let walker = WalkAndPrint::new(&self.xml_doc, f);
-            let ped = PrintElemData {
-                depth:  0,
-            };
-            walker.walk(ped)
-        }
-    }
-
-    #[test]
-    fn test_walk_tree_print() {
-        println!("\nStart test_walk_tree_print");
-        let test_doc = create_test_doc(); // build a sample XmlDocument
-        println!("doc: {}", test_doc);
-
-/*
-        let res = match result {
-            fmt::Result::Ok(data) => {
-                let res = format!("{}", data.data);
-                println!("Output:\n{}", res);
-                res
-            }
-            io::Result::Err(e) => {
-                let res = format!("{}", e);
-                eprintln!("Error: {}", res);
-                res
-            }
-        };
-        assert_eq!(res, concat!("<n1>\n",
-            "    <n2>\n",
-            "    <n3>\n",
-            "        <n4>"));
-*/
-    }
-
-    fn create_test_doc() -> XmlDocument {
-        let ns: Namespace = Namespace(BTreeMap::<String, String>::new());
-
-        let ei: ElementInfo = ElementInfo {
-            lineno: 1,
-            attributes: Vec::<OwnedAttribute>::new(),
-            namespace: ns,
-        };
-
-        let e1 = branch("n1", &ei, vec![
-            leaf("n2", &ei),
-            branch("n3", &ei, vec![
-                leaf("n4", &ei)])
-        ]);
-
-        let di = DocumentInfo {
-            version: XmlVersion::Version10,
-            encoding: "xxx".to_string(),
-            standalone: None,
-        };
-
-        let d: XmlDocument = XmlDocument {
-            root: e1,
-            document_info: di,
-        };
-
-        d
-    }
-
-    fn leaf(name: &str, ei: &ElementInfo) -> Element {
-        node(name, ei, Vec::<Element>::new())
-    }
-
-    fn branch(name: &str, ei: &ElementInfo, subelements: Vec<Element>) -> Element {
-        node(name, ei, subelements)
-    }
-
-    fn node(name: &str, ei: &ElementInfo, subelements: Vec<Element>) -> Element {
-        Element {
-            name: OwnedName {
-                local_name: name.to_string(),
-                namespace: None,
-                prefix: None,
-            },
-            element_info: ei.clone(),
-            subelements: subelements,
-            before_element: Vec::<XmlEvent>::new(),
-            content: Vec::<XmlEvent>::new(),
-            after_element: Vec::<XmlEvent>::new(),
-        }
-    }
-}
-*/
-
-/*
-
-// ----------------- Data Types ----------------
-
-fn create_test_doc() -> XmlDocument {
-    let ns: Namespace = Namespace(BTreeMap::<String, String>::new());
-
-    let ei: ElementInfo = ElementInfo {
-        lineno: 1,
-        attributes: Vec::<OwnedAttribute>::new(),
-        namespace: ns,
-    };
-
-    let e1 = branch("n1", &ei, vec![
-        leaf("n2", &ei),
-        branch("n3", &ei, vec![
-            leaf("n4", &ei)])
-    ]);
-
-    let di = DocumentInfo {
-        version: XmlVersion::Version10,
-        encoding: "xxx".to_string(),
-        standalone: None,
-    };
-
-    let d: XmlDocument = XmlDocument {
-        root: e1,
-        document_info: di,
-    };
-
-    d
-}
-
-fn leaf(name: &str, ei: &ElementInfo) -> Element {
-    node(name, ei, Vec::<Element>::new())
-}
-
-fn branch(name: &str, ei: &ElementInfo, subelements: Vec<Element>) -> Element {
-    node(name, ei, subelements)
-}
-
-fn node(name: &str, ei: &ElementInfo, subelements: Vec<Element>) -> Element {
-    Element {
-        name: OwnedName {
-            local_name: name.to_string(),
-            namespace: None,
-            prefix: None,
-        },
-        element_info: ei.clone(),
-        subelements: subelements,
-        before_element: Vec::<XmlEvent>::new(),
-        content: Vec::<XmlEvent>::new(),
-        after_element: Vec::<XmlEvent>::new(),
-    }
-}
-*/
-
-/*
-use std::fmt;
-
-use crate::WalkError;
-use crate::xml_document::{Element, XmlDocument};
-
-use crate::{Accumulator, ElemData, WalkData, Walkable};
-
-const INDENT: &str = "    ";
-
-pub struct WalkAndPrint<'a> {
-    xml_document:   &'a XmlDocument,
-    f:              &'a mut fmt::Formatter<'a>,
-}
-
-impl<'a> WalkAndPrint<'a> {
-    pub fn new<'b>(xml_document: &'a XmlDocument, f: &'b mut fmt::Formatter<'b>) -> WalkAndPrint<'b> {
-        WalkAndPrint {
-            xml_document:   xml_document,
-            f:              f,
-        }
-    }
-}
-
-impl<'a> Walkable<'a, PrintAccumulator, PrintElemData, PrintWalkData> for WalkAndPrint<'a> {
-    fn xml_document(&self) -> &XmlDocument {
-        self.xml_document
-    }
-}
-
-struct PrintWalkable<'a> {
-    xml_document: &'a XmlDocument,
-}
-
-impl Walkable<'_, PrintAccumulator, PrintElemData, PrintWalkData> for PrintWalkable<'_> {
-    fn xml_document(&self) -> &XmlDocument {
-        self.xml_document
-    }
-}
-
-// ----------------- Data Types ----------------
-
-#[derive(Debug)]
-pub struct PrintWalkData {
-    pub data: String,
-}
-
-impl WalkData for PrintWalkData {}
-
-#[derive(Debug)]
-pub struct PrintElemData {
-    pub depth: usize,
-}
-
-impl PrintElemData {
-    fn new(depth: usize) -> PrintElemData {
-        PrintElemData {
-            depth:  depth,
-        }
-    }
-
-    fn indent(&self) -> String {
-        INDENT.repeat(self.depth)
-    }
-}
-
-impl ElemData for PrintElemData {
-    type Output = PrintElemData;
-
-    fn next_level<'a>(&'a self, element: &Element) ->
-        Result<Self::Output, WalkError> {
-        println!("{}<{}", INDENT.repeat(self.depth), element.name.local_name);
-        let ed = PrintElemData {
-            depth: self.depth + 1,
-        };
-
-        Result::Ok(ed)
-    }
-}
-
-#[derive(Debug)]
-pub struct PrintAccumulator {
-    result: String,
-}
-
-impl Accumulator<'_, PrintElemData, PrintWalkData> for PrintAccumulator {
-    fn new(e: &Element, ed: &PrintElemData) -> Self {
-        let result = format!("{}<{}>", ed.indent(), e.name.local_name);
-        PrintAccumulator { result }
-    }
-
-    fn add(&mut self, wd: &PrintWalkData) -> fmt::Result {
-        self.result += &format!("\n{}", wd.data);
-        fmt::Result::Ok(())
-    }
-
-    fn summary(&self) -> fmt::Result {
-        fn new(e: &Element, ed: &PrintElemData) -> PrintAccumulator {
-            let result = format!("{}{}", INDENT.repeat(ed.depth), e.name.local_name);
-            PrintAccumulator { result }
-        }
-    }
-}
-
-
-mod tests {
-    use std::collections::BTreeMap;
-    use xml::attribute::OwnedAttribute;
-    use xml::common::XmlVersion;
-    use xml::name::OwnedName;
-    use xml::namespace::Namespace;
-    use xml::reader::XmlEvent;
-
-    use crate::xml_document::{Element, ElementInfo, XmlDocument};
-    use crate::xml_document_factory::DocumentInfo;
-
-    use super::{PrintElemData, PrintWalkable};
-
-    const INDENT: &str = "    ";
-
-    #[test]
-    fn test_walk_tree_names() {
-        let doc = create_test_doc(); // build a sample XmlDocument
-        let walker = PrintWalkable { xml_document: &doc };
-        println!("Processing:");
-        let ed = PrintElemData::new(0);
-        let result = walker.walk(ed);
-
-        let res = match result {
-            Result::Ok(data) => {
-                let res = format!("{}", data.data);
-                println!("Output:\n{}", res);
-                res
-            }
-            Result::Err(e) => {
-                let res = format!("{}", e);
-                eprintln!("Error: {}", res);
-                res
-            }
-        };
-        assert_eq!(res, concat!("n1\n", "    n2\n", "    n3\n", "        n4"));
-    }
-
-
-    // ----------------- Data Types ----------------
-
-    fn create_test_doc() -> XmlDocument {
-        let ns: Namespace = Namespace(BTreeMap::<String, String>::new());
-
-        let ei: ElementInfo = ElementInfo {
-            lineno: 1,
-            attributes: Vec::<OwnedAttribute>::new(),
-            namespace: ns,
-        };
-
-        let e1 = branch("n1", &ei, vec![
-            leaf("n2", &ei),
-            branch("n3", &ei, vec![
-                leaf("n4", &ei)])
-        ]);
-
-        let di = DocumentInfo {
-            version: XmlVersion::Version10,
-            encoding: "xxx".to_string(),
-            standalone: None,
-        };
-
-        let d: XmlDocument = XmlDocument {
-            root: e1,
-            document_info: di,
-        };
-
-        d
-    }
-
-    fn leaf(name: &str, ei: &ElementInfo) -> Element {
-        node(name, ei, Vec::<Element>::new())
-    }
-
-    fn branch(name: &str, ei: &ElementInfo, subelements: Vec<Element>) -> Element {
-        node(name, ei, subelements)
-    }
-
-    fn node(name: &str, ei: &ElementInfo, subelements: Vec<Element>) -> Element {
-        Element {
-            name: OwnedName {
-                local_name: name.to_string(),
-                namespace: None,
-                prefix: None,
-            },
-            element_info: ei.clone(),
-            subelements: subelements,
-            before_element: Vec::<XmlEvent>::new(),
-            content: Vec::<XmlEvent>::new(),
-            after_element: Vec::<XmlEvent>::new(),
-        }
-    }
-}
-
-/*
-// ----------------- Data Types ----------------
-
-pub struct PrintWalkData {}
-
-//impl () for PrintWalkData {}
-
-impl WalkData for PrintWalkData {}
-
-pub struct PrintElemData {
-    pub depth:  usize,
+    depth:  usize,
 }
 
 impl PrintElemData {
@@ -490,85 +96,148 @@ impl PrintElemData {
             depth:  depth,
         }
     }
+}
 
-    fn indent(&self) -> String {
-        INDENT.repeat(self.depth)
+impl ElemData<PrintBaseLevel<'_, '_>, PrintElemData> for PrintElemData {
+    fn next_level(&self, _element: &Element) -> PrintElemData {
+        PrintElemData::new(self.depth + 1)
     }
 }
 
-    impl ElemData for PrintElemData {
-        type Output = PrintElemData;
-
-        fn next_level<'a>(&'a self, element: &Element) ->
-            Result<Self::Output, WalkError> {
-impl ElemData<'_, PrintElemData, PrintWalkData, PrintAccumulator, fmt::Result> for PrintElemData {
-    fn next_level(&mut self, w: new(&WalkAndPrint), element: &Element) -> fmt::Result {
-        write!(w.f, "{}<{}>", self.indent(), element.name);
-        let ed = PrintElemData::new(self.depth + 1);
-        fmt::Result::Ok(ed)
-    }
-}
-
-#[derive(Debug)]
-pub struct PrintAccumulator {
-    result: String,
-}
-
-impl<'a> Accumulator<'a, PrintElemData, PrintWalkData, PrintAccumulator, fmt::Result> for PrintAccumulator {
-    fn new(e: &Element, ed: &PrintElemData) -> Self {
-        let result = format!("{}<{}>", ed.indent(), e.name.local_name);
-        PrintAccumulator { result }
-    }
-
-    fn add(&mut self, wd: PrintWalkData) -> fmt::Result {
-        self.result += &format!("\n{}", wd.data);
-        fmt::Result::Ok(())
-    }
-
-    fn summary(&self) -> fmt::Result {
-        fmt::Result::Ok(())
-    }
-}
+/**
+ * All we do is print, so there is no data to return. This is
+ * consistent with the OK enum from fmt::Error
+ */
+type PrintWalkData = ();
 
 #[cfg(test)]
-mod test {
-    use std::collections::BTreeMap;
+mod print_tests {
     use xml::attribute::OwnedAttribute;
     use xml::common::XmlVersion;
     use xml::name::OwnedName;
     use xml::namespace::Namespace;
     use xml::reader::XmlEvent;
 
-    use crate::{Accumulator, Walkable};
+    use std::collections::BTreeMap;
+    use std::fmt;
+
+    use crate::walkable::{Accumulator, BaseLevel, ElemData, Walkable};
     use crate::xml_document::{Element, XmlDocument};
     use crate::xml_document_factory::{DocumentInfo, ElementInfo};
-    use super::{PrintElemData, WalkAndPrint};
 
-    #[test]
-    fn test_walk_tree_print() {
-        println!("\nStart test_walk_tree_print");
-        let doc = create_test_doc(); // build a sample XmlDocument
-        let walker = WalkAndPrint::new(&doc);
-        let result = walker.walk(&PrintElemData { depth: 0 });
+    pub type PrintWalkResult = fmt::Result;
 
-        let res = match result {
-            fmt::Result::Ok(data) => {
-                let res = format!("{}", data.data);
-                println!("Output:\n{}", res);
-                res
-            }
-            io::Result::Err(e) => {
-                let res = format!("{}", e);
-                eprintln!("Error: {}", res);
-                res
-            }
-        };
-        assert_eq!(res, concat!("<n1>\n",
-            "    <n2>\n",
-            "    <n3>\n",
-            "        <n4>"));
+    pub struct PrintBaseLevel<'a, 'fmt> {
+        f: &'a mut fmt::Formatter<'fmt>,
     }
 
+    impl<'a, 'fmt> PrintBaseLevel<'a, 'fmt> {
+        pub fn new(f: &'a mut fmt::Formatter<'fmt>) -> Self {
+            PrintBaseLevel {
+                f:  f,
+            }
+        }
+    }
+
+    impl<'a, 'fmt> BaseLevel for PrintBaseLevel<'a, 'fmt> {}
+
+    pub struct PrintElemData {
+        depth:  usize,
+    }
+
+    impl PrintElemData {
+        pub fn new(depth: usize) -> PrintElemData {
+            PrintElemData {
+                depth:  depth,
+            }
+        }
+    }
+
+    impl ElemData<PrintBaseLevel<'_, '_>, PrintElemData> for PrintElemData {
+        fn next_level(&self, element: &Element) -> PrintElemData {
+            PrintElemData::new(self.depth + 1)
+        }
+    }
+
+    type PrintWalkData = ();
+
+    pub struct PrintAccumulator {}
+
+    impl<'a, 'fmt> Accumulator<'a, PrintBaseLevel<'a, 'fmt>, PrintElemData, PrintWalkData, PrintWalkResult>
+    for PrintAccumulator {
+        fn new(bl: &PrintBaseLevel, e: &'a Element, ed: &PrintElemData) -> Self {
+            println!("{}{}", super::indent(ed.depth), e.name);
+            PrintAccumulator {
+            }
+        }
+        fn add(&mut self, wd: &PrintWalkData) -> PrintWalkResult {
+            Ok(())
+        }
+        fn summary(&self) -> PrintWalkResult {
+            Ok(())
+        }
+    }
+
+    pub struct PrintWalkable<'a, 'fmt> {
+        xml_doc:    &'a XmlDocument,
+        base:       PrintBaseLevel<'a, 'fmt>,
+    }
+
+    impl<'a, 'fmt> PrintWalkable<'a, 'fmt> {
+        pub fn new(xml_doc: &'a XmlDocument, base: PrintBaseLevel<'a, 'fmt>) -> PrintWalkable<'a, 'fmt> {
+            PrintWalkable{
+                xml_doc:    xml_doc,
+                base:       base,
+            }
+        }
+    }
+
+    impl<'a, 'fmt> Walkable<'a, PrintAccumulator, PrintBaseLevel<'a, 'fmt>, PrintElemData, PrintWalkData, PrintWalkResult> for PrintWalkable<'_, 'fmt> {
+        fn xml_document(&self) -> &XmlDocument {
+            self.xml_doc
+        }
+        fn base_level(&'a self) -> &'a PrintBaseLevel<'a, 'fmt> {
+            &self.base
+        }
+    }
+
+    struct PrintObj<'a> {
+        xml_doc:    &'a XmlDocument,
+    }
+
+    impl<'a> PrintObj<'a> {
+        pub fn new(xml_doc: &'a XmlDocument) -> PrintObj<'a> {
+            PrintObj {
+                xml_doc:    xml_doc,
+            }
+        }
+    }
+
+    impl<'a> fmt::Display for PrintObj<'a> {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            let bl2 = PrintBaseLevel::new(f);
+            let ed2 = PrintElemData::new(0);
+            let w2 = PrintWalkable::new(&self.xml_doc, bl2);
+            w2.walk(&ed2)
+        }
+    }
+
+
+    #[test]
+    fn test_fmt_result() {
+        println!();
+        println!("Try with a fmt::Result");
+        println!("----------------------");
+        let xml_document = create_test_doc();
+        let po = PrintObj::new(&xml_document);
+        println!("Display PrintObj:");
+        println!("{}", po);
+    }
+
+    /**
+     * Manually create an XmlDocument.
+     */
+     // FIXME: This should be moved to a common area
     fn create_test_doc() -> XmlDocument {
         let ns: Namespace = Namespace(BTreeMap::<String, String>::new());
 
@@ -578,24 +247,18 @@ mod test {
             namespace: ns,
         };
 
-        let e1 = branch("n1", &ei, vec![
-            leaf("n2", &ei),
-            branch("n3", &ei, vec![
-                leaf("n4", &ei)])
-        ]);
-
-        let di = DocumentInfo {
-            version: XmlVersion::Version10,
-            encoding: "xxx".to_string(),
-            standalone: None,
-        };
-
-        let d: XmlDocument = XmlDocument {
-            root: e1,
-            document_info: di,
-        };
-
-        d
+        XmlDocument {
+            root:           branch("n1", &ei, vec![
+                                leaf("n2", &ei),
+                                branch("n3", &ei, vec![
+                                    leaf("n4", &ei)])
+                            ]),
+            document_info:  DocumentInfo {
+                                version: XmlVersion::Version10,
+                                encoding: "xxx".to_string(),
+                                standalone: None,
+                            },
+        }
     }
 
     fn leaf(name: &str, ei: &ElementInfo) -> Element {
@@ -613,15 +276,11 @@ mod test {
                 namespace: None,
                 prefix: None,
             },
-            depth: 0,
-            element_info: ei.clone(),
-            subelements: subelements,
+            element_info: (*ei).clone(),
+            subelements,
             before_element: Vec::<XmlEvent>::new(),
             content: Vec::<XmlEvent>::new(),
             after_element: Vec::<XmlEvent>::new(),
         }
     }
 }
-*/
-*/
-*/

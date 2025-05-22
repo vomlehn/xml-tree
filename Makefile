@@ -1,6 +1,7 @@
 #TEST = test3
 TEST = test_walk_tree_print
 TEST = test_walk_tree_names
+TEST =
 
 RUN_FILE = test/test5.xtce
 #RUN_FILE = schema/SpaceSystem-patched.xtce

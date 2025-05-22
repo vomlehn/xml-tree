@@ -12,8 +12,7 @@ mod walk_and_print;
 mod xml_document_factory;
 mod xsd_schema;
 
-pub use crate::walkable::{Accumulator, ElemData, WalkData, WalkError, Walkable /*, WalkableResult */
-};
+pub use crate::walkable::{Accumulator, ElemData, WalkData, Walkable};
 //pub use crate::walk_and_print::WalkAndPrint;
 pub use crate::xml_document::{Element, XmlDocument};
 pub use crate::xml_document_error::XmlDocumentError;
