@@ -53,10 +53,9 @@ pub struct PrintAccumulator {
 impl<'a, 'fmt> Accumulator<'a, PrintBaseLevel<'a, 'fmt>, PrintElemData, PrintWalkData, PrintWalkResult>
 for PrintAccumulator {
     fn new(bl: &RefCell<PrintBaseLevel<'a, 'fmt>>, e: &'a Element, ed: &PrintElemData) -> Self {
-        write!(bl.borrow_mut().f, "{}{}", indent(ed.depth), e.name)
+        write!(bl.borrow_mut().f, "{}{}\n", indent(ed.depth), e.name)
             .expect("Unable to write result");
-        PrintAccumulator {
-        }
+        PrintAccumulator {}
     }
 
     fn add(&mut self, _wd: &PrintWalkData) -> PrintWalkResult {

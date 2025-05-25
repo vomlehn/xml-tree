@@ -181,7 +181,7 @@ mod test_tests {
         }
 
         fn add(&mut self, wd: &TestWalkData) -> TestWalkResult {
-            self.result += wd.data.as_str();
+            self.result += &wd.data;
             Ok(TestWalkData::new(self.result.clone()))
         }
 
@@ -231,12 +231,14 @@ mod test_tests {
         match res {
             Err(e) => println!("Error: {:?}", e),
             Ok(twd) => {
-                println!("Ok: {:?}", twd.data);
-
-                assert_eq!(twd.data, "n1\n".to_owned() +
+                println!("Actual: {:?}", twd.data);
+                let expected = "n1\n".to_owned() +
                     &indent(1) + "n2\n" +
                     &indent(1) + "n3\n" +
-                    &indent(2) + "n4\n");
+                    &indent(2) + "n4\n";
+                println!("Expected: {:?}", expected);
+
+                assert_eq!(twd.data, expected);
             },
         };
     }
