@@ -1,35 +1,37 @@
-use crate::walkable::{Accumulator, BaseLevel, ElemData, Walkable};
-use crate::xml_document::{Element, XmlDocument};
-use std::fmt;
-
-const INDENT: &str = "    ";
-
-fn indent(n: usize) -> String {
-    INDENT.repeat(n)
-}
-
 /**
  * Basic structure for recursive printing
  */
+
+use std::cell::RefCell;
+use std::fmt;
+
+use crate::xml_document::{Element, XmlDocument};
+use crate::walkable::{Accumulator, BaseLevel, ElemData, Walkable};
+
+const INDENT: &str = "    ";
+
 pub struct WalkAndPrint<'a, 'fmt> {
     xml_doc:    &'a XmlDocument,
-    base:       PrintBaseLevel<'a, 'fmt>,
+    base:       RefCell<PrintBaseLevel<'a, 'fmt>>,
 }
 
 impl<'a, 'fmt> WalkAndPrint<'a, 'fmt> {
     pub fn new(xml_doc: &'a XmlDocument, base: PrintBaseLevel<'a, 'fmt>) -> WalkAndPrint<'a, 'fmt> {
         WalkAndPrint{
             xml_doc:    xml_doc,
-            base:       base,}
+            base:       RefCell::new(base),
+        }
     }
 }
 
-impl<'a, 'fmt> Walkable<'a, PrintAccumulator, PrintBaseLevel<'a, 'fmt>, PrintElemData, PrintWalkData, PrintWalkResult> for WalkAndPrint<'_, 'fmt> {
+impl<'a, 'fmt> Walkable<'a, PrintAccumulator, PrintBaseLevel<'a, 'fmt>, PrintElemData, PrintWalkData, PrintWalkResult> for WalkAndPrint<'a, 'fmt> {
     fn xml_document(&self) -> &XmlDocument {
         self.xml_doc
     }
-    fn base_level(&'a self) -> &'a PrintBaseLevel<'a, 'fmt> {
-        &self.base
+
+    fn base_level_cell(&self) -> &RefCell<PrintBaseLevel<'a, 'fmt>>
+    {
+            &self.base
     }
 }
 
@@ -50,8 +52,9 @@ pub struct PrintAccumulator {
 
 impl<'a, 'fmt> Accumulator<'a, PrintBaseLevel<'a, 'fmt>, PrintElemData, PrintWalkData, PrintWalkResult>
 for PrintAccumulator {
-    fn new(_bl: &PrintBaseLevel, e: &'a Element, ed: &PrintElemData) -> Self {
-        println!("{}{}", indent(ed.depth), e.name);
+    fn new(bl: &RefCell<PrintBaseLevel<'a, 'fmt>>, e: &'a Element, ed: &PrintElemData) -> Self {
+        write!(bl.borrow_mut().f, "{}{}", indent(ed.depth), e.name)
+            .expect("Unable to write result");
         PrintAccumulator {
         }
     }
@@ -110,6 +113,10 @@ impl ElemData<PrintBaseLevel<'_, '_>, PrintElemData> for PrintElemData {
  */
 type PrintWalkData = ();
 
+fn indent(n: usize) -> String {
+    INDENT.repeat(n)
+}
+
 #[cfg(test)]
 mod print_tests {
     use xml::attribute::OwnedAttribute;
@@ -121,85 +128,37 @@ mod print_tests {
     use std::collections::BTreeMap;
     use std::fmt;
 
-    use crate::walkable::{Accumulator, BaseLevel, ElemData, Walkable};
     use crate::xml_document::{Element, XmlDocument};
     use crate::xml_document_factory::{DocumentInfo, ElementInfo};
 
-    pub type PrintWalkResult = fmt::Result;
+    use crate::walkable::Walkable;
 
-    pub struct PrintBaseLevel<'a, 'fmt> {
-        f: &'a mut fmt::Formatter<'fmt>,
-    }
+    use super::{PrintElemData, PrintBaseLevel, WalkAndPrint};
 
-    impl<'a, 'fmt> PrintBaseLevel<'a, 'fmt> {
-        pub fn new(f: &'a mut fmt::Formatter<'fmt>) -> Self {
-            PrintBaseLevel {
-                f:  f,
-            }
-        }
-    }
-
-    impl<'a, 'fmt> BaseLevel for PrintBaseLevel<'a, 'fmt> {}
-
-    pub struct PrintElemData {
-        depth:  usize,
-    }
-
-    impl PrintElemData {
-        pub fn new(depth: usize) -> PrintElemData {
-            PrintElemData {
-                depth:  depth,
-            }
-        }
-    }
-
-    impl ElemData<PrintBaseLevel<'_, '_>, PrintElemData> for PrintElemData {
-        fn next_level(&self, element: &Element) -> PrintElemData {
-            PrintElemData::new(self.depth + 1)
-        }
-    }
-
-    type PrintWalkData = ();
-
-    pub struct PrintAccumulator {}
-
-    impl<'a, 'fmt> Accumulator<'a, PrintBaseLevel<'a, 'fmt>, PrintElemData, PrintWalkData, PrintWalkResult>
-    for PrintAccumulator {
-        fn new(bl: &PrintBaseLevel, e: &'a Element, ed: &PrintElemData) -> Self {
-            println!("{}{}", super::indent(ed.depth), e.name);
-            PrintAccumulator {
-            }
-        }
-        fn add(&mut self, wd: &PrintWalkData) -> PrintWalkResult {
-            Ok(())
-        }
-        fn summary(&self) -> PrintWalkResult {
-            Ok(())
-        }
-    }
-
+/*
     pub struct PrintWalkable<'a, 'fmt> {
         xml_doc:    &'a XmlDocument,
-        base:       PrintBaseLevel<'a, 'fmt>,
+        base:       RefCell<PrintBaseLevel<'a, 'fmt>>,
     }
 
     impl<'a, 'fmt> PrintWalkable<'a, 'fmt> {
         pub fn new(xml_doc: &'a XmlDocument, base: PrintBaseLevel<'a, 'fmt>) -> PrintWalkable<'a, 'fmt> {
             PrintWalkable{
                 xml_doc:    xml_doc,
-                base:       base,
+                base:       RefCell::new(base),
             }
         }
     }
 
-    impl<'a, 'fmt> Walkable<'a, PrintAccumulator, PrintBaseLevel<'a, 'fmt>, PrintElemData, PrintWalkData, PrintWalkResult> for PrintWalkable<'_, 'fmt> {
+    impl<'a, 'fmt> Walkable<'a, PrintAccumulator, PrintBaseLevel<'a, 'fmt>, PrintElemData, PrintWalkData, PrintWalkResult> for PrintWalkable<'a, 'fmt> {
         fn xml_document(&self) -> &XmlDocument {
             self.xml_doc
         }
-        fn base_level(&'a self) -> &'a PrintBaseLevel<'a, 'fmt> {
+        fn base_level_cell(&'a self) -> &'a RefCell<PrintBaseLevel<'a, 'fmt>> {
             &self.base
         }
     }
+*/
 
     struct PrintObj<'a> {
         xml_doc:    &'a XmlDocument,
@@ -217,11 +176,10 @@ mod print_tests {
         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
             let bl2 = PrintBaseLevel::new(f);
             let ed2 = PrintElemData::new(0);
-            let w2 = PrintWalkable::new(&self.xml_doc, bl2);
+            let w2 = WalkAndPrint::new(&self.xml_doc, bl2);
             w2.walk(&ed2)
         }
     }
-
 
     #[test]
     fn test_fmt_result() {

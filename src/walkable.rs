@@ -1,66 +1,8 @@
-//use std::collections::BTreeMap;
+use std::cell::RefCell;
 
 use crate::xml_document::{Element, XmlDocument};
 
 use std::ops::{FromResidual, Try};
-
-//use std::fmt::Display;
-
-pub trait WalkResult: Try {}
-
-/*
-#[derive(Debug)]
-enum WalkError {
-    One,
-}
-impl std::error::Error for WalkError {}
-impl fmt::Display for WalkError {
-    fn fmt<'b>(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result
-    {
-        write!(f, "{:?}", self)
-    }
-}
-*/
-
-/*
-pub struct Element {
-    name:           OwnedName,
-    _element_info:   ElementInfo,
-    subelements:    Vec<Element>,
-    _before_element: Vec::<XmlEvent>,
-    _content:        Vec::<XmlEvent>,
-    _after_element:  Vec::<XmlEvent>,
-}
-
-#[derive(Clone)]
-pub struct ElementInfo {
-    _lineno:     usize,
-    _attributes: Vec::<OwnedAttribute>,
-    _namespace:  Namespace,
-//    namespace:  Namespace<BTreeMap<String, String>>,
-}
-
-pub struct XmlDocument {
-    root:           Element,
-    document_info:  DocumentInfo,
-}
-impl XmlDocument {
-    pub fn new(element: Element, document_info: DocumentInfo) -> XmlDocument {
-        XmlDocument {
-            root:           element,
-            document_info:  document_info,
-        }
-    }
-}
-
-pub struct DocumentInfo{
-    _version:    XmlVersion,
-    _encoding:   String,
-    _standalone: Option<()>,
-}
-*/
-
-//=========================================================
 
 /**
  * Data for the Element being worked on by walk_down().
@@ -77,7 +19,7 @@ pub trait WalkData {}
 
 /**
  * Data stored at the root level of the Walkable and a reference to which is
- * returned by the Walkable base_level() function.
+ * returned by the Walkable base_level_cell() function.
  */
 pub trait BaseLevel {}
 
@@ -85,7 +27,7 @@ pub trait BaseLevel {}
  * Data stored for the peers of the Element a given invocation of walk_down()
  */
 pub trait Accumulator<'a, BL, ED, WD, WR> {
-    fn new(bl: &BL, e: &'a Element, ed: &ED) -> Self
+    fn new(bl: &RefCell<BL>, e: &'a Element, ed: &ED) -> Self
     where
         Self: Sized;
     fn add(&mut self, wd: &WD) -> WR;
@@ -104,19 +46,19 @@ pub trait Accumulator<'a, BL, ED, WD, WR> {
 pub trait Walkable<'a, AC, BL, ED, WD, WR>
 where
     AC: Accumulator<'a, BL, ED, WD, WR>,
-    BL: 'a,
+    BL: 'a + BaseLevel,
     ED: ElemData<BL, ED>,
     WR: Try<Output = WD>,
     WR: FromResidual,
 {
     fn xml_document(&self) -> &XmlDocument;
-    fn base_level(&'a self) -> &'a BL;
-    
-    // Start the walk at the root of the document
-    fn walk<'b: 'a>(&'b self, ed: &ED) -> WR
-    where   
+    fn base_level_cell(&'a self) -> &'a RefCell<BL>;
+
+    fn walk<'b>(&'b self, ed: &ED) -> WR
+    where
+        'b: 'a,
         Self: Sized,
-    {       
+    {
         let xml_doc = self.xml_document();
         let root = &xml_doc.root;
         self.walk_down(root, ed)
@@ -126,12 +68,11 @@ where
     where
         'b: 'a,
     {
-        let bl = self.base_level();
-        let mut acc = AC::new(&bl, element, ed);
+        let bl_ref = self.base_level_cell();
+        let mut acc = AC::new(bl_ref, element, ed);
 
         // Process subelements and collect WalkData results
         let mut wd_vec = Vec::<WD>::new();
-
         for elem in &element.subelements {
             let next_ed = ed.next_level(elem);
             let wd = self.walk_down(elem, &next_ed)?;
@@ -142,21 +83,21 @@ where
         for wd in &wd_vec {
             acc.add(wd)?;
         }
-
         acc.summary()
     }
 }
 
 #[cfg(test)]
 mod test_tests {
+    use std::cell::RefCell;
+    use std::collections::BTreeMap;
+    use std::fmt;
+
     use xml::attribute::OwnedAttribute;
     use xml::common::XmlVersion;
     use xml::name::OwnedName;
     use xml::namespace::Namespace;
     use xml::reader::XmlEvent;
-
-    use std::collections::BTreeMap;
-    use std::fmt;
 
     use crate::xml_document::{Element, XmlDocument};
     use crate::xml_document_factory::{DocumentInfo, ElementInfo};
@@ -166,9 +107,10 @@ mod test_tests {
 
     #[derive(Debug)]
     pub enum TestWalkError {
-        FAILED,
     }
+
     impl std::error::Error for TestWalkError {}
+
     impl fmt::Display for TestWalkError {
         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
             write!(f, "{:?}", self)
@@ -177,17 +119,27 @@ mod test_tests {
 
     type TestWalkResult = Result<TestWalkData, TestWalkError>;
 
+    /**
+     * We don't have any data at the base level as it's all returned
+     * directly
+     */
     pub struct TestBaseLevel {}
+
     impl TestBaseLevel {
         pub fn new() -> TestBaseLevel {
             TestBaseLevel {}
         }
     }
+
     impl BaseLevel for TestBaseLevel {}
 
+    /**
+     * Keep track of the depth of nexting
+     */
     pub struct TestElemData {
         depth:  usize,
     }
+
     impl TestElemData {
         pub fn new(depth: usize) -> TestElemData {
             TestElemData {
@@ -195,6 +147,7 @@ mod test_tests {
             }
         }
     }
+
     impl ElemData<TestBaseLevel, TestElemData> for TestElemData {
         fn next_level(&self, _element: &Element) -> TestElemData {
             TestElemData::new(self.depth + 1)
@@ -217,10 +170,11 @@ mod test_tests {
     pub struct TestAccumulator {
         result: String,
     }
+
     impl<'a> Accumulator<'a, TestBaseLevel, TestElemData, TestWalkData, TestWalkResult>
     for TestAccumulator
     {
-        fn new(_bl: &TestBaseLevel, e: &'a Element, ed: &TestElemData) -> Self {
+        fn new(_bl: &RefCell<TestBaseLevel>, e: &'a Element, ed: &TestElemData) -> Self {
             TestAccumulator {
                 result: indent(ed.depth) +  e.name.local_name.as_str() + "\n",
             }
@@ -238,14 +192,14 @@ mod test_tests {
 
     pub struct TestWalkable<'a> {
         xml_doc:    &'a XmlDocument,
-        base:       TestBaseLevel,
+        base:       RefCell<TestBaseLevel>,
     }
 
     impl<'a> TestWalkable<'a> {
         pub fn new(xml_doc: &'a XmlDocument, base: TestBaseLevel) -> TestWalkable<'a> {
             TestWalkable{
                 xml_doc:    xml_doc,
-                base:       base,
+                base:       RefCell::new(base),
             }
         }
     }
@@ -254,7 +208,7 @@ mod test_tests {
         fn xml_document(&self) -> &XmlDocument {
             self.xml_doc
         }
-        fn base_level(&self) -> &TestBaseLevel {
+        fn base_level_cell(&self) -> &RefCell<TestBaseLevel> {
             &self.base
         }
     }
