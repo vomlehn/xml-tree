@@ -90,17 +90,6 @@ impl<'a> XmlSchema<'a> {
 }
 
 /*
-impl fmt::Display for XmlSchema<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let walkable_print = WalkAndPrint::new(self, f);
-        let depth = 0;
-        write!(f, "Display for XmlSchema unimplemented, depth {}", depth)?;
-        Ok(())
-    }
-}
-*/
-
-/*
  * DirectElementInner
  */
 impl<'a> DirectElementInner<'a> {

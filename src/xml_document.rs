@@ -13,13 +13,11 @@ use xml::name::OwnedName;
 use xml::namespace::Namespace;
 use xml::reader::XmlEvent;
 
-//use crate::walk_and_print::{PrintWalk, PrintWalkData, PrintWalkResult};
 use crate::parser::LineNumber;
 use crate::xml_document_error::XmlDocumentError;
 use crate::xml_document_factory::XmlDocumentFactory;
 use crate::xml_schema::XmlSchema;
-//use crate::walk_and_print::{PrintElemData, WalkAndPrint};
-//use crate::walkable::Walkable;
+use crate::walk_and_print::XmlPrint;
 
 /*
  * Parsed XML document
@@ -71,13 +69,9 @@ impl XmlDocument {
 }
 
 impl<'a> fmt::Display for XmlDocument {
-    fn fmt(&self, _f: &mut fmt::Formatter<'_>) -> fmt::Result {
-/*
-        let walkable_print = WalkAndPrint::new(&self, f);
-        let ed = PrintElemData::new(0);
-        walkable_print.walk(&mut ed);
-*/
-panic!("Fix walk() return type");
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut xml_print = XmlPrint::new(f, self);
+        xml_print.walk()
     }
 }
 
