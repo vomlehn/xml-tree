@@ -3,66 +3,35 @@
  */
 // FIXME: make sure errors returned are appropriate
 
-//use std::any::Any;
 use std::fmt;
 // FIXME: implement some more iterators
 //use std::iter;
 use std::marker::Sync;
 use std::ops::Deref;
-use std::sync::{Arc, Mutex, MutexGuard};
+//use std::sync::{Arc, Mutex, MutexGuard};
 use std::vec;
 
 use crate::xml_document_error::XmlDocumentError;
 
-pub type SchemaElementType<'a> = Arc<dyn SchemaElement<'a> + Sync>;
+pub type SchemaElementType<'a> = dyn SchemaElement<'a> + Sync;
+
+impl<'a> fmt::Display for SchemaElementType<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}\n", self.name())
+    }
+}
+
+impl<'a> fmt::Debug for SchemaElementType<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}\n", self.name())
+    }
+}
 pub type SubelementsType<'a> = Vec<SchemaElementType<'a>>;
 
-/*
- * Top-level definition of the schema
- * name:        Name of the structure when printed
- * element:     Root element
- */
-#[derive(Clone)]
-pub struct XmlSchemaInner<'a> {
-    pub name: &'a str,
-    pub element: Arc<Mutex<SchemaElementType<'a>>>,
-}
-
+//#[derive(Debug)]
 pub struct XmlSchema<'a> {
-    inner: XmlSchemaInner<'a>,
-}
-
-/*
- * Information for each XML Element
- * name:        Element name, which might not be unique
- * attributes:  Attributes for the element
- * subelements: All the elements under this element
- */
-struct DirectElementInner<'a> {
-    name: &'a str,
-    _attributes: Vec<SchemaAttribute>,
-    subelements: Arc<Mutex<SubelementsType<'a>>>,
-}
-
-pub struct DirectElement<'a> {
-    inner: DirectElementInner<'a>,
-}
-
-#[derive(Clone)]
-pub struct IndirectElement<'a> {
-    direct_element: &'a DirectElement<'a>,
-}
-
-#[derive(Clone, Debug)]
-pub struct SchemaAttribute {}
-
-impl<'a> XmlSchemaInner<'a> {
-    pub fn new(name: &'a str, element: SchemaElementType<'a>) -> Self {
-        Self {
-            name: name,
-            element: Arc::new(Mutex::new(element)),
-        }
-    }
+    // FIXME: make non public
+    pub inner: XmlSchemaInner<'a>,
 }
 
 /*
@@ -79,7 +48,7 @@ impl<'a> XmlSchema<'a> {
         &self.inner.name
     }
 
-    pub fn element(&self) -> MutexGuard<'_, SchemaElementType<'a>> {
+    pub fn element(&self) -> SchemaElementType<'a> {
         self.inner.element.lock().unwrap()
     }
 
@@ -89,6 +58,74 @@ impl<'a> XmlSchema<'a> {
     }
 }
 
+impl<'a> fmt::Display for XmlSchema<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}\n", self.inner.name)
+    }
+}
+
+impl<'a> fmt::Debug for XmlSchema<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}\n", self.inner.name)
+    }
+}
+
+/*
+ * Top-level definition of the schema
+ * name:        Name of the structure when printed
+ * element:     Root element
+ */
+#[derive(Clone)]
+pub struct XmlSchemaInner<'a> {
+    pub name: &'a str,
+    pub element: MutexSchemaElementType<'a>,
+}
+
+impl<'a> XmlSchemaInner<'a> {
+    pub fn new(name: &'a str, element: SchemaElementType<'a>) -> Self {
+        Self {
+            name: name,
+            element: element,
+        }
+    }
+}
+
+impl<'a> fmt::Display for XmlSchemaInner<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}\n", self.name)
+    }
+}
+
+impl<'a> fmt::Debug for XmlSchemaInner<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}\n", self.name)
+    }
+}
+
+/*
+ * Information for each XML Element
+ * name:        Element name, which might not be unique
+ * attributes:  Attributes for the element
+ * subelements: All the elements under this element
+ */
+struct DirectElementInner<'a> {
+    name: &'a str,
+    _attributes: Vec<SchemaAttribute>,
+    subelements: SubelementsType<'a>,
+}
+
+pub struct DirectElement<'a> {
+    inner: DirectElementInner<'a>,
+}
+
+#[derive(Clone)]
+pub struct IndirectElement<'a> {
+    direct_element: &'a DirectElement<'a>,
+}
+
+#[derive(Clone, Debug)]
+pub struct SchemaAttribute {}
+
 /*
  * DirectElementInner
  */
@@ -97,7 +134,7 @@ impl<'a> DirectElementInner<'a> {
         DirectElementInner {
             name: name,
             _attributes: vec![],
-            subelements: Arc::new(Mutex::new(subelements)),
+            subelements: subelements,
         }
     }
 }
@@ -116,7 +153,7 @@ impl<'a> DirectElement<'a> {
         &self.inner.name
     }
 
-    pub fn subelements(&self) -> MutexGuard<'_, SubelementsType<'a>> {
+    pub fn subelements(&self) -> SubelementsType<'a> {
         self.inner.subelements.lock().unwrap()
     }
 }
@@ -135,7 +172,7 @@ impl<'a> SchemaElement<'a> for DirectElement<'a> {
             .cloned()
     }
 
-    fn subelements(&self) -> MutexGuard<'_, SubelementsType<'a>> {
+    fn subelements(&self) -> SubelementsType<'a> {
         self.inner.subelements.lock().unwrap()
     }
 }
@@ -149,16 +186,16 @@ impl fmt::Display for DirectElement<'_> {
 
 /* FIXME: impelement this
 struct DirectElementCollection<'a> {
-    subelements: Vec<dyn Iterator<Item = &'a Vec<Arc<Mutex<dyn SchemaElement<'a> + Sync>>>>>,
+    subelements: Vec<dyn Iterator<Item = &'a Vec<dyn SchemaElement<'a> + Sync>>>,
 }
 
 // Owned Iterator
 struct DirectElementIterator<'a> {
-    subelements: Vec<dyn Iterator<Item = &'a Vec<Arc<Mutex<dyn SchemaElement<'a> + Sync>>>>>,
+    subelements: Vec<dyn Iterator<Item = &'a Vec<dyn SchemaElement<'a> + Sync>>>,
 }
 
 impl<'a> Iterator for DirectElementIterator<'a> {
-    type Item = Arc<Mutex<dyn SchemaElement<'a> + Sync>>;
+    type Item = dyn SchemaElement<'a> + Sync;
 
     fn next(&mut self) -> Option<Self::Item> {
         while let Some(tos) = self.subelements.last_mut() {
@@ -176,8 +213,8 @@ impl<'a> Iterator for DirectElementIterator<'a> {
 
 // Owned IntoIterator
 impl<'a> IntoIterator for DirectElementCollection<'a> {
-    type Item = Arc<Mutex<DirectElement<'a>>>; // Owns the items when iterating
-    type IntoIter = std::vec::IntoIter<Arc<Mutex<DirectElement<'a>>>>;
+    type Item = DirectElement<'a>>>; // Owns the items when iterating
+    type IntoIter = std::vec::IntoIter<DirectElement<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.subelements.into_iter()
@@ -187,10 +224,10 @@ impl<'a> IntoIterator for DirectElementCollection<'a> {
 // Borrowed IntoIterator
 impl<'aaa> IntoIterator for &'aaa DirectElementIterator<'_> {
     type Item = &'aaa DirectElement<'aaa>;
-    type IntoIter = std::iter::Map<std::slice::Iter<'aaa, Arc<Mutex<DirectElement<'aaa>>>, fn(&Arc<DirectElement>) -> &'aaa DirectElement<'aaa>>>;
+    type IntoIter = std::iter::Map<std::slice::Iter<'aaa, DirectElement<'aaa>, fn(&DirectElement) -> &'aaa DirectElement<'aaa>>>;
 
     fn into_iter(self) -> Self::IntoIter {
-        self.subelements.iter().map(|b| &**b) // Convert `&Arc<dyn DirectElement>` to `&DirectElement`
+        self.subelements.iter().map(|b| &**b) // Convert `&dyn DirectElement` to `&DirectElement`
     }
 }
 
@@ -198,8 +235,8 @@ impl<'aaa> IntoIterator for &'aaa DirectElementIterator<'_> {
 impl<'aaa> IntoIterator for &'aaa mut DirectElementCollection<'_> {
     type Item = &'aaa mut DirectElement<'aaa>;
     type IntoIter = std::iter::Map<
-        std::slice::IterMut<'aaa, Arc<Mutex<DirectElement<'aaa>>>>,
-        fn(&mut Arc<Mutex<DirectElement>) -> &'aaa mut DirectElement<'aaa>>,
+        std::slice::IterMut<'aaa, DirectElement<'aaa>>,
+        fn(&mut DirectElement) -> &'aaa mut DirectElement<'aaa>>,
     >;
 
     fn into_iter(self) -> Self::IntoIter {
@@ -219,17 +256,17 @@ pub trait SchemaElement<'a>: Sync + Send: Deref + DerefMut {
 
 // Collection of DirectElements
 pub struct DirectElementCollection<'a> {
-    subelements: Vec<Arc<Mutex<dyn SchemaElement<'a> + Sync>>>,
+    subelements: Vec<dyn SchemaElement<'a> + Sync>,
 }
 
 // Owned Iterator
 pub struct DirectElementIterator<'a> {
-    subelements: vec::IntoIter<Arc<Mutex<dyn SchemaElement<'a> + Sync>>>,
+    subelements: vec::IntoIter<dyn SchemaElement<'a> + Sync>,
 }
 
 // Implement `Iterator` for `DirectElementIterator`
 impl<'a> Iterator for DirectElementIterator<'a> {
-    type Item = Arc<Mutex<dyn SchemaElement<'a> + Sync>>;
+    type Item = dyn SchemaElement<'a> + Sync;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.subelements.next()
@@ -238,7 +275,7 @@ impl<'a> Iterator for DirectElementIterator<'a> {
 
 // **Owned IntoIterator**
 impl<'a> IntoIterator for DirectElementCollection<'a> {
-    type Item = Arc<Mutex<dyn SchemaElement<'a> + Sync>>;
+    type Item = dyn SchemaElement<'a> + Sync;
     type IntoIter = DirectElementIterator<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
@@ -253,9 +290,9 @@ impl<'a> IntoIterator for DirectElementCollection<'a> {
 impl<'a> IntoIterator for &'a DirectElementCollection<'a> {
     type Item = &'a dyn SchemaElement<'a>;
     type IntoIter = iter::Map<
-        std::slice::Iter<'a, Arc<Mutex<dyn SchemaElement<'a> + Sync>>>,
+        std::slice::Iter<'a, dyn SchemaElement<'a> + Sync>,
 
-        fn(&Arc::<Mutex<dyn SchemaElement<'a> + Sync>>) -> &'a dyn SchemaElement<'a>>;
+        fn(&dyn SchemaElement<'a> + Sync) -> &'a dyn SchemaElement<'a>>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.subelements.iter()
@@ -266,8 +303,8 @@ impl<'a> IntoIterator for &'a DirectElementCollection<'a> {
 impl<'a> IntoIterator for &'a mut DirectElementCollection<'a> {
     type Item = &'a mut dyn SchemaElement<'a>;
     type IntoIter = iter::Map<
-        std::slice::IterMut<'a, Arc<Mutex<dyn SchemaElement<'a> + Sync>>>,
-        fn(&mut Arc<Mutex<dyn SchemaElement<'a> + Sync>>) -> &'a mut dyn SchemaElement<'a>,
+        std::slice::IterMut<'a, dyn SchemaElement<'a> + Sync>,
+        fn(&mut dyn SchemaElement<'a> + Sync) -> &'a mut dyn SchemaElement<'a>,
     >;
 
     fn into_iter(self) -> Self::IntoIter {
@@ -282,10 +319,10 @@ impl<'a> IntoIterator for &'a mut DirectElementCollection<'a> {
 impl IndirectElement<'_> {
     pub fn new<'bbb, 'aaa: 'bbb>(
         direct_element: &'aaa DirectElement<'aaa>,
-    ) -> Arc<dyn SchemaElement<'aaa> + 'bbb> {
-        Arc::new(IndirectElement {
+    ) -> dyn SchemaElement<'aaa> + 'bbb {
+        IndirectElement {
             direct_element: direct_element,
-        })
+        }
     }
 }
 
@@ -298,7 +335,7 @@ impl<'aaa> SchemaElement<'aaa> for IndirectElement<'aaa> {
         self.direct_element.get(name)
     }
 
-    fn subelements<'b>(&self) -> MutexGuard<'_, SubelementsType<'aaa>> {
+    fn subelements<'b>(&self) -> SubelementsType<'aaa> {
         self.direct_element.subelements()
     }
 }
@@ -322,7 +359,7 @@ impl fmt::Display for IndirectElement<'_> {
 pub trait SchemaElement<'aaa>: Sync + Send {
     fn get(&self, name: &str) -> Option<SchemaElementType<'aaa>>;
     fn name(&self) -> &'aaa str;
-    fn subelements<'b>(&self) -> MutexGuard<'_, SubelementsType<'aaa>>;
+    fn subelements<'b>(&self) -> SubelementsType<'aaa>;
 
     fn display_element(&self, f: &mut fmt::Formatter, depth: usize) -> fmt::Result {
         const INDENT_STR: &str = "   ";
@@ -348,6 +385,7 @@ pub trait SchemaElement<'aaa>: Sync + Send {
 }
 
 /* FIXME: implement this
+#[derive(Debug)]
 struct SchemaElementCollection<'aaa> {
 //    schema_elements: Vec<dyn Iterator<Item = &'aaa dyn SchemaElement<'aaa>>>,
 //    schema_elements: Vec<impl Iterator<Item = Box<dyn SchemaElement<'aaa>>>>,
@@ -356,12 +394,13 @@ struct SchemaElementCollection<'aaa> {
 }
 
 // Owned Iterator
+#[derive(Debug)]
 struct SchemaElementIterator<'aaa> {
-    schema_elements: Vec<Arc<Mutex<dyn Iterator<Item = Arc<&'aaa dyn SchemaElement<'aaa>>>>>>,
+    schema_elements: Vec<dyn Iterator<Item = &'aaa dyn SchemaElement<'aaa>>>,
 }
 
 impl<'aaa> Iterator for SchemaElementIterator<'aaa> {
-    type Item = Arc<Mutex<&'aaa dyn SchemaElement<'aaa>>>;
+    type Item = &'aaa dyn SchemaElement<'aaa>;
 
     fn next(&mut self) -> Option<Self::Item> {
         while let Some(tos) = self.schema_elements.last() {
@@ -383,9 +422,9 @@ impl<'aaa> Iterator for SchemaElementIterator<'aaa> {
 
 // Owned IntoIterator
 impl<'a> IntoIterator for SchemaElementCollection<'a> {
-    type Item = Arc<Mutex<&'a dyn SchemaElement<'a>>>;
+    type Item = &'a dyn SchemaElement<'a>;
 // FIXME: remove this
-//    type IntoIter = Vec<Arc<Mutex<Self::IntoIter<Arc<&dyn SchemaElement>>>>>;
+//    type IntoIter = Vec<Self::IntoIter<&dyn SchemaElement>>;
 //    type IntoIter = &'a dyn Iterator<Item = Self::Item>;
     type IntoIter = SchemaElementIterator<'a>;
 
@@ -398,8 +437,8 @@ impl<'a> IntoIterator for SchemaElementCollection<'a> {
 impl<'aaa> IntoIterator for &'aaa SchemaElementIterator<'aaa> {
     type Item = &'aaa dyn SchemaElement<'aaa>;
     type IntoIter = std::iter::Map<
-        std::slice::Iter<'aaa, Arc<Mutex<(dyn SchemaElement<'aaa>)>>>,
-        fn(&Arc::<dyn SchemaElement<'aaa>>) -> &'aaa (dyn SchemaElement<'aaa> + 'aaa)
+        std::slice::Iter<'aaa, (dyn SchemaElement<'aaa>)>,
+        fn(&dyn SchemaElement<'aaa>) -> &'aaa (dyn SchemaElement<'aaa> + 'aaa)
 
     fn into_iter(self) -> Self::IntoIter {
         self.schema_elements.iter().map(|b| b.as_ref())
@@ -410,8 +449,8 @@ impl<'aaa> IntoIterator for &'aaa SchemaElementIterator<'aaa> {
 impl<'aaa> IntoIterator for &'aaa mut SchemaElementCollection<'_> {
     type Item = &'aaa mut (dyn SchemaElement<'aaa> + Sync);
     type IntoIter = std::iter::Map<
-        std::slice::IterMut<'aaa, Arc<Mutex<dyn SchemaElement<'aaa>>>>,
-        fn(&mut Arc<dyn SchemaElement>) -> &'aaa mut (dyn SchemaElement<'aaa> + Sync),
+        std::slice::IterMut<'aaa, dyn SchemaElement<'aaa>>,
+        fn(&mut dyn SchemaElement) -> &'aaa mut (dyn SchemaElement<'aaa> + Sync),
     >;
 
     fn into_iter(self) -> Self::IntoIter {
