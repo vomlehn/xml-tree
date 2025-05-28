@@ -25,11 +25,55 @@ pub type SubelementsType<'a> = Vec<SchemaElementType<'a>>;
 #[derive(Clone)]
 pub struct XmlSchemaInner<'a> {
     pub name: &'a str,
-    pub element: Arc<Mutex<SchemaElementType<'a>>>,
+    pub element: Arc<Mutex<Arc<dyn SchemaElement<'a> + Sync>>>,
+}
+
+impl<'a> XmlSchemaInner<'a> {
+    pub fn display(&self) {
+        println!("XmlSchemaInner::display");
+    }
+}
+
+impl fmt::Display for XmlSchemaInner<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "inner {}", self.name);
+        write!(f, "...{}", self.element.lock().unwrap())
+    }
+}
+
+impl fmt::Debug for XmlSchemaInner<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "inner \"{}\"\n", self.name)?;
+        write!(f, "element {:?}\n", self.element.lock().unwrap())
+    }
 }
 
 pub struct XmlSchema<'a> {
-    inner: XmlSchemaInner<'a>,
+    pub inner: XmlSchemaInner<'a>,
+}
+
+impl<'a> XmlSchema<'a> {
+    pub fn display(&self) {
+        println!("XmlSchema::display");
+        println!("{}", self.inner);
+    }
+}
+
+pub struct XmlSchemaPrint {
+}
+
+impl<'a> fmt::Display for XmlSchema<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.inner)
+/*
+        write!(f, "direct element {}\n", self.name())?;
+        write!(f, "subelements:\n")?;
+        for element in &*self.subelements() {
+            write!(f, "{:?}\n", element)?;
+        }
+        Ok(())
+*/
+    }
 }
 
 /*
@@ -44,20 +88,11 @@ struct DirectElementInner<'a> {
     subelements: Arc<Mutex<SubelementsType<'a>>>,
 }
 
-pub struct DirectElement<'a> {
-    inner: DirectElementInner<'a>,
-}
-
-#[derive(Clone)]
-pub struct IndirectElement<'a> {
-    direct_element: &'a DirectElement<'a>,
-}
-
 #[derive(Clone, Debug)]
 pub struct SchemaAttribute {}
 
 impl<'a> XmlSchemaInner<'a> {
-    pub fn new(name: &'a str, element: SchemaElementType<'a>) -> Self {
+    pub fn new(name: &'a str, element: Arc<dyn SchemaElement<'a> + Sync>) -> Self {
         Self {
             name: name,
             element: Arc::new(Mutex::new(element)),
@@ -69,7 +104,7 @@ impl<'a> XmlSchemaInner<'a> {
  * XmlSchema
  */
 impl<'a> XmlSchema<'a> {
-    pub fn new(name: &'a str, element: SchemaElementType<'a>) -> XmlSchema<'a> {
+    pub fn new(name: &'a str, element: Arc<dyn SchemaElement<'a> + Sync>) -> XmlSchema<'a> {
         XmlSchema {
             inner: XmlSchemaInner::new(name, element),
         }
@@ -79,7 +114,7 @@ impl<'a> XmlSchema<'a> {
         &self.inner.name
     }
 
-    pub fn element(&self) -> MutexGuard<'_, SchemaElementType<'a>> {
+    pub fn element(&self) -> MutexGuard<'_, Arc<dyn SchemaElement<'a> + Sync>> {
         self.inner.element.lock().unwrap()
     }
 
@@ -105,6 +140,10 @@ impl<'a> DirectElementInner<'a> {
 /*
  * DirectElement
  */
+pub struct DirectElement<'a> {
+    inner: DirectElementInner<'a>,
+}
+
 impl<'a> DirectElement<'a> {
     pub fn new(name: &'a str, subelements: SubelementsType<'a>) -> DirectElement<'a> {
         DirectElement {
@@ -122,12 +161,16 @@ impl<'a> DirectElement<'a> {
 }
 
 impl<'a> SchemaElement<'a> for DirectElement<'a> {
+    fn debug(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
+
     fn name(&self) -> &'a str {
         self.name()
     }
 
     // Find an element whose name matches the given one
-    fn get(&self, name: &str) -> Option<SchemaElementType<'a>> {
+    fn get(&self, name: &str) -> Option<Arc<dyn SchemaElement<'a> + Sync>> {
         let subelements = self.subelements();
         subelements
             .iter()
@@ -140,12 +183,34 @@ impl<'a> SchemaElement<'a> for DirectElement<'a> {
     }
 }
 
+/*
+impl<'a> fmt::Display for DirectElement<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "inner {}", self.name())
+    }
+}
+*/
+//    subelements: Arc<Mutex<SubelementsType<'a>>>,
+
+impl<'a> fmt::Debug for DirectElement<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "direct element {}\n", self.name())?;
+        write!(f, "subelements:\n")?;
+        for element in &*self.subelements() {
+            write!(f, "{:?}\n", element)?;
+        }
+        Ok(())
+    }
+}
+
+/*
 impl fmt::Display for DirectElement<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let depth = 0;
         self.display_element(f, depth)
     }
 }
+*/
 
 /* FIXME: impelement this
 struct DirectElementCollection<'a> {
@@ -279,6 +344,11 @@ impl<'a> IntoIterator for &'a mut DirectElementCollection<'a> {
 /*
  * IndirectElement
  */
+#[derive(Clone)]
+pub struct IndirectElement<'a> {
+    direct_element: &'a DirectElement<'a>,
+}
+
 impl IndirectElement<'_> {
     pub fn new<'bbb, 'aaa: 'bbb>(
         direct_element: &'aaa DirectElement<'aaa>,
@@ -290,6 +360,10 @@ impl IndirectElement<'_> {
 }
 
 impl<'aaa> SchemaElement<'aaa> for IndirectElement<'aaa> {
+    fn debug(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
+
     fn name(&self) -> &'aaa str {
         self.direct_element.name()
     }
@@ -303,10 +377,9 @@ impl<'aaa> SchemaElement<'aaa> for IndirectElement<'aaa> {
     }
 }
 
-impl fmt::Display for IndirectElement<'_> {
+impl fmt::Debug for IndirectElement<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let depth = 0;
-        self.direct_element.display_element(f, depth)
+        write!(f, "indirect {:?}", self.direct_element)
     }
 }
 
@@ -320,6 +393,7 @@ impl fmt::Display for IndirectElement<'_> {
  * get:     Search for an element by name
  */
 pub trait SchemaElement<'aaa>: Sync + Send {
+    fn debug(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result;
     fn get(&self, name: &str) -> Option<SchemaElementType<'aaa>>;
     fn name(&self) -> &'aaa str;
     fn subelements<'b>(&self) -> MutexGuard<'_, SubelementsType<'aaa>>;
@@ -328,8 +402,9 @@ pub trait SchemaElement<'aaa>: Sync + Send {
         const INDENT_STR: &str = "   ";
         let indent_string = INDENT_STR.to_string().repeat(depth);
 
-        write!(f, "{}{}", indent_string, self.name())?;
+        write!(f, "{}\"{}\"", indent_string, self.name())?;
         let subelements = self.subelements();
+        println!("subelements.len {}", subelements.len());
 
         if subelements.len() == 0 {
             write!(f, " []\n")?;
@@ -344,6 +419,24 @@ pub trait SchemaElement<'aaa>: Sync + Send {
         }
 
         Ok(())
+    }
+}
+
+/* Check all Display impls to ensure status is passed back properly */
+impl fmt::Display for dyn SchemaElement<'_> + Sync + 'static {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "schema element {}\n", self.name())?;
+        write!(f, "...{} subelements\n", self.subelements().len());
+        for element in &*self.subelements() {
+            write!(f, "{}", element)?;
+        }
+        Ok(())
+    }
+}
+
+impl fmt::Debug for dyn SchemaElement<'_> + Sync + 'static {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.debug(f)
     }
 }
 
@@ -426,3 +519,471 @@ impl<'aaa> IntoIterator for &'aaa mut SchemaElementCollection<'_> {
     }
 }
 */
+
+
+/**
+ * Data for the Element being worked on by walk_down().
+ */
+pub struct ElemData {
+    depth:  usize,
+}
+
+impl ElemData {
+    fn new(depth: usize) -> ElemData {
+        ElemData {
+            depth:  depth,
+        }
+    }
+}
+
+/**
+ * Data stored at the root level of the Walkable and a reference to which is
+ * returned by the Walkable base_level_cell() function.
+ */
+pub struct BaseLevel<'a> {
+    name:   &'a str,
+}
+
+/**
+ */
+pub struct WalkSchema<'a> {
+    f:      &'a mut fmt::Formatter<'a>,
+    name:   &'a str,
+    schema: &'a XmlSchema<'a>,
+}
+
+/*
+impl<'a> WalkSchema<'a> {
+    fn new(f: &mut fmt::Formatter, name: &'a str, schema: &XmlSchema) -> WalkSchema<'a> {
+        WalkSchema {
+            f:      f,
+            name:   name,
+            schema: schema.
+        }
+    }
+
+//    fn base_level_cell(&'a self) -> &'a RefCell<BL>;
+
+    fn walk<'b>(&'b self) -> fmt::Result {
+    {
+        write!(self.f, front_matter())?;
+        self.walk_down(&schema.inner.element)
+    }
+/*
+ * This is the parsed scheme for XSD files.
+ */
+use lazy_static::lazy_static;
+use std::sync::Arc;
+
+use crate::xml_schema::{DirectElement, XmlSchema};
+
+lazy_static! {
+    pub static ref XSD_SCHEMA: XmlSchema<'static> = XmlSchema::new(
+        "XsdSchema",
+        Arc::new(DirectElement::new(
+            "schema",
+            vec!(
+                Arc::new(DirectElement::new("import", vec!())),
+                Arc::new(DirectElement::new(
+                    "annotation",
+                    vec!(Arc::new(DirectElement::new("documentation", vec!())),)
+                )),
+                Arc::new(DirectElement::new(
+                    "element",
+                    vec!(
+                        Arc::new(DirectElement::new(
+                            "annotation",
+                            vec!(Arc::new(DirectElement::new("documentation", vec!())),)
+                        )),
+                        Arc::new(DirectElement::new(
+                            "key",
+                            vec!(
+                                Arc::new(DirectElement::new(
+                                    "annotation",
+                                    vec!(Arc::new(DirectElement::new("documentation", vec!())),)
+                                )),
+                                Arc::new(DirectElement::new("selector", vec!())),
+                                Arc::new(DirectElement::new("field", vec!())),
+                            )
+                        )),
+                    )
+                )),
+                Arc::new(DirectElement::new(
+                    "complexType",
+                    vec!(
+                        Arc::new(DirectElement::new(
+                            "annotation",
+                            vec!(
+                                Arc::new(DirectElement::new("documentation", vec!())),
+                                Arc::new(DirectElement::new("appinfo", vec!())),
+                            )
+                        )),
+                        Arc::new(DirectElement::new(
+                            "attribute",
+                            vec!(
+                                Arc::new(DirectElement::new(
+                                    "annotation",
+                                    vec!(
+                                        Arc::new(DirectElement::new("documentation", vec!())),
+                                        Arc::new(DirectElement::new("appinfo", vec!())),
+                                    )
+                                )),
+                                Arc::new(DirectElement::new(
+                                    "simpleType",
+                                    vec!(Arc::new(DirectElement::new(
+                                        "restriction",
+                                        vec!(Arc::new(DirectElement::new(
+                                            "enumeration",
+                                            vec!(Arc::new(DirectElement::new(
+                                                "annotation",
+                                                vec!(Arc::new(DirectElement::new(
+                                                    "documentation",
+                                                    vec!()
+                                                )),)
+                                            )),)
+                                        )),)
+                                    )),)
+                                )),
+                            )
+                        )),
+                        Arc::new(DirectElement::new(
+                            "choice",
+                            vec!(
+                                Arc::new(DirectElement::new(
+                                    "annotation",
+                                    vec!(Arc::new(DirectElement::new("documentation", vec!())),)
+                                )),
+                                Arc::new(DirectElement::new(
+                                    "element",
+                                    vec!(
+                                        Arc::new(DirectElement::new(
+                                            "annotation",
+                                            vec!(Arc::new(DirectElement::new(
+                                                "documentation",
+                                                vec!()
+                                            )),)
+                                        )),
+                                        Arc::new(DirectElement::new(
+                                            "key",
+                                            vec!(
+                                                Arc::new(DirectElement::new(
+                                                    "annotation",
+                                                    vec!(Arc::new(DirectElement::new(
+                                                        "documentation",
+                                                        vec!()
+                                                    )),)
+                                                )),
+                                                Arc::new(DirectElement::new("selector", vec!())),
+                                                Arc::new(DirectElement::new("field", vec!())),
+                                            )
+                                        )),
+                                    )
+                                )),
+                            )
+                        )),
+                        Arc::new(DirectElement::new(
+                            "sequence",
+                            vec!(
+                                Arc::new(DirectElement::new(
+                                    "annotation",
+                                    vec!(
+                                        Arc::new(DirectElement::new("documentation", vec!())),
+                                        Arc::new(DirectElement::new("appinfo", vec!())),
+                                    )
+                                )),
+                                Arc::new(DirectElement::new(
+                                    "element",
+                                    vec!(Arc::new(DirectElement::new(
+                                        "annotation",
+                                        vec!(
+                                            Arc::new(DirectElement::new("documentation", vec!())),
+                                            Arc::new(DirectElement::new("appinfo", vec!())),
+                                        )
+                                    )),)
+                                )),
+                                Arc::new(DirectElement::new(
+                                    "choice",
+                                    vec!(
+                                        Arc::new(DirectElement::new(
+                                            "annotation",
+                                            vec!(Arc::new(DirectElement::new(
+                                                "documentation",
+                                                vec!()
+                                            )),)
+                                        )),
+                                        Arc::new(DirectElement::new(
+                                            "element",
+                                            vec!(Arc::new(DirectElement::new(
+                                                "annotation",
+                                                vec!(
+                                                    Arc::new(DirectElement::new(
+                                                        "documentation",
+                                                        vec!()
+                                                    )),
+                                                    Arc::new(DirectElement::new("appinfo", vec!())),
+                                                )
+                                            )),)
+                                        )),
+                                    )
+                                )),
+                            )
+                        )),
+                        Arc::new(DirectElement::new(
+                            "simpleContent",
+                            vec!(Arc::new(DirectElement::new(
+                                "extension",
+                                vec!(Arc::new(DirectElement::new("attribute", vec!())),)
+                            )),)
+                        )),
+                        Arc::new(DirectElement::new(
+                            "sequence",
+                            vec!(
+                                Arc::new(DirectElement::new(
+                                    "element",
+                                    vec!(Arc::new(DirectElement::new(
+                                        "annotation",
+                                        vec!(
+                                            Arc::new(DirectElement::new("documentation", vec!())),
+                                            Arc::new(DirectElement::new("appinfo", vec!())),
+                                        )
+                                    )),)
+                                )),
+                                Arc::new(DirectElement::new(
+                                    "choice",
+                                    vec!(
+                                        Arc::new(DirectElement::new(
+                                            "annotation",
+                                            vec!(Arc::new(DirectElement::new(
+                                                "documentation",
+                                                vec!()
+                                            )),)
+                                        )),
+                                        Arc::new(DirectElement::new(
+                                            "element",
+                                            vec!(Arc::new(DirectElement::new(
+                                                "annotation",
+                                                vec!(
+                                                    Arc::new(DirectElement::new(
+                                                        "documentation",
+                                                        vec!()
+                                                    )),
+                                                    Arc::new(DirectElement::new("appinfo", vec!())),
+                                                )
+                                            )),)
+                                        )),
+                                    )
+                                )),
+                            )
+                        )),
+                        Arc::new(DirectElement::new(
+                            "complexContent",
+                            vec!(Arc::new(DirectElement::new(
+                                "extension",
+                                vec!(
+                                    Arc::new(DirectElement::new(
+                                        "attribute",
+                                        vec!(Arc::new(DirectElement::new(
+                                            "annotation",
+                                            vec!(
+                                                Arc::new(DirectElement::new(
+                                                    "documentation",
+                                                    vec!()
+                                                )),
+                                                Arc::new(DirectElement::new("appinfo", vec!())),
+                                            )
+                                        )),)
+                                    )),
+                                    Arc::new(DirectElement::new(
+                                        "choice",
+                                        vec!(
+                                            Arc::new(DirectElement::new(
+                                                "annotation",
+                                                vec!(Arc::new(DirectElement::new(
+                                                    "documentation",
+                                                    vec!()
+                                                )),)
+                                            )),
+                                            Arc::new(DirectElement::new(
+                                                "element",
+                                                vec!(Arc::new(DirectElement::new(
+                                                    "annotation",
+                                                    vec!(Arc::new(DirectElement::new(
+                                                        "documentation",
+                                                        vec!()
+                                                    )),)
+                                                )),)
+                                            )),
+                                        )
+                                    )),
+                                    Arc::new(DirectElement::new(
+                                        "sequence",
+                                        vec!(
+                                            Arc::new(DirectElement::new(
+                                                "annotation",
+                                                vec!(
+                                                    Arc::new(DirectElement::new(
+                                                        "documentation",
+                                                        vec!()
+                                                    )),
+                                                    Arc::new(DirectElement::new("appinfo", vec!())),
+                                                )
+                                            )),
+                                            Arc::new(DirectElement::new(
+                                                "choice",
+                                                vec!(
+                                                    Arc::new(DirectElement::new(
+                                                        "annotation",
+                                                        vec!(Arc::new(DirectElement::new(
+                                                            "documentation",
+                                                            vec!()
+                                                        )),)
+                                                    )),
+                                                    Arc::new(DirectElement::new(
+                                                        "choice",
+                                                        vec!(
+                                                            Arc::new(DirectElement::new(
+                                                                "annotation",
+                                                                vec!(Arc::new(DirectElement::new(
+                                                                    "documentation",
+                                                                    vec!()
+                                                                )),)
+                                                            )),
+                                                            Arc::new(DirectElement::new(
+                                                                "element",
+                                                                vec!(Arc::new(DirectElement::new(
+                                                                    "annotation",
+                                                                    vec!(Arc::new(
+                                                                        DirectElement::new(
+                                                                            "documentation",
+                                                                            vec!()
+                                                                        )
+                                                                    ),)
+                                                                )),)
+                                                            )),
+                                                        )
+                                                    )),
+                                                    Arc::new(DirectElement::new(
+                                                        "element",
+                                                        vec!(Arc::new(DirectElement::new(
+                                                            "annotation",
+                                                            vec!(Arc::new(DirectElement::new(
+                                                                "documentation",
+                                                                vec!()
+                                                            )),)
+                                                        )),)
+                                                    )),
+                                                )
+                                            )),
+                                            Arc::new(DirectElement::new(
+                                                "element",
+                                                vec!(
+                                                    Arc::new(DirectElement::new(
+                                                        "annotation",
+                                                        vec!(
+                                                            Arc::new(DirectElement::new(
+                                                                "documentation",
+                                                                vec!()
+                                                            )),
+                                                            Arc::new(DirectElement::new(
+                                                                "appinfo",
+                                                                vec!()
+                                                            )),
+                                                        )
+                                                    )),
+                                                    Arc::new(DirectElement::new(
+                                                        "complexType",
+                                                        vec!(Arc::new(DirectElement::new(
+                                                            "complexContent",
+                                                            vec!()
+                                                        )),)
+                                                    )),
+                                                )
+                                            )),
+                                        )
+                                    )),
+                                )
+                            )),)
+                        )),
+                    )
+                )),
+                Arc::new(DirectElement::new(
+                    "simpleType",
+                    vec!(
+                        Arc::new(DirectElement::new(
+                            "annotation",
+                            vec!(Arc::new(DirectElement::new("documentation", vec!())),)
+                        )),
+                        Arc::new(DirectElement::new(
+                            "enumeration",
+                            vec!(Arc::new(DirectElement::new(
+                                "annotation",
+                                vec!(Arc::new(DirectElement::new("documentation", vec!())),)
+                            )),)
+                        )),
+                        Arc::new(DirectElement::new(
+                            "restriction",
+                            vec!(
+                                Arc::new(DirectElement::new("maxInclusive", vec!())),
+                                Arc::new(DirectElement::new("minInclusive", vec!())),
+                                Arc::new(DirectElement::new("pattern", vec!())),
+                                Arc::new(DirectElement::new(
+                                    "enumeration",
+                                    vec!(Arc::new(DirectElement::new(
+                                        "annotation",
+                                        vec!(
+                                            Arc::new(DirectElement::new("documentation", vec!())),
+                                            Arc::new(DirectElement::new("appinfo", vec!())),
+                                        )
+                                    )),)
+                                )),
+                            )
+                        )),
+                        Arc::new(DirectElement::new("union", vec!())),
+                    )
+                )),
+            )
+        )),
+    );
+}
+
+
+
+    fn walk_down<'b>(&'b self, element: &'a Element, ed: &ED) -> fmt::Result {
+    where
+        'b: 'a,
+    {
+        let bl_ref = self.base_level_cell();
+        let mut acc = AC::new(bl_ref, element, ed);
+
+        // Process subelements and collect WalkData results
+        let mut wd_vec = Vec::<WD>::new();
+        for elem in &element.subelements {
+            let next_ed = ed.next_level(elem);
+            let wd = self.walk_down(elem, &next_ed)?;
+            wd_vec.push(wd);
+        }
+
+        // Accumulate results
+        for wd in &wd_vec {
+            acc.add(wd)?;
+        }
+        acc.summary()
+    }
+}
+*/
+
+fn front_matter(const_name: &str, schema_name: &str) -> String {
+    let front_matter: Vec::<String> = vec!(
+        "// FIXME: insert banner".to_string(),
+        "use lazy_static::lazy_static;".to_string(), 
+        "use std::sync::Arc;".to_string(), 
+        "".to_string(), 
+        "use crate::xml_schema::{{DirectElement, XmlSchema}};".to_string(), 
+        "".to_string(), 
+        "lazy_static! {{".to_string(), 
+        format!("    pub static ref {const_name}: XmlSchema<'static> = XmlSchema::new("), 
+        format!("        \"{schema_name}\","), 
+        "}}".to_string()
+    );
+    front_matter.join("\n")
+}
