@@ -18,30 +18,86 @@ use crate::xml_document_error::XmlDocumentError;
 
 pub type LineNumber = usize;
 
+pub trait XmlElement {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result;
+}
+
+impl fmt::Display for dyn XmlElement {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.fmt(f)
+    }
+}
+
+/**
+ * An XML element
+ * lineno:  Line number of the start of this element
+ * event:   XmlEvent returned by the XML low level parser
+ */
 #[derive(Clone, Debug)]
-pub struct XmlElement {
+pub struct XmlDirectElement {
     pub lineno: LineNumber,
     pub event: XmlEvent,
 }
 
-impl XmlElement {
-    fn new(lineno: LineNumber, event: XmlEvent) -> XmlElement {
-        XmlElement {
+impl XmlDirectElement {
+    fn new(lineno: LineNumber, event: XmlEvent) -> XmlDirectElement {
+        XmlDirectElement {
             lineno: lineno,
             event: event,
         }
     }
 }
 
-impl fmt::Display for XmlElement {
+impl XmlElement for XmlDirectElement {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}", self.event)
+        // FIXME: can I do better than the debug format?
+        write!(f, "{:?}", self)
     }
 }
 
+/**
+ * List of XmlElements that can be shared to reduce the XML tree size
+ * subelements: This is the list
+ */
+pub struct XmlIndirectElement {
+    pub subelements:    Vec::<Box<dyn XmlElement>>,
+}
+
+impl<'a> XmlIndirectElement {
+    fn new() -> XmlIndirectElement {
+        XmlIndirectElement {
+            subelements:    Vec::new(),
+        }
+    }
+}
+
+impl XmlElement for XmlIndirectElement {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut sep = "";
+        write!(f, "[")?;
+
+        for element in &self.subelements {
+            element.fmt(f)?;
+            write!(f, "{}", sep)?;
+            sep = ", ";
+        }
+
+        write!(f, "]\n")?;
+        Ok(())
+    }
+}
+
+/**
+ * XML Parser
+ * lineno_ref:      Reference counted reference to current line number
+ *                  FIXME: check that this is appropriate
+ * pending:         If None, we don't have a lookahead token. Otherwise,
+ *                  this is the lookahead token wrapped in Some()
+ * event_reader:    Object for reading the next XmlEvent
+ */
 pub struct Parser<R: Read> {
     lineno_ref: Rc<RefCell<LineNumber>>,
-    pending: Option<Result<XmlElement, XmlDocumentError>>,
+    pending: Option<Result<XmlDirectElement, XmlDocumentError>>,
     event_reader: EventReader<LinenoReader<R>>,
 }
 
@@ -59,16 +115,17 @@ impl<R: Read> Parser<R> {
     }
 
     /*
-     * Read the next XmlElement. Each read returns a new value.
+     * Read the next XmlElement. Each read returns a new value. This
+     * XmlElement is always an XmlDirectElement
      */
-    pub fn next(&mut self) -> Result<XmlElement, XmlDocumentError> {
+    pub fn next(&mut self) -> Result<XmlDirectElement, XmlDocumentError> {
         self.skip();
         self.lookahead()
     }
 
     /*
      * Discard the current XmlElement, forcing a fetch of the next item
-     * if current() is used.
+     * if current() is used. This XmlElement is always an XmlDirectElement
      */
     pub fn skip(&mut self) {
         self.pending = None;
@@ -76,86 +133,48 @@ impl<R: Read> Parser<R> {
 
     /*
      * Read the next XmlElement from the input stream, disc without removing
-     * it from the stream.
+     * it from the stream. This XmlElement is always an XmlDirectElement
      */
-    pub fn lookahead(&mut self) -> Result<XmlElement, XmlDocumentError> {
+    pub fn lookahead(&mut self) -> Result<XmlDirectElement, XmlDocumentError> {
+        // If we don't have any lookahead token, read another token to be
+        // the lookahead token.
         if self.pending.is_none() {
             let lineno = *self.lineno_ref.borrow();
             let evt = self.event_reader.next();
 
-            // Process the event and store the result directly in `self.pending`
-            self.pending = Some(match evt {
-                Err(e) => Err(XmlDocumentError::XmlError(lineno, e)), // Create the error directly
-                Ok(xml_event) => Ok(XmlElement::new(lineno, xml_event)), // Create the XmlElement directly
-            });
+            // We tried to read another lookahead token, but we might have
+            // gotten an error. Check for this.
+            match evt {
+                Err(e) => {
+                    // Indicate we have something, but that the something
+                    // we have is an error
+                    let error = XmlDocumentError::XmlError(lineno, e);
+                    let err = Err(error.clone());
+                    let pending_err = Some(Err(error));
+                    self.pending = pending_err;
+                    return err;
+                },
+                Ok(xml_event) => {
+                    let element = XmlDirectElement::new(lineno, xml_event);
+                    let ok = Ok(element.clone());
+                    let pending_ok = Some(Ok(element));
+                    self.pending = pending_ok;
+                    return ok;
+                }
+            };
+
         }
 
-        // Consume the stored result and return it
+        // We do have a pending token. If it's an error, return that. If
+        // it's a token, return that, but in either case, don't remove it.
         match self.pending.take() {
             None => Err(XmlDocumentError::InternalError(
                 *self.lineno_ref.borrow(),
                 "self.pending is None when it must be Some".to_string(),
             )),
-            Some(result) => result, // Return the stored result (Ok or Err) without cloning
+            Some(element) => element,
         }
     }
-
-    /*
-        pub fn lookahead(&mut self) -> Result<&XmlElement, XmlDocumentError> {
-            if self.pending.is_none() {
-                let lineno = *self.lineno_ref.borrow();
-                let evt = self.event_reader.next();
-
-                let xml_event = match evt {
-                    Err(e) => {
-                        let err = Err(XmlDocumentError::XmlError(lineno, e));
-                        self.pending = Some(err);
-                    },
-                    Ok(xml_event) => {
-                        let ok = Ok(XmlElement::new(lineno, xml_event));
-                        self.pending = Some(ok);
-                    },
-                };
-            }
-
-    //        if let Some(value) = &self.pending {
-            match &self.pending {
-                None => return Err(XmlDocumentError::InternalError(*self.lineno_ref.borrow(),
-                    "self.pending is None when is must be Some".to_string())),
-                Some(value) => {
-                    match value {
-                        Err(e) => {
-                            return Err(e.clone());
-                        },
-                        Ok(xml_element) => {
-                            return Ok(xml_element);
-                        }
-                    }
-                }
-            };
-        }
-    */
-    /*
-        pub fn lookahead(&mut self) -> Result<&XmlElement, XmlDocumentError> {
-            let lineno = *self.lineno_ref.borrow();
-
-            if self.pending.is_none() {
-                let evt = self.event_reader.next();
-
-                let xml_event = match evt {
-                    Err(e) => return Err(XmlDocumentError::XmlError(lineno, e)),
-                    Ok(xml_event) => xml_event,
-                };
-
-                let xml_element = XmlElement::new(lineno, xml_event);
-                self.pending = Some(Ok(&xml_element));
-            }
-
-            // Safely return a reference to the cached value
-    //        self.pending.as_ref().ok_or(XmlDocumentError::Unknown(lineno))
-            self.pending.unwrap()
-        }
-    */
 }
 
 impl<R: Read> fmt::Debug for Parser<R> {
@@ -164,6 +183,10 @@ impl<R: Read> fmt::Debug for Parser<R> {
     }
 }
 
+/**
+ * Object for reading an std::io::Read implementation, as annotated with
+ * a line number.
+ */
 pub struct LinenoReader<R: Read> {
     inner: R,
     lineno: Rc<RefCell<LineNumber>>,
@@ -194,6 +217,7 @@ impl<R: Read> Read for LinenoReader<R> {
 /*
 /*
  * xml::XmlEvent isn't clonable, so this maps to local events
+ * FIXME: remove this, I think
  */
 fn xml_event_map(xml_event: XmlEvent) -> XmlEvt {
     match xml_event {
