@@ -186,6 +186,9 @@ impl Element {
 */
 }
 
+/**
+ * Basic information about the document
+ */
 #[derive(Clone, Debug)]
 pub struct DocumentInfo {
     pub version: XmlVersion,

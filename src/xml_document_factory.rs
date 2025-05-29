@@ -11,7 +11,7 @@ use xml::reader::XmlEvent;
 use crate::parser::Parser;
 pub use crate::xml_document::{DocumentInfo, Element, ElementInfo, XmlDocument};
 pub use crate::xml_document_error::XmlDocumentError;
-use crate::xml_schema::{SchemaElementType, XmlSchema};
+use crate::xml_schema::{SchemaElement, XmlSchema};
 
 /*
  * Structure used to hold parsing information
@@ -117,7 +117,9 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
                     let element_info =
                         ElementInfo::new(lineno, attributes.clone(), namespace.clone());
 
-                    let root_element = self.xml_schema.element().clone();
+//                    let root_element = self.xml_schema.element().clone();
+                    let root_element = self.xml_schema.element();
+//let x: u8 = root_element;
                     let mut element = self.parse_element::<R>(
                         root_element,
 //                        depth,
@@ -178,7 +180,7 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
      */
     fn parse_element<T: Read>(
         &mut self,
-        schema_element: SchemaElementType,
+        schema_element: &Box<dyn SchemaElement>,
 //        depth: usize,
         name_in: OwnedName,
         element_info_in: ElementInfo,
@@ -223,7 +225,7 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
                     let element_info =
                         ElementInfo::new(lineno, attributes2.clone(), namespace2.clone());
                     let subelement = self.parse_element::<R>(
-                        next_schema_element,
+                        &next_schema_element,
 //                        depth,
                         start_name.clone(),
                         element_info.clone(),

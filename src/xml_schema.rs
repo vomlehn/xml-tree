@@ -7,25 +7,22 @@
 use std::fmt;
 // FIXME: implement some more iterators
 //use std::iter;
-use std::marker::Sync;
+//use std::marker::Sync;
 use std::ops::Deref;
-use std::sync::{Arc, Mutex, MutexGuard};
+//use std::sync::{Arc, Mutex, MutexGuard};
 use std::vec;
 
 use crate::xml_document_error::XmlDocumentError;
-
-pub type SchemaElementType<'a> = Arc<dyn SchemaElement<'a> + Sync>;
-pub type SubelementsType<'a> = Vec<SchemaElementType<'a>>;
 
 /*
  * Top-level definition of the schema
  * name:        Name of the structure when printed
  * element:     Root element
  */
-#[derive(Clone)]
+//#[derive(Clone)]
 pub struct XmlSchemaInner<'a> {
-    pub name: &'a str,
-    pub element: Arc<Mutex<Arc<dyn SchemaElement<'a> + Sync>>>,
+    pub name:       &'a str,
+    pub element:    Box<dyn SchemaElement<'a>>,
 }
 
 impl<'a> XmlSchemaInner<'a> {
@@ -37,19 +34,23 @@ impl<'a> XmlSchemaInner<'a> {
 impl fmt::Display for XmlSchemaInner<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "inner {}", self.name);
-        write!(f, "...{}", self.element.lock().unwrap())
+        write!(f, "...{}", self.element)
     }
 }
 
 impl fmt::Debug for XmlSchemaInner<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "inner \"{}\"\n", self.name)?;
-        write!(f, "element {:?}\n", self.element.lock().unwrap())
+        write!(f, "element {:?}\n", self.element)
     }
 }
 
 pub struct XmlSchema<'a> {
     pub inner: XmlSchemaInner<'a>,
+}
+
+// FIXME: remove unsafe
+unsafe impl<'a> Sync for XmlSchema<'a> {
 }
 
 impl<'a> XmlSchema<'a> {
@@ -85,17 +86,17 @@ impl<'a> fmt::Display for XmlSchema<'a> {
 struct DirectElementInner<'a> {
     name: &'a str,
     _attributes: Vec<SchemaAttribute>,
-    subelements: Arc<Mutex<SubelementsType<'a>>>,
+    subelements: Vec<Box<dyn SchemaElement<'a>>>,
 }
 
 #[derive(Clone, Debug)]
 pub struct SchemaAttribute {}
 
 impl<'a> XmlSchemaInner<'a> {
-    pub fn new(name: &'a str, element: Arc<dyn SchemaElement<'a> + Sync>) -> Self {
+    pub fn new(name: &'a str, element: Box<dyn SchemaElement<'a>>) -> Self {
         Self {
-            name: name,
-            element: Arc::new(Mutex::new(element)),
+            name:       name,
+            element:    element,
         }
     }
 }
@@ -104,7 +105,7 @@ impl<'a> XmlSchemaInner<'a> {
  * XmlSchema
  */
 impl<'a> XmlSchema<'a> {
-    pub fn new(name: &'a str, element: Arc<dyn SchemaElement<'a> + Sync>) -> XmlSchema<'a> {
+    pub fn new(name: &'a str, element: Box<dyn SchemaElement<'a>>) -> XmlSchema<'a> {
         XmlSchema {
             inner: XmlSchemaInner::new(name, element),
         }
@@ -114,8 +115,8 @@ impl<'a> XmlSchema<'a> {
         &self.inner.name
     }
 
-    pub fn element(&self) -> MutexGuard<'_, Arc<dyn SchemaElement<'a> + Sync>> {
-        self.inner.element.lock().unwrap()
+    pub fn element<'b>(&'b self) -> &'b Box<dyn SchemaElement<'a>> {
+        &self.inner.element
     }
 
     pub fn validate(&self) -> Result<(), XmlDocumentError> {
@@ -128,11 +129,11 @@ impl<'a> XmlSchema<'a> {
  * DirectElementInner
  */
 impl<'a> DirectElementInner<'a> {
-    pub fn new(name: &'a str, subelements: SubelementsType<'a>) -> DirectElementInner<'a> {
+    pub fn new(name: &'a str, subelements: Vec<Box<dyn SchemaElement<'a>>>) -> DirectElementInner<'a> {
         DirectElementInner {
             name: name,
             _attributes: vec![],
-            subelements: Arc::new(Mutex::new(subelements)),
+            subelements: subelements,
         }
     }
 }
@@ -145,7 +146,7 @@ pub struct DirectElement<'a> {
 }
 
 impl<'a> DirectElement<'a> {
-    pub fn new(name: &'a str, subelements: SubelementsType<'a>) -> DirectElement<'a> {
+    pub fn new(name: &'a str, subelements: Vec<Box<dyn SchemaElement<'a>>>) -> DirectElement<'a> {
         DirectElement {
             inner: DirectElementInner::new(name, subelements),
         }
@@ -155,8 +156,8 @@ impl<'a> DirectElement<'a> {
         &self.inner.name
     }
 
-    pub fn subelements(&self) -> MutexGuard<'_, SubelementsType<'a>> {
-        self.inner.subelements.lock().unwrap()
+    pub fn subelements(&self) -> &Vec<Box<dyn SchemaElement<'a>>> {
+        &self.inner.subelements
     }
 }
 
@@ -170,16 +171,32 @@ impl<'a> SchemaElement<'a> for DirectElement<'a> {
     }
 
     // Find an element whose name matches the given one
-    fn get(&self, name: &str) -> Option<Arc<dyn SchemaElement<'a> + Sync>> {
+    fn get(&self, name: &str) -> Option<Box<dyn SchemaElement<'a>>> {
+/*
+let xx: u8 = self.subelements(); // &Vec<Box<dyn SchemaElement>>
+
         let subelements = self.subelements();
-        subelements
+        let subelements = subelements.unwrap();
+let x: u8 = subelements;
+let x: u8 = subelements.iter();
+let x: u8 = subelements.iter() .find(move |element| element.name() == name);
+let x: u8 = subelements.iter() .find(move |element| {let y: u8 = element.name(); let z: u8 = name; element.name() == name});
+*/
+
+        for e in self.subelements() {
+            println!("e {} ", e);
+        }
+        None
+/*
+        println!("{}", self.subelements());
             .iter()
             .find(move |element| element.name() == name)
-            .cloned()
+*/
+//            .cloned()
     }
 
-    fn subelements(&self) -> MutexGuard<'_, SubelementsType<'a>> {
-        self.inner.subelements.lock().unwrap()
+    fn subelements<'b>(&'b self) -> &'b Vec<Box<dyn SchemaElement<'a>>> {
+        &self.inner.subelements
     }
 }
 
@@ -190,14 +207,14 @@ impl<'a> fmt::Display for DirectElement<'a> {
     }
 }
 */
-//    subelements: Arc<Mutex<SubelementsType<'a>>>,
+//    subelements: Arc<Mutex<Vec<Box<dyn SchemaElement<'a>>>>>,
 
 impl<'a> fmt::Debug for DirectElement<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "direct element {}\n", self.name())?;
         write!(f, "subelements:\n")?;
         for element in &*self.subelements() {
-            write!(f, "{:?}\n", element)?;
+            write!(f, "{}\n", element)?;
         }
         Ok(())
     }
@@ -214,16 +231,16 @@ impl fmt::Display for DirectElement<'_> {
 
 /* FIXME: impelement this
 struct DirectElementCollection<'a> {
-    subelements: Vec<dyn Iterator<Item = &'a Vec<Arc<Mutex<dyn SchemaElement<'a> + Sync>>>>>,
+    subelements: Vec<dyn Iterator<Item = &'a Vec<Arc<Mutex<dyn SchemaElement<'a>>>>>>,
 }
 
 // Owned Iterator
 struct DirectElementIterator<'a> {
-    subelements: Vec<dyn Iterator<Item = &'a Vec<Arc<Mutex<dyn SchemaElement<'a> + Sync>>>>>,
+    subelements: Vec<dyn Iterator<Item = &'a Vec<Arc<Mutex<dyn SchemaElement<'a>>>>>>,
 }
 
 impl<'a> Iterator for DirectElementIterator<'a> {
-    type Item = Arc<Mutex<dyn SchemaElement<'a> + Sync>>;
+    type Item = Arc<Mutex<dyn SchemaElement<'a>>>;
 
     fn next(&mut self) -> Option<Self::Item> {
         while let Some(tos) = self.subelements.last_mut() {
@@ -277,24 +294,24 @@ impl<'aaa> IntoIterator for &'aaa mut DirectElementCollection<'_> {
 use std::sync::{Arc, Mutex};
 
 // Trait Definition
-pub trait SchemaElement<'a>: Sync + Send: Deref + DerefMut {
+pub trait SchemaElement<'a>: Deref + DerefMut {
     fn name(&self) -> String;
 }
 */
 
 // Collection of DirectElements
 pub struct DirectElementCollection<'a> {
-    subelements: Vec<Arc<Mutex<dyn SchemaElement<'a> + Sync>>>,
+    subelements: Vec<Box<dyn SchemaElement<'a>>>,
 }
 
 // Owned Iterator
 pub struct DirectElementIterator<'a> {
-    subelements: vec::IntoIter<Arc<Mutex<dyn SchemaElement<'a> + Sync>>>,
+    subelements: vec::IntoIter<Box<dyn SchemaElement<'a>>>,
 }
 
 // Implement `Iterator` for `DirectElementIterator`
 impl<'a> Iterator for DirectElementIterator<'a> {
-    type Item = Arc<Mutex<dyn SchemaElement<'a> + Sync>>;
+    type Item = Box<dyn SchemaElement<'a>>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.subelements.next()
@@ -303,7 +320,7 @@ impl<'a> Iterator for DirectElementIterator<'a> {
 
 // **Owned IntoIterator**
 impl<'a> IntoIterator for DirectElementCollection<'a> {
-    type Item = Arc<Mutex<dyn SchemaElement<'a> + Sync>>;
+    type Item = Box<dyn SchemaElement<'a>>;
     type IntoIter = DirectElementIterator<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
@@ -318,9 +335,9 @@ impl<'a> IntoIterator for DirectElementCollection<'a> {
 impl<'a> IntoIterator for &'a DirectElementCollection<'a> {
     type Item = &'a dyn SchemaElement<'a>;
     type IntoIter = iter::Map<
-        std::slice::Iter<'a, Arc<Mutex<dyn SchemaElement<'a> + Sync>>>,
+        std::slice::Iter<'a, Arc<Mutex<dyn SchemaElement<'a>>>>,
 
-        fn(&Arc::<Mutex<dyn SchemaElement<'a> + Sync>>) -> &'a dyn SchemaElement<'a>>;
+        fn(&Arc::<Mutex<dyn SchemaElement<'a>>>) -> &'a dyn SchemaElement<'a>>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.subelements.iter()
@@ -331,8 +348,8 @@ impl<'a> IntoIterator for &'a DirectElementCollection<'a> {
 impl<'a> IntoIterator for &'a mut DirectElementCollection<'a> {
     type Item = &'a mut dyn SchemaElement<'a>;
     type IntoIter = iter::Map<
-        std::slice::IterMut<'a, Arc<Mutex<dyn SchemaElement<'a> + Sync>>>,
-        fn(&mut Arc<Mutex<dyn SchemaElement<'a> + Sync>>) -> &'a mut dyn SchemaElement<'a>,
+        std::slice::IterMut<'a, Arc<Mutex<dyn SchemaElement<'a>>>>,
+        fn(&mut Arc<Mutex<dyn SchemaElement<'a>>>) -> &'a mut dyn SchemaElement<'a>,
     >;
 
     fn into_iter(self) -> Self::IntoIter {
@@ -352,8 +369,8 @@ pub struct IndirectElement<'a> {
 impl IndirectElement<'_> {
     pub fn new<'bbb, 'aaa: 'bbb>(
         direct_element: &'aaa DirectElement<'aaa>,
-    ) -> Arc<dyn SchemaElement<'aaa> + 'bbb> {
-        Arc::new(IndirectElement {
+    ) -> Box<dyn SchemaElement<'aaa> + 'bbb> {
+        Box::new(IndirectElement {
             direct_element: direct_element,
         })
     }
@@ -368,12 +385,12 @@ impl<'aaa> SchemaElement<'aaa> for IndirectElement<'aaa> {
         self.direct_element.name()
     }
 
-    fn get(&self, name: &str) -> Option<SchemaElementType<'aaa>> {
+    fn get(&self, name: &str) -> Option<Box<dyn SchemaElement<'aaa>>> {
         self.direct_element.get(name)
     }
 
-    fn subelements<'b>(&self) -> MutexGuard<'_, SubelementsType<'aaa>> {
-        self.direct_element.subelements()
+    fn subelements<'b>(&'b self) -> &'b Vec<Box<dyn SchemaElement<'aaa>>> {
+        &self.direct_element.subelements()
     }
 }
 
@@ -392,11 +409,11 @@ impl fmt::Debug for IndirectElement<'_> {
  * name:    Function that returns the name of the element
  * get:     Search for an element by name
  */
-pub trait SchemaElement<'aaa>: Sync + Send {
+pub trait SchemaElement<'aaa> {
     fn debug(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result;
-    fn get(&self, name: &str) -> Option<SchemaElementType<'aaa>>;
+    fn get(&self, name: &str) -> Option<Box<dyn SchemaElement<'aaa>>>;
     fn name(&self) -> &'aaa str;
-    fn subelements<'b>(&self) -> MutexGuard<'_, SubelementsType<'aaa>>;
+    fn subelements<'b>(&'b self) -> &'b Vec<Box<dyn SchemaElement<'aaa>>>;
 
     fn display_element(&self, f: &mut fmt::Formatter, depth: usize) -> fmt::Result {
         const INDENT_STR: &str = "   ";
@@ -423,7 +440,9 @@ pub trait SchemaElement<'aaa>: Sync + Send {
 }
 
 /* Check all Display impls to ensure status is passed back properly */
-impl fmt::Display for dyn SchemaElement<'_> + Sync + 'static {
+// FIXME: why do I need two dyn SchemaElements? Maybe eliminate everything
+// with Sync or everything without Sync.
+impl fmt::Display for dyn SchemaElement<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "schema element {}\n", self.name())?;
         write!(f, "...{} subelements\n", self.subelements().len());
@@ -433,8 +452,20 @@ impl fmt::Display for dyn SchemaElement<'_> + Sync + 'static {
         Ok(())
     }
 }
+/*
+impl fmt::Display for dyn SchemaElement<'_> + 'static {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "schema element {}\n", self.name())?;
+        write!(f, "...{} subelements\n", self.subelements().len());
+        for element in &*self.subelements() {
+            write!(f, "{}", element)?;
+        }
+        Ok(())
+    }
+}
+*/
 
-impl fmt::Debug for dyn SchemaElement<'_> + Sync + 'static {
+impl fmt::Debug for dyn SchemaElement<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.debug(f)
     }
@@ -461,7 +492,7 @@ impl<'aaa> Iterator for SchemaElementIterator<'aaa> {
             match tos.next() {
                 Some(el) => {
                     println!("Returning next schema element");
-                    return Some(el.lock().unwrap());
+                    return Some(el);
                 }
                 None => {
                     println!("Removing exhausted iterator");
@@ -501,10 +532,10 @@ impl<'aaa> IntoIterator for &'aaa SchemaElementIterator<'aaa> {
 
 // Mutable
 impl<'aaa> IntoIterator for &'aaa mut SchemaElementCollection<'_> {
-    type Item = &'aaa mut (dyn SchemaElement<'aaa> + Sync);
+    type Item = &'aaa mut (dyn SchemaElement<'aaa>);
     type IntoIter = std::iter::Map<
         std::slice::IterMut<'aaa, Arc<Mutex<dyn SchemaElement<'aaa>>>>,
-        fn(&mut Arc<dyn SchemaElement>) -> &'aaa mut (dyn SchemaElement<'aaa> + Sync),
+        fn(&mut Arc<dyn SchemaElement>) -> &'aaa mut (dyn SchemaElement<'aaa>),
     >;
 
     fn into_iter(self) -> Self::IntoIter {
@@ -825,34 +856,34 @@ lazy_static! {
                                                         "documentation",
                                                         vec!()
                                                     )),
-                                                    Arc::new(DirectElement::new("appinfo", vec!())),
+                                                    Box::new(DirectElement::new("appinfo", vec!())),
                                                 )
                                             )),
-                                            Arc::new(DirectElement::new(
+                                            Box::new(DirectElement::new(
                                                 "choice",
                                                 vec!(
-                                                    Arc::new(DirectElement::new(
+                                                    Box::new(DirectElement::new(
                                                         "annotation",
-                                                        vec!(Arc::new(DirectElement::new(
+                                                        vec!(Box::new(DirectElement::new(
                                                             "documentation",
                                                             vec!()
                                                         )),)
                                                     )),
-                                                    Arc::new(DirectElement::new(
+                                                    Box::new(DirectElement::new(
                                                         "choice",
                                                         vec!(
-                                                            Arc::new(DirectElement::new(
+                                                            Box::new(DirectElement::new(
                                                                 "annotation",
-                                                                vec!(Arc::new(DirectElement::new(
+                                                                vec!(Box::new(DirectElement::new(
                                                                     "documentation",
                                                                     vec!()
                                                                 )),)
                                                             )),
-                                                            Arc::new(DirectElement::new(
+                                                            Box::new(DirectElement::new(
                                                                 "element",
-                                                                vec!(Arc::new(DirectElement::new(
+                                                                vec!(Box::new(DirectElement::new(
                                                                     "annotation",
-                                                                    vec!(Arc::new(
+                                                                    vec!(Box::new(
                                                                         DirectElement::new(
                                                                             "documentation",
                                                                             vec!()
@@ -862,11 +893,11 @@ lazy_static! {
                                                             )),
                                                         )
                                                     )),
-                                                    Arc::new(DirectElement::new(
+                                                    Box::new(DirectElement::new(
                                                         "element",
-                                                        vec!(Arc::new(DirectElement::new(
+                                                        vec!(Box::new(DirectElement::new(
                                                             "annotation",
-                                                            vec!(Arc::new(DirectElement::new(
+                                                            vec!(Box::new(DirectElement::new(
                                                                 "documentation",
                                                                 vec!()
                                                             )),)
@@ -874,25 +905,25 @@ lazy_static! {
                                                     )),
                                                 )
                                             )),
-                                            Arc::new(DirectElement::new(
+                                            Box::new(DirectElement::new(
                                                 "element",
                                                 vec!(
-                                                    Arc::new(DirectElement::new(
+                                                    Box::new(DirectElement::new(
                                                         "annotation",
                                                         vec!(
-                                                            Arc::new(DirectElement::new(
+                                                            Box::new(DirectElement::new(
                                                                 "documentation",
                                                                 vec!()
                                                             )),
-                                                            Arc::new(DirectElement::new(
+                                                            Box::new(DirectElement::new(
                                                                 "appinfo",
                                                                 vec!()
                                                             )),
                                                         )
                                                     )),
-                                                    Arc::new(DirectElement::new(
+                                                    Box::new(DirectElement::new(
                                                         "complexType",
-                                                        vec!(Arc::new(DirectElement::new(
+                                                        vec!(Box::new(DirectElement::new(
                                                             "complexContent",
                                                             vec!()
                                                         )),)
@@ -906,39 +937,39 @@ lazy_static! {
                         )),
                     )
                 )),
-                Arc::new(DirectElement::new(
+                Box::new(DirectElement::new(
                     "simpleType",
                     vec!(
-                        Arc::new(DirectElement::new(
+                        Box::new(DirectElement::new(
                             "annotation",
-                            vec!(Arc::new(DirectElement::new("documentation", vec!())),)
+                            vec!(Box::new(DirectElement::new("documentation", vec!())),)
                         )),
-                        Arc::new(DirectElement::new(
+                        Box::new(DirectElement::new(
                             "enumeration",
-                            vec!(Arc::new(DirectElement::new(
+                            vec!(Box::new(DirectElement::new(
                                 "annotation",
-                                vec!(Arc::new(DirectElement::new("documentation", vec!())),)
+                                vec!(Box::new(DirectElement::new("documentation", vec!())),)
                             )),)
                         )),
-                        Arc::new(DirectElement::new(
+                        Box::new(DirectElement::new(
                             "restriction",
                             vec!(
-                                Arc::new(DirectElement::new("maxInclusive", vec!())),
-                                Arc::new(DirectElement::new("minInclusive", vec!())),
-                                Arc::new(DirectElement::new("pattern", vec!())),
-                                Arc::new(DirectElement::new(
+                                Box::new(DirectElement::new("maxInclusive", vec!())),
+                                Box::new(DirectElement::new("minInclusive", vec!())),
+                                Box::new(DirectElement::new("pattern", vec!())),
+                                Box::new(DirectElement::new(
                                     "enumeration",
-                                    vec!(Arc::new(DirectElement::new(
+                                    vec!(Box::new(DirectElement::new(
                                         "annotation",
                                         vec!(
-                                            Arc::new(DirectElement::new("documentation", vec!())),
-                                            Arc::new(DirectElement::new("appinfo", vec!())),
+                                            Box::new(DirectElement::new("documentation", vec!())),
+                                            Box::new(DirectElement::new("appinfo", vec!())),
                                         )
                                     )),)
                                 )),
                             )
                         )),
-                        Arc::new(DirectElement::new("union", vec!())),
+                        Box::new(DirectElement::new("union", vec!())),
                     )
                 )),
             )

@@ -2,10 +2,21 @@
  * This is the parsed scheme for XSD files.
  */
 use lazy_static::lazy_static;
-use std::sync::Arc;
+//use std::sync::Arc;
 
 use crate::xml_schema::{DirectElement, XmlSchema};
 
+lazy_static! {
+    pub static ref XSD_SCHEMA: XmlSchema<'static> = XmlSchema::new(
+        "XsdSchema",
+        Box::new(DirectElement::new(
+            "schema",
+            vec!()
+        ))
+    );
+}
+
+/*
 lazy_static! {
     pub static ref XSD_SCHEMA: XmlSchema<'static> = XmlSchema::new(
         "XsdSchema",
@@ -374,3 +385,4 @@ lazy_static! {
         )),
     );
 }
+*/
