@@ -1,3 +1,7 @@
+/*
+ * Trait for building recursive walk types
+ */
+
 use std::cell::RefCell;
 
 use crate::xml_document::{Element, XmlDocument};
@@ -9,7 +13,7 @@ use std::ops::{FromResidual, Try};
  */
 pub trait ElemData<BL, ED>
 {
-    fn next_level(&self, element: &Element) -> ED;
+    fn next_level(&self, element: &Box<dyn Element>) -> ED;
 }
 
 /**
@@ -27,7 +31,7 @@ pub trait BaseLevel {}
  * Data stored for the peers of the Element a given invocation of walk_down()
  */
 pub trait Accumulator<'a, BL, ED, WD, WR> {
-    fn new(bl: &RefCell<BL>, e: &'a Element, ed: &ED) -> Self
+    fn new(bl: &RefCell<BL>, e: &'a Box<dyn Element>, ed: &ED) -> Self
     where
         Self: Sized;
     fn add(&mut self, wd: &WD) -> WR;
@@ -64,7 +68,7 @@ where
         self.walk_down(root, ed)
     }
 
-    fn walk_down<'b>(&'b self, element: &'a Element, ed: &ED) -> WR
+    fn walk_down<'b>(&'b self, element: &'a Box<dyn Element<'a>>, ed: &ED) -> WR
     where
         'b: 'a,
     {
@@ -73,7 +77,7 @@ where
 
         // Process subelements and collect WalkData results
         let mut wd_vec = Vec::<WD>::new();
-        for elem in &element.subelements {
+        for elem in element.subelements() {
             let next_ed = ed.next_level(elem);
             let wd = self.walk_down(elem, &next_ed)?;
             wd_vec.push(wd);
@@ -149,7 +153,7 @@ mod test_tests {
     }
 
     impl ElemData<TestBaseLevel, TestElemData> for TestElemData {
-        fn next_level(&self, _element: &Element) -> TestElemData {
+        fn next_level(&self, _element: &Box<dyn Element>) -> TestElemData {
             TestElemData::new(self.depth + 1)
         }
     }
@@ -174,7 +178,7 @@ mod test_tests {
     impl<'a> Accumulator<'a, TestBaseLevel, TestElemData, TestWalkData, TestWalkResult>
     for TestAccumulator
     {
-        fn new(_bl: &RefCell<TestBaseLevel>, e: &'a Element, ed: &TestElemData) -> Self {
+        fn new(_bl: &RefCell<TestBaseLevel>, e: &'a Box<dyn Element>, ed: &TestElemData) -> Self {
             TestAccumulator {
                 result: indent(ed.depth) +  e.name.local_name.as_str() + "\n",
             }

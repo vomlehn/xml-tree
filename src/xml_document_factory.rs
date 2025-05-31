@@ -1,5 +1,5 @@
 /*
- * Take an SchemaElement tree and generate an XmlFactorTree, which is used
+ * Take an Element tree and generate an XmlFactorTree, which is used
  * to parse XML input
  */
 // FIXME: delete all uses of expect(), everywhere
@@ -9,9 +9,10 @@ use xml::name::OwnedName;
 use xml::reader::XmlEvent;
 
 use crate::parser::Parser;
-pub use crate::xml_document::{DocumentInfo, Element, ElementInfo, XmlDocument};
+pub use crate::xml_document::{DirectElement, DocumentInfo, Element, ElementInfo, XmlDocument};
 pub use crate::xml_document_error::XmlDocumentError;
-use crate::xml_schema::{SchemaElement, XmlSchema};
+//use crate::xml_schema::{Element, XmlSchema};
+use crate::xml_schema::XmlSchema;
 
 /*
  * Structure used to hold parsing information
@@ -27,7 +28,7 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
     pub fn new_from_reader<T: Read + 'a>(
         reader: T,
         xml_schema: &'a XmlSchema<'a>,
-    ) -> Result<XmlDocument, XmlDocumentError> {
+    ) -> Result<XmlDocument<'a>, XmlDocumentError> {
         let parser = Parser::<T>::new(reader);
 
         let xml_factory = XmlDocumentFactory::<T> {
@@ -86,7 +87,7 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
     /*
      * Parse until we find an EndDocument, filling in the
      */
-    fn parse_end_document(mut self) -> Result<XmlDocument, XmlDocumentError> {
+    fn parse_end_document(mut self) -> Result<XmlDocument<'a>, XmlDocumentError> {
         let mut pieces = Vec::<XmlEvent>::new();
         let document_info = self.parse_start_document()?;
         let start_name = OwnedName {
@@ -118,11 +119,11 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
                         ElementInfo::new(lineno, attributes.clone(), namespace.clone());
 
 //                    let root_element = self.xml_schema.element().clone();
-                    let root_element = self.xml_schema.element();
+                    let root_element = &self.xml_schema.inner.xml_document.root;
+//                    element();
 //let x: u8 = root_element;
                     let mut element = self.parse_element::<R>(
-                        root_element,
-//                        depth,
+                        &root_element,
                         start_name.clone(),
                         element_info,
                     )?;
@@ -164,31 +165,34 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
         };
 
         let xml_document = XmlDocument {
-            document_info: document_info,
-            root: root_element,
+            document_info:  document_info,
+            root:           Box::new(root_element),
         };
+
         Ok(xml_document)
     }
 
     /*
      * Parse the current element and subelements. The <StartElement> has
      * already been read, read up to, and including, the <EndElement>
-     * schema_element_in:   Definition for this element
+     * element_in:   Definition for this element
 //     * depth:                   Number of levels of element nesting
      * name_in:                 Name of the element
      * element_info_in:         Other information about the element
+     *
+     * This only produces DirectElements
      */
     fn parse_element<T: Read>(
         &mut self,
-        schema_element: &Box<dyn SchemaElement>,
+        element: &Box<dyn Element>,
 //        depth: usize,
         name_in: OwnedName,
         element_info_in: ElementInfo,
-    ) -> Result<Element, XmlDocumentError> {
+    ) -> Result<DirectElement, XmlDocumentError> {
         // First, we set up the element
         let mut pieces = Vec::<XmlEvent>::new();
 
-        let mut element = Element::new(name_in.clone(), element_info_in.clone());
+        let mut element = DirectElement::new(name_in.clone(), element_info_in.clone());
 
         loop {
             let xml_element = self.parser.next()?;
@@ -211,8 +215,8 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
                     let attributes2 = attributes.clone();
                     let namespace2 = namespace.clone();
 
-                    let next_schema_element =
-                        match schema_element.get(start_name.local_name.as_str()) {
+                    let next_element =
+                        match element.get(start_name.local_name.as_str()) {
                             None => {
                                 return Err(XmlDocumentError::UnknownElement(
                                     lineno,
@@ -225,20 +229,20 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
                     let element_info =
                         ElementInfo::new(lineno, attributes2.clone(), namespace2.clone());
                     let subelement = self.parse_element::<R>(
-                        &next_schema_element,
+                        &next_element,
 //                        depth,
                         start_name.clone(),
                         element_info.clone(),
                     )?;
                     element.before_element = pieces;
-                    element.subelements.push(subelement);
+                    element.subelements.push(Box::new(subelement));
                     pieces = Vec::<XmlEvent>::new();
                 }
                 XmlEvent::EndElement { name } => {
-                    if name.local_name != *schema_element.name() {
+                    if name.local_name != *element.name() {
                         return Err(XmlDocumentError::MisplacedElementEnd(
                             lineno,
-                            schema_element.name().to_string(),
+                            element.name().to_string(),
                             name.local_name.to_string(),
                         ));
                     }

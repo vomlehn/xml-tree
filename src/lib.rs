@@ -17,5 +17,6 @@ pub use crate::walk_and_print::XmlPrint;
 pub use crate::xml_document::{Element, XmlDocument};
 pub use crate::xml_document_error::XmlDocumentError;
 pub use crate::xml_document_factory::XmlDocumentFactory;
-pub use crate::xml_schema::{SchemaElement, XmlSchema};
+//pub use crate::xml_schema::{SchemaElement, XmlSchema};
+pub use crate::xml_schema::XmlSchema;
 pub use crate::xsd_schema::XSD_SCHEMA;
