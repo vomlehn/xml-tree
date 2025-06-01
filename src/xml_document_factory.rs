@@ -4,14 +4,14 @@
  */
 // FIXME: delete all uses of expect(), everywhere
 
-use std::borrow::Borrow;
-use std::cell::RefCell;
+//use std::borrow::Borrow;
+//use std::cell::RefCell;
 use std::io::Read;
 use xml::name::OwnedName;
 use xml::reader::XmlEvent;
 
 use crate::parser::Parser;
-use crate::walk_and_print::PrintBaseLevel;
+//use crate::walk_and_print::PrintBaseLevel;
 pub use crate::xml_document::{DirectElement, DocumentInfo, Element, ElementInfo, XmlDocument};
 pub use crate::xml_document_error::XmlDocumentError;
 //use crate::xml_schema::{Element, XmlSchema};
@@ -210,7 +210,7 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
         // First, we set up the element
         let mut pieces = Vec::new();
         let mut element = DirectElement::new(name_in.clone(), element_info_in.clone());
-        element.before_element = Vec::new();;
+        element.before_element = Vec::new();
 
         loop {
             let xml_element = {

@@ -4,11 +4,11 @@
  */
 
 //use std::error::Error;
-use std::cell::RefCell;
+//use std::cell::RefCell;
 use std::fmt;
 use std::fs::File;
 use std::io::{BufReader, Read};
-use std::ops::Deref;
+//use std::ops::Deref;
 use std::sync::Arc;
 use xml::attribute::OwnedAttribute;
 use xml::common::XmlVersion;
@@ -84,7 +84,7 @@ impl<'a> XmlDocument {
 impl<'a> fmt::Display for XmlDocument {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 /*
-        let mut base = PrintBaseLevel::new(f);
+        let _base = PrintBaseLevel::new(f);
         let ed = PrintElemData::new(0);
         self.walk(&mut base, &ed)
 */

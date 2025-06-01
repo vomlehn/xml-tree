@@ -2,7 +2,7 @@
  * This is the parsed scheme for XSD files.
  */
 use lazy_static::lazy_static;
-use std::cell::RefCell;
+//use std::cell::RefCell;
 use std::collections::BTreeMap;
 use xml::namespace::Namespace;
 use xml::common::XmlVersion;
@@ -11,7 +11,7 @@ use xml::name::OwnedName;
 use crate::xml_schema::XmlSchema;
 use crate::xml_document::XmlDocument;
 use crate::xml_document_factory::{DirectElement, DocumentInfo, ElementInfo};
-use crate::walk_and_print::PrintBaseLevel;
+//use crate::walk_and_print::PrintBaseLevel;
 
 lazy_static! {
     pub static ref XSD_SCHEMA: XmlSchema<'static> = XmlSchema::new(

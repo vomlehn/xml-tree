@@ -2,8 +2,8 @@
  * Trait for building recursive walk types
  */
 
-use std::borrow::Borrow;
-use std::cell::RefCell;
+//use std::borrow::Borrow;
+//use std::cell::RefCell;
 use std::ops::{FromResidual, Try};
 
 use crate::xml_document::{Element, XmlDocument};
