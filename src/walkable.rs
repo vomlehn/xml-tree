@@ -2,11 +2,11 @@
  * Trait for building recursive walk types
  */
 
+use std::borrow::Borrow;
 use std::cell::RefCell;
+use std::ops::{FromResidual, Try};
 
 use crate::xml_document::{Element, XmlDocument};
-
-use std::ops::{FromResidual, Try};
 
 /**
  * Data for the Element being worked on by walk_down().
@@ -31,7 +31,7 @@ pub trait BaseLevel {}
  * Data stored for the peers of the Element a given invocation of walk_down()
  */
 pub trait Accumulator<'a, BL, ED, WD, WR> {
-    fn new(bl: &RefCell<BL>, e: &'a Box<dyn Element>, ed: &ED) -> Self
+    fn new(bl: &mut BL, e: &Box<dyn Element>, ed: &ED) -> Self
     where
         Self: Sized;
     fn add(&mut self, wd: &WD) -> WR;
@@ -56,30 +56,29 @@ where
     WR: FromResidual,
 {
     fn xml_document(&self) -> &XmlDocument;
-    fn base_level_cell(&'a self) -> &'a RefCell<BL>;
 
-    fn walk<'b>(&'b self, ed: &ED) -> WR
+    fn walk<'b>(&'b self, bl: &mut BL, ed: &ED) -> WR
     where
         'b: 'a,
         Self: Sized,
     {
         let xml_doc = self.xml_document();
-        let root = &xml_doc.root;
-        self.walk_down(root, ed)
+        let root = xml_doc.root;
+        self.walk_down(bl, &root, ed)
     }
 
-    fn walk_down<'b>(&'b self, element: &'a Box<dyn Element<'a>>, ed: &ED) -> WR
+    fn walk_down<'b>(&'b self, bl: &mut BL, element: &Box<dyn Element<'a>>, ed: &ED) -> WR
     where
         'b: 'a,
     {
-        let bl_ref = self.base_level_cell();
-        let mut acc = AC::new(bl_ref, element, ed);
+        let mut acc = AC::new(bl, element, ed);
 
-        // Process subelements and collect WalkData results
+        // Process subelements and collect WalkData results in a vector
+        let next_ed = ed.next_level(element);
         let mut wd_vec = Vec::<WD>::new();
+
         for elem in element.subelements() {
-            let next_ed = ed.next_level(elem);
-            let wd = self.walk_down(elem, &next_ed)?;
+            let wd = self.walk_down(bl, elem, &next_ed)?;
             wd_vec.push(wd);
         }
 
@@ -229,9 +228,9 @@ mod test_tests {
         println!("-------------------------");
         let bl1 = TestBaseLevel::new();
         let ed1 = TestElemData::new(0);
-        let w1 = TestWalkable::new(&xml_document, bl1);
+        let w1 = TestWalkable::new(&xml_document);
         println!("Display w1:");
-        let res = w1.walk(&ed1);
+        let res = w1.walk(&bl1, &ed1);
         match res {
             Err(e) => println!("Error: {:?}", e),
             Ok(twd) => {

@@ -4,11 +4,14 @@
  */
 // FIXME: delete all uses of expect(), everywhere
 
+use std::borrow::Borrow;
+use std::cell::RefCell;
 use std::io::Read;
 use xml::name::OwnedName;
 use xml::reader::XmlEvent;
 
 use crate::parser::Parser;
+use crate::walk_and_print::PrintBaseLevel;
 pub use crate::xml_document::{DirectElement, DocumentInfo, Element, ElementInfo, XmlDocument};
 pub use crate::xml_document_error::XmlDocumentError;
 //use crate::xml_schema::{Element, XmlSchema};
@@ -28,7 +31,7 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
     pub fn new_from_reader<T: Read + 'a>(
         reader: T,
         xml_schema: &'a XmlSchema<'a>,
-    ) -> Result<XmlDocument<'a>, XmlDocumentError> {
+    ) -> Result<XmlDocument, XmlDocumentError> {
         let parser = Parser::<T>::new(reader);
 
         let xml_factory = XmlDocumentFactory::<T> {
@@ -96,41 +99,46 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
             namespace: None,
         };
 
-        let root_element = loop {
+        let start_element = loop {
+            // Read the next element
             let xml_element = self.parser.next()?;
             let lineno = xml_element.lineno;
 
             match &xml_element.event {
                 XmlEvent::StartDocument { .. } => {
                     return Err(XmlDocumentError::StartAfterStart(lineno));
-                }
+                },
+
                 XmlEvent::EndDocument => {
                     return Err(XmlDocumentError::Unknown(0));
-                }
+                },
+
                 XmlEvent::StartElement {
                     name,
                     attributes,
                     namespace,
                 } => {
                     let start_name = name.clone();
-// FIXME: no depth anywhere in this file
-//                    let depth = 0;
                     let element_info =
                         ElementInfo::new(lineno, attributes.clone(), namespace.clone());
 
-//                    let root_element = self.xml_schema.element().clone();
-                    let root_element = &self.xml_schema.inner.xml_document.root;
-//                    element();
-//let x: u8 = root_element;
+                    // Parse all of the items contained within this element
+                    let root_element = self.xml_schema.inner.xml_document.root;
                     let mut element = self.parse_element::<R>(
-                        &root_element,
+                        root_element,
                         start_name.clone(),
                         element_info,
+                        pieces,
                     )?;
-                    element.before_element = pieces;
-                    break element;
-                }
+//                    element.before_element = pieces;
+
+                    // Get out of here so we can move on to the next element.
+                    break Box::new(element);
+                },
+
                 XmlEvent::EndElement { name } => {
+                    // This EndElement was not proceeded by a StartElement,
+                    // oops!
                     let end_name = name.clone();
                     return Err(XmlDocumentError::MisplacedElementEnd(
                         lineno,
@@ -138,18 +146,22 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
                         end_name.local_name,
                     ));
                 }
+
                 XmlEvent::Comment(cmnt) => {
                     pieces.push(XmlEvent::Comment(cmnt.clone()));
                     continue;
                 }
+
                 XmlEvent::Whitespace(ws) => {
                     pieces.push(XmlEvent::Comment(ws.clone()));
                     continue;
                 }
+
                 XmlEvent::Characters(characters) => {
                     pieces.push(XmlEvent::Comment(characters.clone()));
                     continue;
                 }
+
                 XmlEvent::CData(cdata) => {
                     pieces.push(XmlEvent::Comment(cdata.clone()));
                     continue;
@@ -160,13 +172,14 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
                                     continue;
                                 },
                 */
+
                 _ => return Err(XmlDocumentError::UnexpectedXml(xml_element.event.clone())),
             };
         };
 
         let xml_document = XmlDocument {
             document_info:  document_info,
-            root:           Box::new(root_element),
+            root:           start_element,
         };
 
         Ok(xml_document)
@@ -184,15 +197,17 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
      */
     fn parse_element<T: Read>(
         &mut self,
-        element: &Box<dyn Element>,
+        element: Box<dyn Element>,
 //        depth: usize,
         name_in: OwnedName,
         element_info_in: ElementInfo,
+        pieces: Vec::<XmlEvent>,
     ) -> Result<DirectElement, XmlDocumentError> {
         // First, we set up the element
         let mut pieces = Vec::<XmlEvent>::new();
 
         let mut element = DirectElement::new(name_in.clone(), element_info_in.clone());
+        element.before_element = pieces;
 
         loop {
             let xml_element = self.parser.next()?;
@@ -229,13 +244,14 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
                     let element_info =
                         ElementInfo::new(lineno, attributes2.clone(), namespace2.clone());
                     let subelement = self.parse_element::<R>(
-                        &next_element,
+                        next_element,
 //                        depth,
                         start_name.clone(),
                         element_info.clone(),
+                        pieces,
                     )?;
-                    element.before_element = pieces;
-                    element.subelements.push(Box::new(subelement));
+//                    element.before_element = pieces;
+                    element.subelements.push(Box::new(&subelement));
                     pieces = Vec::<XmlEvent>::new();
                 }
                 XmlEvent::EndElement { name } => {
@@ -248,7 +264,8 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
                     }
 
                     element.content = pieces;
-                    return Ok(element);
+                    // FIXME: is this right or should it be an error?
+                    return Ok(*Box::new(element));
                 }
                 XmlEvent::Comment(cmnt) => {
                     pieces.push(XmlEvent::Comment(cmnt.clone()));

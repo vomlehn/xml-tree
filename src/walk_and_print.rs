@@ -1,22 +1,23 @@
-/*
 /**
  * Basic structure for recursive printing
  */
 
 use std::cell::RefCell;
 use std::fmt;
+use std::ops::{FromResidual, Try};
 
 use crate::xml_document::{Element, XmlDocument};
 use crate::walkable::{Accumulator, BaseLevel, ElemData, Walkable};
 
 const INDENT: &str = "    ";
 
-pub struct XmlPrint<'a, 'fmt> {
+/*
+pub struct XmlPrint<'a> {
     f:  &'a mut fmt::Formatter<'fmt>,
 //    xml_doc:    &'a XmlDocument<'a>,
 }
 
-impl<'a, 'fmt> XmlPrint<'a, 'fmt> {
+impl<'a> XmlPrint<'a> {
 //    pub fn new(f: &'a mut fmt::Formatter<'fmt>, xml_doc: &'a XmlDocument<'a>) -> Self {
     pub fn new(f: &'a mut fmt::Formatter<'fmt>) -> Self {
         XmlPrint {
@@ -32,6 +33,7 @@ impl<'a, 'fmt> XmlPrint<'a, 'fmt> {
         print_walkable.walk_down(&xml_doc.root, &print_elem_data)
     }
 }
+*/
 
 pub struct WalkAndPrint<'a> {
     xml_doc:    &'a XmlDocument<'a>,
@@ -45,35 +47,64 @@ impl<'a> WalkAndPrint<'a> {
     }
 }
 
+/*
 impl<'a> fmt::Display for WalkAndPrint<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut print_walk = XmlPrint::new(f);
         print_walk.walk(self.xml_doc)
     }
 }
+*/
 
-struct PrintWalkable<'a, 'fmt> {
-    xml_doc:    &'a XmlDocument<'a>,
-    base:       RefCell<PrintBaseLevel<'a, 'fmt>>,
+pub trait PrintWalkable<'a, AC, BL, ED, WD, WR>: Walkable<'a, AC, BL, ED, WD, WR>
+where
+    AC: Accumulator<'a, BL, ED, WD, WR>,
+    BL: 'a + BaseLevel,
+    ED: ElemData<BL, ED>,
+    WR: Try<Output = WD>,
+    WR: FromResidual,
+{
 }
 
-impl<'a, 'fmt> PrintWalkable<'a, 'fmt> {
-    pub fn new(base: PrintBaseLevel<'a, 'fmt>, xml_doc: &'a XmlDocument<'a>) -> PrintWalkable<'a, 'fmt> {
-        PrintWalkable{
+/*
+struct PrintWalkable<'a> {
+    xml_doc:    &'a XmlDocument<'a>,
+    base:       RefCell<PrintBaseLevel<'a>>,
+}
+*/
+
+/*
+impl<'a> PrintWalkable<'a> {
+    pub fn new(base: PrintBaseLevel<'a>, xml_doc: &'a XmlDocument<'a>) -> PrintWalkable<'a> {
+        PrintWalkable {
             xml_doc:    xml_doc,
             base:       RefCell::new(base),
         }
     }
 }
 
-impl<'a, 'fmt> Walkable<'a, PrintAccumulator, PrintBaseLevel<'a, 'fmt>, PrintElemData, PrintWalkData, PrintWalkResult> for PrintWalkable<'a, 'fmt> {
+impl<'a> Walkable<'a, PrintAccumulator, PrintBaseLevel<'a>, PrintElemData, PrintWalkData, PrintWalkResult> for PrintWalkable<'a> {
     fn xml_document(&self) -> &XmlDocument {
         self.xml_doc
     }
 
-    fn base_level_cell(&self) -> &RefCell<PrintBaseLevel<'a, 'fmt>>
+    fn base_level_cell(&self) -> &RefCell<PrintBaseLevel<'a>>
     {
             &self.base
+    }
+}
+*/
+
+pub struct PrintWalkableData<'a> {
+//        xml_doc:    xml_doc,
+        base:       RefCell<PrintBaseLevel<'a>>,
+}
+
+impl<'a> PrintWalkableData<'a> {
+    pub fn new(base: PrintBaseLevel<'a>) -> PrintWalkableData<'a> {
+        PrintWalkableData {
+            base:   RefCell::new(base),
+        }
     }
 }
 
@@ -83,19 +114,19 @@ impl<'a, 'fmt> Walkable<'a, PrintAccumulator, PrintBaseLevel<'a, 'fmt>, PrintEle
  * returns one of the fmt::Error types if we encounter another
  * error, or simply panic!.
  */
-type PrintWalkResult = fmt::Result;
+pub type PrintWalkResult = fmt::Result;
 
 /**
  * We don't return any data, but do print the element name each
  * time we enter PrintWalkable::walk_down().
  */
-struct PrintAccumulator {
+pub struct PrintAccumulator {
 }
 
-impl<'a, 'fmt> Accumulator<'a, PrintBaseLevel<'a, 'fmt>, PrintElemData, PrintWalkData, PrintWalkResult>
+impl<'a> Accumulator<'a, PrintBaseLevel<'a>, PrintElemData, PrintWalkData, PrintWalkResult>
 for PrintAccumulator {
-    fn new(bl: &RefCell<PrintBaseLevel<'a, 'fmt>>, e: &'a Box<dyn Element>, ed: &PrintElemData) -> Self {
-        write!(bl.borrow_mut().f, "{}{}\n", indent(ed.depth), e.name())
+    fn new(bl: &mut PrintBaseLevel<'a>, e: &Box<dyn Element>, ed: &PrintElemData) -> Self {
+        write!(bl.f, "{}{}\n", indent(ed.depth), e.name())
             .expect("Unable to write result");
         PrintAccumulator {}
     }
@@ -113,24 +144,24 @@ for PrintAccumulator {
  * The BaseLevel data consists of just an fmt::Formatter passed to
  * fmt::Display::fmt().
  */
-struct PrintBaseLevel<'a, 'fmt> {
-    f: &'a mut fmt::Formatter<'fmt>,
+pub struct PrintBaseLevel<'a> {
+    pub f: &'a mut fmt::Formatter<'a>,
 }
 
-impl<'a, 'fmt> PrintBaseLevel<'a, 'fmt> {
-    pub fn new(f: &'a mut fmt::Formatter<'fmt>) -> Self {
+impl<'a> PrintBaseLevel<'a> {
+    pub fn new(f: &'a mut fmt::Formatter<'a>) -> Self {
         PrintBaseLevel {
             f:  f,
         }
     }
 }
 
-impl<'a, 'fmt> BaseLevel for PrintBaseLevel<'a, 'fmt> {}
+impl<'a> BaseLevel for PrintBaseLevel<'a> {}
 
 /**
  * Keep track of the depth so we can do proper indentation
  */
-struct PrintElemData {
+pub struct PrintElemData {
     depth:  usize,
 }
 
@@ -142,7 +173,7 @@ impl PrintElemData {
     }
 }
 
-impl ElemData<PrintBaseLevel<'_, '_>, PrintElemData> for PrintElemData {
+impl ElemData<PrintBaseLevel<'_>, PrintElemData> for PrintElemData {
     fn next_level(&self, _element: &Box<dyn Element>) -> PrintElemData {
         PrintElemData::new(self.depth + 1)
     }
@@ -152,7 +183,7 @@ impl ElemData<PrintBaseLevel<'_, '_>, PrintElemData> for PrintElemData {
  * All we do is print, so there is no data to return. This is
  * consistent with the OK enum from fmt::Error
  */
-type PrintWalkData = ();
+pub type PrintWalkData = ();
 
 fn indent(n: usize) -> String {
     INDENT.repeat(n)
@@ -233,4 +264,3 @@ mod print_tests {
         }
     }
 }
-*/

@@ -1,12 +1,14 @@
 /*
- * Take an XML Definition tree and generate an XmlDocument
+ * Take an XML Definition tree and an input source, then use them to
+ * generate an XmlDocument
  */
 
 //use std::error::Error;
-use std::ops::Deref;
+use std::cell::RefCell;
 use std::fmt;
 use std::fs::File;
 use std::io::{BufReader, Read};
+use std::ops::Deref;
 use std::sync::Arc;
 use xml::attribute::OwnedAttribute;
 use xml::common::XmlVersion;
@@ -19,7 +21,8 @@ use crate::parser::LineNumber;
 use crate::xml_document_error::XmlDocumentError;
 use crate::xml_document_factory::XmlDocumentFactory;
 use crate::xml_schema::XmlSchema;
-use crate::walk_and_print::XmlPrint;
+use crate::walk_and_print::{PrintAccumulator, PrintBaseLevel, PrintElemData, PrintWalkable, PrintWalkData, PrintWalkResult};
+use crate::walkable::Walkable;
 
 /*
  * Parsed XML document
@@ -42,7 +45,7 @@ impl<'a> XmlDocument<'a> {
     }
 
     pub fn new_from_path(
-        path: &str,
+        path: &'a str,
         xml_schema: &'a XmlSchema<'a>,
     ) -> Result<XmlDocument<'a>, XmlDocumentError>
     {
@@ -78,17 +81,31 @@ impl<'a> XmlDocument<'a> {
     }
 }
 
-impl fmt::Display for XmlDocument<'_> {
+impl<'a> fmt::Display for XmlDocument<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut xml_print = XmlPrint::new(f);
-        xml_print.walk(self)
+        let mut base = PrintBaseLevel::new(f);
+        let ed = PrintElemData::new(0);
+        self.walk(&mut base, &ed)
     }
 }
 
 impl<'a> fmt::Debug for XmlDocument<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut xml_print = XmlPrint::new(f);
-        xml_print.walk(self)
+        let mut base = PrintBaseLevel::new(f);
+        let ed = PrintElemData::new(0);
+        self.walk(&mut base, &ed)
+    }
+}
+
+impl<'a> PrintWalkable<'a, PrintAccumulator, PrintBaseLevel<'a>, PrintElemData, PrintWalkData, PrintWalkResult>
+for XmlDocument<'a> {
+}
+
+impl<'a> Walkable<'a, PrintAccumulator, PrintBaseLevel<'a>, PrintElemData, PrintWalkData, PrintWalkResult>
+for XmlDocument<'_>
+{
+    fn xml_document(&self) -> &XmlDocument<'_> {
+        self
     }
 }
 
@@ -115,15 +132,21 @@ impl ElementInfo {
 
 /*
  * trait making DirectElement and IndirectElement work well together
- * name:    Function that returns the name of the element
- * get:     Search for an element by name
+ * name:        Function that returns the name of the element
+ * get:         Search for an element by name. FIXME: This is probably for
+ *              future expansion.
+ * name:        Returns the name for the element. FIXME: This really only
+ *              makes sense for DirectElements and should probably be removed
+ * subelements: Returns a reference to a vector of Elements. These are
+ *              sub-Elements for DirectElements and a linear set of elements
+ *              at the same depth as the parent element for IndirectElements.
  */
 pub trait Element<'a> {
     fn display(&self, f: &mut fmt::Formatter<'_>, depth: usize) -> fmt::Result;
     fn debug(&self, f: &mut fmt::Formatter<'_>, depth: usize) -> fmt::Result;
-    fn get<'b>(&self, name: &str) -> Option<Box<dyn Element<'b>>>;
+    fn get(&self, name: &str) -> Option<Box<dyn Element<'a>>>;
     fn name<'b>(&'b self) -> &'b str;
-    fn subelements(&'a self) -> &'a Vec<Box<dyn Element<'a>>>;
+    fn subelements(&'a self) -> &'a Vec<Box<(dyn Element<'a> + 'a)>>;
 }
 
 /* Check all Display impls to ensure status is passed back properly */
@@ -188,7 +211,7 @@ pub struct DirectElement<'a> {
     pub name: OwnedName,
     pub element_info: ElementInfo,
     // Always empty
-    pub subelements: Vec<Box<dyn Element<'a>>>,
+    pub subelements: Vec<Box<(dyn Element<'a> + 'a)>>,
     pub before_element: Vec<XmlEvent>,
     pub content: Vec<XmlEvent>,
     pub after_element: Vec<XmlEvent>,
@@ -199,7 +222,7 @@ impl<'a> DirectElement<'a> {
         DirectElement {
             name: name,
             element_info: element_info,
-            subelements: Vec::<Box<dyn Element<'a>>>::new(),
+            subelements: Vec::<Box<(dyn Element<'a> + 'a)>>::new(),
             before_element: Vec::<XmlEvent>::new(),
             content: Vec::<XmlEvent>::new(),
             after_element: Vec::<XmlEvent>::new(),
@@ -259,7 +282,7 @@ impl<'a> Element<'a> for DirectElement<'a> {
         self.display(f, depth)
     }
 
-    fn get<'aaa>(&self, _name: &str) -> Option<Box<dyn Element<'aaa>>> {
+    fn get(&self, _name: &str) -> Option<Box<dyn Element<'a>>> {
         todo!();
     }
 
@@ -270,7 +293,7 @@ impl<'a> Element<'a> for DirectElement<'a> {
     /**
      * No subelements here
      */
-    fn subelements(&self) -> &Vec<Box<dyn Element<'a>>> {
+    fn subelements(&self) -> &'a Vec<Box<(dyn Element<'a> + 'a)>> {
         &self.subelements
     }
 }
@@ -281,7 +304,7 @@ impl<'a> Element<'a> for DirectElement<'a> {
  * it would theoretically be possible to automatically extract them.
  */
 pub struct IndirectElement<'a> {
-    subelements:    Vec<Box<dyn Element<'a>>>,
+    subelements:    Vec<Box<(dyn Element<'a> + 'a)>>,
 }
 
 impl<'a> IndirectElement<'_> {
@@ -301,7 +324,7 @@ impl<'a> Element<'a> for IndirectElement<'a> {
         self.display(f, depth)
     }
 
-    fn get<'b>(&self, _name: &str) -> Option<Box<dyn Element<'b>>> {
+    fn get(&self, _name: &str) -> Option<Box<dyn Element<'a>>> {
         todo!();
     }
 
@@ -309,7 +332,7 @@ impl<'a> Element<'a> for IndirectElement<'a> {
         todo!();
     }
 
-    fn subelements(&'a self) -> &'a Vec<Box<dyn Element<'a>>> {
+    fn subelements(&'a self) -> &'a Vec<Box<(dyn Element<'a> + 'a)>> {
         &self.subelements
     }
 }
