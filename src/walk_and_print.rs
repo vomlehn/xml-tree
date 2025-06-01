@@ -14,11 +14,11 @@ const INDENT: &str = "    ";
 /*
 pub struct XmlPrint<'a> {
     f:  &'a mut fmt::Formatter<'fmt>,
-//    xml_doc:    &'a XmlDocument<'a>,
+//    xml_doc:    &'a XmlDocument,
 }
 
 impl<'a> XmlPrint<'a> {
-//    pub fn new(f: &'a mut fmt::Formatter<'fmt>, xml_doc: &'a XmlDocument<'a>) -> Self {
+//    pub fn new(f: &'a mut fmt::Formatter<'fmt>, xml_doc: &'a XmlDocument) -> Self {
     pub fn new(f: &'a mut fmt::Formatter<'fmt>) -> Self {
         XmlPrint {
             f:          f,
@@ -26,7 +26,7 @@ impl<'a> XmlPrint<'a> {
         }
     }
 
-    pub fn walk(&mut self, xml_doc: &'a XmlDocument<'a>) -> fmt::Result {
+    pub fn walk(&mut self, xml_doc: &'a XmlDocument) -> fmt::Result {
         let print_base_level = PrintBaseLevel::new(self.f);
         let print_walkable = PrintWalkable::new(print_base_level, &xml_doc);
         let print_elem_data = PrintElemData::new(0);
@@ -36,11 +36,11 @@ impl<'a> XmlPrint<'a> {
 */
 
 pub struct WalkAndPrint<'a> {
-    xml_doc:    &'a XmlDocument<'a>,
+    xml_doc:    &'a XmlDocument,
 }
 
 impl<'a> WalkAndPrint<'a> {
-    pub fn new(xml_doc: &'a XmlDocument<'a>) -> WalkAndPrint<'a> {
+    pub fn new(xml_doc: &'a XmlDocument) -> WalkAndPrint<'a> {
         WalkAndPrint {
             xml_doc:    xml_doc,
         }
@@ -68,14 +68,14 @@ where
 
 /*
 struct PrintWalkable<'a> {
-    xml_doc:    &'a XmlDocument<'a>,
+    xml_doc:    &'a XmlDocument,
     base:       RefCell<PrintBaseLevel<'a>>,
 }
 */
 
 /*
 impl<'a> PrintWalkable<'a> {
-    pub fn new(base: PrintBaseLevel<'a>, xml_doc: &'a XmlDocument<'a>) -> PrintWalkable<'a> {
+    pub fn new(base: PrintBaseLevel<'a>, xml_doc: &'a XmlDocument) -> PrintWalkable<'a> {
         PrintWalkable {
             xml_doc:    xml_doc,
             base:       RefCell::new(base),

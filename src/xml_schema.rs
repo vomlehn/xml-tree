@@ -25,7 +25,7 @@ unsafe impl<'a> Sync for XmlSchema<'a> {
 }
 
 impl<'a> XmlSchema<'a> {
-    pub fn new(schema_name: &'a str, const_name: &'a str, xml_document: XmlDocument<'a>) -> XmlSchema<'a> {
+    pub fn new(schema_name: &'a str, const_name: &'a str, xml_document: XmlDocument) -> XmlSchema<'a> {
         XmlSchema {
             inner:  XmlSchemaInner {
                 schema_name:    schema_name,
@@ -68,7 +68,7 @@ impl<'a> fmt::Display for XmlSchema<'a> {
 pub struct XmlSchemaInner<'a> {
     pub schema_name:    &'a str,
     pub const_name:     &'a str,
-    pub xml_document:   XmlDocument<'a>,
+    pub xml_document:   XmlDocument,
 }
 
 impl<'a> XmlSchemaInner<'a> {

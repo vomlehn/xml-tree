@@ -90,7 +90,7 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
     /*
      * Parse until we find an EndDocument, filling in the
      */
-    fn parse_end_document(mut self) -> Result<XmlDocument<'a>, XmlDocumentError> {
+    fn parse_end_document(mut self) -> Result<XmlDocument, XmlDocumentError> {
         let mut pieces = Vec::<XmlEvent>::new();
         let document_info = self.parse_start_document()?;
         let start_name = OwnedName {
@@ -123,13 +123,14 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
                         ElementInfo::new(lineno, attributes.clone(), namespace.clone());
 
                     // Parse all of the items contained within this element
-                    let root_element = self.xml_schema.inner.xml_document.root;
-                    let mut element = self.parse_element::<R>(
-                        root_element,
+//                    let root_element = self.xml_schema.inner.xml_document.root;
+                    let element = self.parse_element::<R>(
+                        &self.xml_schema.inner.xml_document.root,
                         start_name.clone(),
                         element_info,
                         pieces,
                     )?;
+// FIXME: in theory, parse_element does this, but I think it doesn't
 //                    element.before_element = pieces;
 
                     // Get out of here so we can move on to the next element.
@@ -197,20 +198,25 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
      */
     fn parse_element<T: Read>(
         &mut self,
-        element: Box<dyn Element>,
+        // FIXME: remove if uneeded
+        _element: &Box<dyn Element>,
 //        depth: usize,
         name_in: OwnedName,
         element_info_in: ElementInfo,
-        pieces: Vec::<XmlEvent>,
+        // FIXME: remove if uneeded
+        _pieces: Vec::<XmlEvent>,
     ) -> Result<DirectElement, XmlDocumentError> {
+        
         // First, we set up the element
-        let mut pieces = Vec::<XmlEvent>::new();
-
+        let mut pieces = Vec::new();
         let mut element = DirectElement::new(name_in.clone(), element_info_in.clone());
-        element.before_element = pieces;
+        element.before_element = Vec::new();;
 
         loop {
-            let xml_element = self.parser.next()?;
+            let xml_element = {
+                let x = self.parser.next()?;
+                x.clone()
+            };
             let lineno = xml_element.lineno;
 
             match &xml_element.event {
@@ -244,14 +250,15 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
                     let element_info =
                         ElementInfo::new(lineno, attributes2.clone(), namespace2.clone());
                     let subelement = self.parse_element::<R>(
-                        next_element,
+                        &next_element,
 //                        depth,
                         start_name.clone(),
                         element_info.clone(),
                         pieces,
                     )?;
 //                    element.before_element = pieces;
-                    element.subelements.push(Box::new(&subelement));
+//let x: u8 = subelement;
+                    element.subelements.push(Box::new(subelement));
                     pieces = Vec::<XmlEvent>::new();
                 }
                 XmlEvent::EndElement { name } => {

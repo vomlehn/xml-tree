@@ -63,11 +63,10 @@ where
         Self: Sized,
     {
         let xml_doc = self.xml_document();
-        let root = xml_doc.root;
-        self.walk_down(bl, &root, ed)
+        self.walk_down(bl, &xml_doc.root, ed)
     }
 
-    fn walk_down<'b>(&'b self, bl: &mut BL, element: &Box<dyn Element<'a>>, ed: &ED) -> WR
+    fn walk_down<'b>(&'b self, bl: &mut BL, element: &Box<dyn Element>, ed: &ED) -> WR
     where
         'b: 'a,
     {

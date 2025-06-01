@@ -22,7 +22,7 @@ lazy_static! {
                  None
             ),
             Box::new(
-                &DirectElement::new(OwnedName {
+                DirectElement::new(OwnedName {
                         local_name: "XsdSchema".to_string(),
                         namespace:  None,
                         prefix:     None,
