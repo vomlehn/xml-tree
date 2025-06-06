@@ -11,7 +11,7 @@ use crate::xml_document::{Element, XmlDocument};
 /**
  * Data for the Element being worked on by walk_down().
  */
-pub trait ElemData<BL, ED>
+pub trait ElemData<ED>
 {
     fn next_level(&self, element: &Box<dyn Element>) -> ED;
 }
@@ -47,6 +47,7 @@ pub trait Accumulator<'a, BL, ED, WD, WR> {
  * WalkData
  * WalkResult
  */
+/*
 pub trait Walkable<'a, AC, BL, ED, WD, WR>
 where
     AC: Accumulator<'a, BL, ED, WD, WR>,
@@ -56,52 +57,61 @@ where
     WR: FromResidual,
 {
     fn xml_document(&self) -> &XmlDocument;
+*/
 
-    fn walk<'b>(&'b self, bl: &mut BL, ed: &ED) -> WR
-    where
-        'b: 'a,
-        Self: Sized,
-    {
-        let xml_doc = self.xml_document();
-        self.walk_down(bl, &xml_doc.root, ed)
-    }
-
-    fn walk_down<'b>(&'b self, bl: &mut BL, element: &Box<dyn Element>, ed: &ED) -> WR
-    where
-        'b: 'a,
-    {
-        let mut acc = AC::new(bl, element, ed);
-
-        // Process subelements and collect WalkData results in a vector
-        let next_ed = ed.next_level(element);
-        let mut wd_vec = Vec::<WD>::new();
-
-        for elem in element.subelements() {
-            let wd = self.walk_down(bl, elem, &next_ed)?;
-            wd_vec.push(wd);
-        }
-
-        // Accumulate results
-        for wd in &wd_vec {
-            acc.add(wd)?;
-        }
-        acc.summary()
-    }
+pub fn walk<'a, AC, BL, ED, WD, WR>(bl: &mut BL, xml_doc: &XmlDocument, ed: &ED) -> WR
+where
+    AC: Accumulator<'a, BL, ED, WD, WR>,
+    ED: ElemData<ED>,
+    WR: Try<Output = WD>,
+    WR: FromResidual,
+{
+    walk_down::<AC, BL, ED, WD, WR>(bl, &xml_doc.root, ed)
 }
+
+fn walk_down<'a, AC, BL, ED, WD, WR>(bl: &mut BL, element: &Box<dyn Element>, ed: &ED) -> WR
+where
+    AC: Accumulator<'a, BL, ED, WD, WR>,
+    ED: ElemData<ED>,
+    WR: Try<Output = WD>,
+    WR: FromResidual,
+{
+    let mut acc = AC::new(bl, element, ed);
+
+    // Process subelements and collect WalkData results in a vector
+    let next_ed = ed.next_level(element);
+    let mut wd_vec = Vec::<WD>::new();
+
+    for elem in element.subelements() {
+        let wd = walk_down::<AC, BL, ED, WD, WR>(bl, elem, &next_ed)?;
+        wd_vec.push(wd);
+    }
+
+    // Accumulate results
+    for wd in &wd_vec {
+        acc.add(wd)?;
+    }
+    acc.summary()
+}
+/*
+}
+*/
 
 #[cfg(test)]
 mod test_tests {
     use std::cell::RefCell;
-    use std::collections::BTreeMap;
+//    use std::collections::BTreeMap;
     use std::fmt;
 
+/*
     use xml::attribute::OwnedAttribute;
     use xml::common::XmlVersion;
     use xml::name::OwnedName;
     use xml::namespace::Namespace;
     use xml::reader::XmlEvent;
+*/
 
-    use crate::xml_document::{Element, XmlDocument};
+    use crate::xml_document::{create_test_doc, DirectElement, Element, XmlDocument};
     use crate::xml_document_factory::{DocumentInfo, ElementInfo};
     use crate::walkable::{Accumulator, BaseLevel, ElemData, WalkData, Walkable};
 
@@ -150,7 +160,7 @@ mod test_tests {
         }
     }
 
-    impl ElemData<TestBaseLevel, TestElemData> for TestElemData {
+    impl ElemData<TestElemData> for TestElemData {
         fn next_level(&self, _element: &Box<dyn Element>) -> TestElemData {
             TestElemData::new(self.depth + 1)
         }
@@ -176,7 +186,7 @@ mod test_tests {
     impl<'a> Accumulator<'a, TestBaseLevel, TestElemData, TestWalkData, TestWalkResult>
     for TestAccumulator
     {
-        fn new(_bl: &RefCell<TestBaseLevel>, e: &'a Box<dyn Element>, ed: &TestElemData) -> Self {
+        fn new(_bl: &mut TestBaseLevel, e: &'a Box<dyn Element>, ed: &TestElemData) -> Self {
             TestAccumulator {
                 result: indent(ed.depth) +  e.name.local_name.as_str() + "\n",
             }
@@ -210,9 +220,11 @@ mod test_tests {
         fn xml_document(&self) -> &XmlDocument {
             self.xml_doc
         }
+        /*
         fn base_level_cell(&self) -> &RefCell<TestBaseLevel> {
             &self.base
         }
+        */
     }
 
     pub fn indent(n: usize) -> String {
@@ -229,7 +241,7 @@ mod test_tests {
         let ed1 = TestElemData::new(0);
         let w1 = TestWalkable::new(&xml_document);
         println!("Display w1:");
-        let res = w1.walk(&bl1, &ed1);
+        let res = w1.walk(&bl1, &xml_document, &ed1);
         match res {
             Err(e) => println!("Error: {:?}", e),
             Ok(twd) => {
@@ -245,6 +257,7 @@ mod test_tests {
         };
     }
 
+/* FIXME: remove this
     /**
      * Manually create an XmlDocument.
      */
@@ -272,16 +285,16 @@ mod test_tests {
         }
     }
 
-    fn leaf(name: &str, ei: &ElementInfo) -> Element {
+    fn leaf(name: &str, ei: &ElementInfo) -> Box<dyn Element> {
         node(name, ei, Vec::<Element>::new())
     }
 
-    fn branch(name: &str, ei: &ElementInfo, subelements: Vec<Element>) -> Element {
+    fn branch(name: &str, ei: &ElementInfo, subelements: Vec<Element>) -> dyn Element {
         node(name, ei, subelements)
     }
 
-    fn node(name: &str, ei: &ElementInfo, subelements: Vec<Element>) -> Element {
-        Element {
+    fn node(name: &str, ei: &ElementInfo, subelements: Vec<Element>) -> Box<dyn Element> {
+        Box::new(DirectElement {
             name: OwnedName {
                 local_name: name.to_string(),
                 namespace: None,
@@ -292,6 +305,7 @@ mod test_tests {
             before_element: Vec::<XmlEvent>::new(),
             content: Vec::<XmlEvent>::new(),
             after_element: Vec::<XmlEvent>::new(),
-        }
+        })
     }
+*/
 }

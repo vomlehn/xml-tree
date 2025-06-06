@@ -80,7 +80,7 @@ impl<'a> XmlSchemaInner<'a> {
 impl fmt::Display for XmlSchemaInner<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let front = front_matter(self.const_name, self.schema_name);
-        write!(f, "{}", front);
+        write!(f, "{}", front)?;
         write!(f, "...{}", self.xml_document)
     }
 }

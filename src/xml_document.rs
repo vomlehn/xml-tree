@@ -5,6 +5,7 @@
 
 //use std::error::Error;
 //use std::cell::RefCell;
+//use std::collections::BTreeMap;
 use std::fmt;
 use std::fs::File;
 use std::io::{BufReader, Read};
@@ -21,8 +22,9 @@ use crate::parser::LineNumber;
 use crate::xml_document_error::XmlDocumentError;
 use crate::xml_document_factory::XmlDocumentFactory;
 use crate::xml_schema::XmlSchema;
-use crate::walk_and_print::{PrintAccumulator, PrintBaseLevel, PrintElemData, PrintWalkable, PrintWalkData, PrintWalkResult};
-use crate::walkable::Walkable;
+//use crate::walk_and_print::{PrintAccumulator, PrintBaseLevel, PrintElemData/*, PrintWalkable*/, PrintWalkData, PrintWalkResult};
+use crate::walk_and_print::print_walk;
+//use crate::walkable::Walkable;
 
 /*
  * Parsed XML document
@@ -81,32 +83,62 @@ impl<'a> XmlDocument {
     }
 }
 
-impl<'a> fmt::Display for XmlDocument {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-/*
-        let _base = PrintBaseLevel::new(f);
-        let ed = PrintElemData::new(0);
-        self.walk(&mut base, &ed)
+/* lifetime parameters on method 'fmt' to not match trait declaration
+    fn fmt<'b, 'c>(&self, f: &'b mut fmt::Formatter<'_>) -> fmt::Result
+    where
+        'b: 'c,
 */
-        Ok(())
+/* lifetime parameters on method 'fmt' to not match trait declaration
+    fn fmt<'b, 'c>(&self, f: &'b mut fmt::Formatter<'c>) -> fmt::Result
+    where
+        'b: 'c
+*/
+/* method not compatible with trait
+    fn fmt(&self, f: &'a mut fmt::Formatter<'a>) -> fmt::Result
+*/
+/* method not compatible with trait
+    fn fmt<'b, 'c>(&'a self, f: &'b mut fmt::Formatter<'c>) -> fmt::Result
+*/
+/* method not compatible with trait
+    fn fmt(&self, f: &'a mut fmt::Formatter<'a>) -> fmt::Result
+*/
+/* method not compatible with trait
+    fn fmt(&self, f: &'a mut fmt::Formatter<'_>) -> fmt::Result
+*/
+/* impl item signiture does not match trait item signature
+    fn fmt<'b, 'c>(&self, f: &'b mut fmt::Formatter<'b>) -> fmt::Result
+*/
+/* impl item signiture does not match trait item signature
+    fn fmt<'b>(&self, f: &'b mut fmt::Formatter<'b>) -> fmt::Result
+*/
+/* '_ is a reserved lifetime name
+    fn fmt<'b, 'c>(&self, f: &'b mut fmt::Formatter<'_>) -> fmt::Result
+    where
+        'b: '_
+*/
+/* lifetime may not live long enough
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result
+*/
+impl<'a> fmt::Display for XmlDocument {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result
+    {
+        print_walk(f, self)
     }
 }
 
 impl<'a> fmt::Debug for XmlDocument {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-/*
-        let mut base = PrintBaseLevel::new(f);
-        let ed = PrintElemData::new(0);
-        self.walk(&mut base, &ed)
-*/
-        Ok(())
+        print_walk(f, self)
     }
 }
 
+/*
 impl<'a> PrintWalkable<'a, PrintAccumulator, PrintBaseLevel<'a>, PrintElemData, PrintWalkData, PrintWalkResult>
 for XmlDocument {
 }
+*/
 
+/*
 impl<'a> Walkable<'a, PrintAccumulator, PrintBaseLevel<'a>, PrintElemData, PrintWalkData, PrintWalkResult>
 for XmlDocument
 {
@@ -114,6 +146,7 @@ for XmlDocument
         self
     }
 }
+*/
 
 #[derive(Clone, Debug)]
 pub struct ElementInfo {
@@ -602,4 +635,93 @@ mod tests {
             print.walk(&xml_document);
         }
     */
+}
+
+#[cfg(test)]
+/*
+    use xml::attribute::OwnedAttribute;
+    use xml::common::XmlVersion;
+    use xml::name::OwnedName;
+    use xml::namespace::Namespace;
+    use xml::reader::XmlEvent;
+*/
+
+/**
+ * Manually create an XmlDocument.
+ */
+ // FIXME: This should be moved to a common area
+pub fn create_test_doc() -> XmlDocument {
+    let ns: Namespace = Namespace(BTreeMap::<String, String>::new());
+
+    let ei: ElementInfo = ElementInfo {
+        lineno: 1,
+        attributes: Vec::<OwnedAttribute>::new(),
+        namespace: ns,
+    };
+
+    XmlDocument {
+        root:           branch("n1", &ei, vec![
+                            leaf("n2", &ei),
+                            branch("n3", &ei, vec![
+                                leaf("n4", &ei)])
+                        ]),
+        document_info:  DocumentInfo {
+                            version: XmlVersion::Version10,
+                            encoding: "xxx".to_string(),
+                            standalone: None,
+                        },
+    }
+}
+
+#[cfg(test)]
+fn leaf(name: &str, ei: &ElementInfo) -> Box<dyn Element> {
+    Box::new(node(name, ei, Vec::<Element>::new()))
+}
+
+#[cfg(test)]
+fn branch(name: &str, ei: &ElementInfo, subelements: Vec<dyn Element>) -> Box<dyn Element> {
+    Box::new(node(name, ei, subelements))
+}
+
+#[cfg(test)]
+fn node(name: &str, ei: &ElementInfo, subelements: Vec<dyn Element>) -> Box<dyn Element> {
+    Box::new(DirectElement {
+        name: OwnedName {
+            local_name: name.to_string(),
+            namespace: None,
+            prefix: None,
+        },
+        element_info: (*ei).clone(),
+        subelements,
+        before_element: Vec::<XmlEvent>::new(),
+        content: Vec::<XmlEvent>::new(),
+        after_element: Vec::<XmlEvent>::new(),
+    })
+}
+
+pub trait ElemData<ED>
+{
+    fn next_level(&self, element: &Box<dyn Element>) -> ED;
+}
+
+/**
+ * Data returned by Accumulator functions.
+ */
+pub trait WalkData {}
+
+/**
+ * Data stored at the root level of the Walkable and a reference to which is
+ * returned by the Walkable base_level_cell() function.
+ */
+pub trait BaseLevel {}
+
+/**
+ * Data stored for the peers of the Element a given invocation of walk_down()
+ */
+pub trait Accumulator<'a, BL, ED, WD, WR> {
+    fn new(bl: &mut BL, e: &Box<dyn Element>, ed: &ED) -> Self
+    where
+        Self: Sized;
+    fn add(&mut self, wd: &WD) -> WR;
+    fn summary(&self) -> WR;
 }
