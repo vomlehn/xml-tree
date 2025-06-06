@@ -64,11 +64,13 @@ pub struct XmlIndirectElement {
 }
 
 impl<'a> XmlIndirectElement {
+    /*
     fn new() -> XmlIndirectElement {
         XmlIndirectElement {
             subelements:    Vec::new(),
         }
     }
+    */
 }
 
 impl XmlElement for XmlIndirectElement {

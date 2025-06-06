@@ -21,11 +21,13 @@ pub trait ElemData<ED>
  */
 pub trait WalkData {}
 
+/*
 /**
  * Data stored at the root level of the Walkable and a reference to which is
  * returned by the Walkable base_level_cell() function.
  */
 pub trait BaseLevel {}
+*/
 
 /**
  * Data stored for the peers of the Element a given invocation of walk_down()

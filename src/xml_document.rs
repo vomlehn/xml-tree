@@ -337,6 +337,7 @@ impl<'a> Element for DirectElement {
     }
 }
 
+/*
 /**
  * IndirectElements allow for duplicting part of the XML tree. They are
  * probably only going to be used for manually constructed trees, though
@@ -387,6 +388,7 @@ impl<'a> fmt::Debug for IndirectElement {
         self.debug(f, 0)
     }
 }
+*/
 
 /*
     pub fn start_string(&self, depth: usize) -> String {

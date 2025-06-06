@@ -2,12 +2,12 @@
  * Basic structure for recursive printing
  */
 
-use std::cell::RefCell;
+//use std::cell::RefCell;
 use std::fmt;
 //use std::ops::{FromResidual, Try};
 
 use crate::xml_document::{Element, XmlDocument};
-use crate::walkable::{Accumulator, BaseLevel, ElemData/*, Walkable*/};
+use crate::walkable::{Accumulator/*, BaseLevel*/, ElemData/*, Walkable*/};
 use crate::walkable::walk;
 
 const INDENT: &str = "    ";
@@ -36,6 +36,7 @@ impl<'a> XmlPrint<'a> {
 }
 */
 
+/*
 pub struct WalkAndPrint<'a> {
     xml_doc:    &'a XmlDocument,
 }
@@ -47,6 +48,7 @@ impl<'a> WalkAndPrint<'a> {
         }
     }
 }
+*/
 
 pub fn print_walk(f: &mut fmt::Formatter<'_>, xml_doc: &XmlDocument) -> fmt::Result
     {
@@ -84,6 +86,7 @@ impl<'a> Walkable<'a, PrintAccumulator, PrintBaseLevel<'a>, PrintElemData, Print
 }
 */
 
+/*
 pub struct PrintWalkableData<'a, 'b> {
 //        xml_doc:    xml_doc,
         base:       RefCell<PrintBaseLevel<'a, 'b>>,
@@ -96,6 +99,7 @@ impl<'a, 'b> PrintWalkableData<'a, 'b> {
         }
     }
 }
+*/
 
 /**
  * Since we're printing, our return type is the same as the type
@@ -145,7 +149,9 @@ impl<'a, 'b> PrintBaseLevel<'a, 'b> {
     }
 }
 
+/*
 impl<'a, 'b> BaseLevel for PrintBaseLevel<'a, 'b> {}
+*/
 
 /**
  * Keep track of the depth so we can do proper indentation
