@@ -1,5 +1,6 @@
 
 static banner: [&str] = [
+    "FIXME: finish out the banner code",
     "This file was created automatically by {}. Modifications to this file will",
     "be lost when the next build is done.",
 ];

@@ -29,7 +29,49 @@ lazy_static! {
                     }, ElementInfo::new(0, Vec::new(), Namespace(
                             BTreeMap::<String, String>::new()
                         )
-                    )
+                    ),
+                    vec!(Box::new(DirectElement::new(OwnedName {
+                                local_name: "level2element1".to_string(),
+                                namespace:  None,
+                                prefix:     None,
+                            }, ElementInfo::new(0, Vec::new(), Namespace(
+                                    BTreeMap::<String, String>::new()
+                                )
+                            ),
+                            vec!(),
+                        )),
+                        Box::new(DirectElement::new(OwnedName {
+                                local_name: "level2element2".to_string(),
+                                namespace:  None,
+                                prefix:     None,
+                            }, ElementInfo::new(0, Vec::new(), Namespace(
+                                    BTreeMap::<String, String>::new()
+                                )
+                            ),
+                            vec!(
+                                Box::new(DirectElement::new(OwnedName {
+                                        local_name: "level3element1".to_string(),
+                                        namespace:  None,
+                                        prefix:     None,
+                                    }, ElementInfo::new(0, Vec::new(), Namespace(
+                                            BTreeMap::<String, String>::new()
+                                        )
+                                    ),
+                                    vec!(),
+                                )),
+                            ),
+                        )),
+                        Box::new(DirectElement::new(OwnedName {
+                                local_name: "level2element3".to_string(),
+                                namespace:  None,
+                                prefix:     None,
+                            }, ElementInfo::new(0, Vec::new(), Namespace(
+                                    BTreeMap::<String, String>::new()
+                                )
+                            ),
+                            vec!(),
+                        )),
+                    ),
                 ),
             ),
         ),

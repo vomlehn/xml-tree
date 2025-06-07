@@ -46,15 +46,16 @@ pub struct XmlSchemaPrint {
 
 impl<'a> fmt::Display for XmlSchema<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.inner)
+        write!(f, "{}", self.inner)?;
+        write!(f, "schema_name: {}\n", self.inner.schema_name)?;
+//        write!(f, "direct element {}\n", self.name())?;
 /*
-        write!(f, "direct element {}\n", self.name())?;
         write!(f, "subelements:\n")?;
         for element in &*self.subelements() {
             write!(f, "{:?}\n", element)?;
         }
-        Ok(())
 */
+        Ok(())
     }
 }
 

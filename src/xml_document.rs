@@ -257,11 +257,11 @@ pub struct DirectElement {
 }
 
 impl<'a> DirectElement {
-    pub fn new(name: OwnedName, element_info: ElementInfo) -> DirectElement {
+    pub fn new(name: OwnedName, element_info: ElementInfo, subelements: Vec<Box<dyn Element>>) -> DirectElement {
         DirectElement {
             name: name,
             element_info: element_info,
-            subelements: Vec::<Box<(dyn Element)>>::new(),
+            subelements: subelements,
             before_element: Vec::<XmlEvent>::new(),
             content: Vec::<XmlEvent>::new(),
             after_element: Vec::<XmlEvent>::new(),
