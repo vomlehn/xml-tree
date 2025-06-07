@@ -16,9 +16,10 @@ use crate::xml_document_factory::{DirectElement, DocumentInfo, ElementInfo};
 lazy_static! {
     pub static ref XSD_SCHEMA: XmlSchema<'static> = XmlSchema::new(
         "XSD_SCHEMA",
+        "XmlSchema",
         "XsdSchema",
         XmlDocument::new(
-            DocumentInfo::new(XmlVersion::Version10, "xxx".to_string(),
+            DocumentInfo::new(XmlVersion::Version10, "encoding".to_string(),
                  None
             ),
             Box::new(

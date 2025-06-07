@@ -25,11 +25,12 @@ unsafe impl<'a> Sync for XmlSchema<'a> {
 }
 
 impl<'a> XmlSchema<'a> {
-    pub fn new(schema_name: &'a str, const_name: &'a str, xml_document: XmlDocument) -> XmlSchema<'a> {
+    pub fn new(const_name: &'a str, schema_type: &'a str, schema_name: &'a str, xml_document: XmlDocument) -> XmlSchema<'a> {
         XmlSchema {
             inner:  XmlSchemaInner {
-                schema_name:    schema_name,
                 const_name:     const_name,
+                schema_type:    schema_type,
+                schema_name:    schema_name,
                 xml_document:   xml_document,
             }
         }
@@ -67,8 +68,9 @@ impl<'a> fmt::Display for XmlSchema<'a> {
  */
 //#[derive(Clone)]
 pub struct XmlSchemaInner<'a> {
-    pub schema_name:    &'a str,
     pub const_name:     &'a str,
+    pub schema_type:    &'a str,
+    pub schema_name:    &'a str,
     pub xml_document:   XmlDocument,
 }
 
@@ -80,9 +82,9 @@ impl<'a> XmlSchemaInner<'a> {
 
 impl fmt::Display for XmlSchemaInner<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let front = front_matter(self.const_name, self.schema_name);
+        let front = front_matter(self.const_name, self.schema_type, self.schema_name);
         write!(f, "{}", front)?;
-        write!(f, "...{}", self.xml_document)
+        write!(f, "{}", self.xml_document)
     }
 }
 
@@ -463,7 +465,7 @@ pub trait Element<'aaa> {
 impl fmt::Display for dyn Element<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "schema element {}\n", self.name())?;
-        write!(f, "...{} subelements\n", self.subelements().len());
+        write!(f, "u...{} subelements\n", self.subelements().len());
         for element in &*self.subelements() {
             write!(f, "{}", element)?;
         }
@@ -474,7 +476,7 @@ impl fmt::Display for dyn Element<'_> {
 impl fmt::Display for dyn Element<'_> + 'static {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "schema element {}\n", self.name())?;
-        write!(f, "...{} subelements\n", self.subelements().len());
+        write!(f, "v...{} subelements\n", self.subelements().len());
         for element in &*self.subelements() {
             write!(f, "{}", element)?;
         }
@@ -1023,7 +1025,7 @@ lazy_static! {
 */
 */
 
-fn front_matter(const_name: &str, schema_name: &str) -> String {
+fn front_matter(const_name: &str, schema_type: &str, schema_name: &str) -> String {
     let front_matter: Vec::<String> = vec!(
         "// FIXME: insert banner".to_string(),
         "use lazy_static::lazy_static;".to_string(), 
@@ -1031,10 +1033,12 @@ fn front_matter(const_name: &str, schema_name: &str) -> String {
         "".to_string(), 
         "use crate::xml_schema::{{DirectElement, XmlSchema}};".to_string(), 
         "".to_string(), 
-        "lazy_static! {{".to_string(), 
-        format!("    pub static ref {const_name}: XmlSchema<'static> = XmlSchema::new("), 
+        "lazy_static! {".to_string(), 
+        format!("    pub static ref {const_name}: {schema_type}<'static> = {schema_type}::new("), 
+        format!("        \"{const_name}\","), 
+        format!("        \"{schema_type}\","), 
         format!("        \"{schema_name}\","), 
-        "}}".to_string()
+        "".to_string(),
     );
     front_matter.join("\n")
 }

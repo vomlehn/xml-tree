@@ -51,7 +51,19 @@ impl<'a> WalkAndPrint<'a> {
 */
 
 pub fn print_walk(f: &mut fmt::Formatter<'_>, xml_doc: &XmlDocument) -> fmt::Result
-    {
+{
+    write!(f, "        XmlDocument::new(");
+
+    let doc_info = &xml_doc.document_info;
+    // FIXME: use indent()
+    write!(f, "\n");
+    write!(f, "            DocumentInfo::new(");
+    write!(f, "XmlVersion::{}, ", doc_info.version);
+    write!(f, "\"{}\", ", doc_info.encoding);
+    write!(f, "{}", if doc_info.standalone.is_none() { "None" } else
+        {if doc_info.standalone.unwrap() {"true"} else {"false"}});
+    write!(f, "),\n");
+
     let mut bl = PrintBaseLevel::new(f);
     let ed = PrintElemData::new(0);
     walk::<PrintAccumulator, PrintBaseLevel, PrintElemData, PrintWalkData, PrintWalkResult>(&mut bl, xml_doc, &ed)

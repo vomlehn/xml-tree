@@ -209,7 +209,7 @@ impl<'a> fmt::Debug for Box<dyn Element> {
 impl<'a> fmt::Display for dyn Element {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "schema element {}\n", self.name())?;
-        write!(f, "...{} subelements\n", self.subelements().len());
+        write!(f, "x...{} subelements\n", self.subelements().len());
         for element in &*self.subelements() {
             write!(f, "{}", self)?;
         }
@@ -228,7 +228,7 @@ impl fmt::Debug for dyn Element {
 impl<'a> fmt::Display for dyn Element {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "schema element {}\n", self.name())?;
-        write!(f, "...{} subelements\n", self.subelements().len());
+        write!(f, "y...{} subelements\n", self.subelements().len());
         for element in &*self.subelements() {
             write!(f, "{}", element)?;
         }
@@ -669,7 +669,7 @@ pub fn create_test_doc() -> XmlDocument {
                         ]),
         document_info:  DocumentInfo {
                             version: XmlVersion::Version10,
-                            encoding: "xxx".to_string(),
+                            encoding: "encoding".to_string(),
                             standalone: None,
                         },
     }

@@ -281,7 +281,7 @@ mod test_tests {
                             ]),
             document_info:  DocumentInfo {
                                 version: XmlVersion::Version10,
-                                encoding: "xxx".to_string(),
+                                encoding: "encoding".to_string(),
                                 standalone: None,
                             },
         }
