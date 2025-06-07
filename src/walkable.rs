@@ -37,7 +37,7 @@ pub trait Accumulator<'a, BL, ED, WD, WR> {
     where
         Self: Sized;
     fn add(&mut self, wd: &WD) -> WR;
-    fn summary(&self) -> WR;
+    fn summary(&self, bl: &mut BL) -> WR;
 }
 
 /**
@@ -93,7 +93,7 @@ where
     for wd in &wd_vec {
         acc.add(wd)?;
     }
-    acc.summary()
+    acc.summary(bl)
 }
 /*
 }
@@ -188,7 +188,7 @@ mod test_tests {
     impl<'a> Accumulator<'a, TestBaseLevel, TestElemData, TestWalkData, TestWalkResult>
     for TestAccumulator
     {
-        fn new(_bl: &mut TestBaseLevel, e: &'a Box<dyn Element>, ed: &TestElemData) -> Self {
+        fn new(bl: &mut TestBaseLevel, e: &'a Box<dyn Element>, ed: &TestElemData) -> Self {
             TestAccumulator {
                 result: indent(ed.depth) +  e.name.local_name.as_str() + "\n",
             }
@@ -199,7 +199,7 @@ mod test_tests {
             Ok(TestWalkData::new(self.result.clone()))
         }
 
-        fn summary(&self) -> TestWalkResult {
+        fn summary(&self, bl: &mut TestBaseLevel) -> TestWalkResult {
             Ok(TestWalkData::new(self.result.clone()))
         }
     }

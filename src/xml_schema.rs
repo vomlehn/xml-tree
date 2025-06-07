@@ -15,6 +15,7 @@ use std::fmt;
 //use crate::xml_document::Element;
 use crate::xml_document::XmlDocument;
 //use crate::xml_document_error::XmlDocumentError;
+use crate::walk_and_print::indent;
 
 pub struct XmlSchema<'a> {
     pub inner: XmlSchemaInner<'a>,
@@ -84,7 +85,9 @@ impl fmt::Display for XmlSchemaInner<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let front = front_matter(self.const_name, self.schema_type, self.schema_name);
         write!(f, "{}", front)?;
-        write!(f, "{}", self.xml_document)
+        write!(f, "{}", self.xml_document)?;
+        let back = back_matter();
+        write!(f, "{}", back)
     }
 }
 
@@ -1019,13 +1022,20 @@ lazy_static! {
         for wd in &wd_vec {
             acc.add(wd)?;
         }
-        acc.summary()
+        acc.summary(&bl)
     }
 }
 */
 */
 
 fn front_matter(const_name: &str, schema_type: &str, schema_name: &str) -> String {
+    // FIXME: pass indent
+    let indent1 = 1;
+    let indents1 = indent(indent1);
+
+    let indent2 = indent1 + 1;
+    let indents2 = indent(indent2);
+
     let front_matter: Vec::<String> = vec!(
         "// FIXME: insert banner".to_string(),
         "use lazy_static::lazy_static;".to_string(), 
@@ -1034,11 +1044,30 @@ fn front_matter(const_name: &str, schema_type: &str, schema_name: &str) -> Strin
         "use crate::xml_schema::{{DirectElement, XmlSchema}};".to_string(), 
         "".to_string(), 
         "lazy_static! {".to_string(), 
-        format!("    pub static ref {const_name}: {schema_type}<'static> = {schema_type}::new("), 
-        format!("        \"{const_name}\","), 
-        format!("        \"{schema_type}\","), 
-        format!("        \"{schema_name}\","), 
+
+        format!("{indents1}pub static ref {const_name}: {schema_type}<'static> = {schema_type}::new("), 
+
+        format!("{indents2}\"{const_name}\","), 
+        format!("{indents2}\"{schema_type}\","), 
+        format!("{indents2}\"{schema_name}\","), 
         "".to_string(),
     );
+
     front_matter.join("\n")
+}
+
+fn back_matter() -> String {
+    let indent1 = 1;
+    let indents1 = indent(indent1);
+
+    let indent2 = indent1 - 1;
+    let indents2 = indent(indent2);
+
+    // FIXME: pass indents somehow
+    let back_matter: Vec::<String> = vec!(
+        format!("{indents1})"),
+        format!("{indents2}}}"),
+    );
+
+    back_matter.join("\n")
 }

@@ -52,21 +52,23 @@ impl<'a> WalkAndPrint<'a> {
 
 pub fn print_walk(f: &mut fmt::Formatter<'_>, xml_doc: &XmlDocument) -> fmt::Result
 {
-    write!(f, "        XmlDocument::new(");
+    let depth = 2;
+    write!(f, "{}XmlDocument::new(", indent(depth))?;
 
     let doc_info = &xml_doc.document_info;
     // FIXME: use indent()
-    write!(f, "\n");
-    write!(f, "            DocumentInfo::new(");
-    write!(f, "XmlVersion::{}, ", doc_info.version);
-    write!(f, "\"{}\", ", doc_info.encoding);
+    write!(f, "\n")?;
+    write!(f, "            DocumentInfo::new(")?;
+    write!(f, "XmlVersion::{}, ", doc_info.version)?;
+    write!(f, "\"{}\", ", doc_info.encoding)?;
     write!(f, "{}", if doc_info.standalone.is_none() { "None" } else
-        {if doc_info.standalone.unwrap() {"true"} else {"false"}});
-    write!(f, "),\n");
+        {if doc_info.standalone.unwrap() {"true"} else {"false"}})?;
+    write!(f, "),\n")?;
 
     let mut bl = PrintBaseLevel::new(f);
     let ed = PrintElemData::new(0);
-    walk::<PrintAccumulator, PrintBaseLevel, PrintElemData, PrintWalkData, PrintWalkResult>(&mut bl, xml_doc, &ed)
+    walk::<PrintAccumulator, PrintBaseLevel, PrintElemData, PrintWalkData, PrintWalkResult>(&mut bl, xml_doc, &ed)?;
+    write!(f, "{})\n", indent(depth))
 }
 
 /*
@@ -126,21 +128,30 @@ pub type PrintWalkResult = fmt::Result;
  * time we enter PrintWalkable::walk_down().
  */
 pub struct PrintAccumulator {
+    depth:  usize,
 }
 
 impl<'a> Accumulator<'a, PrintBaseLevel<'_, '_>, PrintElemData, PrintWalkData, PrintWalkResult>
 for PrintAccumulator {
     fn new(bl: &mut PrintBaseLevel<'_, '_>, e: &Box<dyn Element>, ed: &PrintElemData) -> Self {
-        write!(bl.f, "{}{}\n", indent(ed.depth), e.name())
-            .expect("Unable to write result");
-        PrintAccumulator {}
+        // FIXME: use symbolic values for indentation
+        let depth = ed.depth + 3;
+//write!(bl.f, "depth {}:", depth);
+        write!(bl.f, "{}Box::new(", indent(depth))
+            .expect("Unable to write Box::new");
+        write!(bl.f, "\"{}\"\n", e.name())
+            .expect("Unable to write {}");
+        PrintAccumulator {
+            depth:  depth,
+        }
     }
 
     fn add(&mut self, _wd: &PrintWalkData) -> PrintWalkResult {
         Ok(())
     }
 
-    fn summary(&self) -> PrintWalkResult {
+    fn summary(&self, bl: &mut PrintBaseLevel<'_, '_>) -> PrintWalkResult {
+        write!(bl.f, "{})\n", indent(self.depth))?;
         Ok(())
     }
 }
@@ -192,7 +203,7 @@ impl ElemData<PrintElemData> for PrintElemData {
  */
 pub type PrintWalkData = ();
 
-fn indent(n: usize) -> String {
+pub fn indent(n: usize) -> String {
     INDENT.repeat(n)
 }
 

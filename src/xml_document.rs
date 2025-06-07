@@ -725,5 +725,5 @@ pub trait Accumulator<'a, BL, ED, WD, WR> {
     where
         Self: Sized;
     fn add(&mut self, wd: &WD) -> WR;
-    fn summary(&self) -> WR;
+    fn summary(&self, bl: &mut BL) -> WR;
 }
