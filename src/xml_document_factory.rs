@@ -209,7 +209,7 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
         
         // First, we set up the element
         let mut pieces = Vec::new();
-        let mut element = DirectElement::new(name_in.clone(), element_info_in.clone(), vec!());
+        let mut element = DirectElement::new(name_in.clone(), element_info_in.clone(), vec!(), vec!(), vec!(), vec!());
         element.before_element = Vec::new();
 
         loop {

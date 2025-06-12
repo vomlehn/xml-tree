@@ -5,6 +5,7 @@ pub mod xml_document;
 pub mod xml_document_error;
 pub mod xml_schema;
 
+mod t;
 mod multiterator;
 mod parser;
 mod walkable;

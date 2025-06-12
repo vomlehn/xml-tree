@@ -249,7 +249,6 @@ impl fmt::Debug for dyn Element {
 pub struct DirectElement {
     pub name: OwnedName,
     pub element_info: ElementInfo,
-    // Always empty
     pub subelements: Vec<Box<(dyn Element)>>,
     pub before_element: Vec<XmlEvent>,
     pub content: Vec<XmlEvent>,
@@ -257,14 +256,18 @@ pub struct DirectElement {
 }
 
 impl<'a> DirectElement {
-    pub fn new(name: OwnedName, element_info: ElementInfo, subelements: Vec<Box<dyn Element>>) -> DirectElement {
+    pub fn new(name: OwnedName, element_info: ElementInfo,
+        before_element: Vec::<XmlEvent>,
+        content: Vec::<XmlEvent>,
+        after_element: Vec::<XmlEvent>,
+        subelements: Vec<Box<dyn Element>>) -> DirectElement {
         DirectElement {
             name: name,
             element_info: element_info,
             subelements: subelements,
-            before_element: Vec::<XmlEvent>::new(),
-            content: Vec::<XmlEvent>::new(),
-            after_element: Vec::<XmlEvent>::new(),
+            before_element: before_element,
+            content: content,
+            after_element: after_element,
         }
     }
 
