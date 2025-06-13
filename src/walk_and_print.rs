@@ -60,7 +60,7 @@ pub fn print_walk(f: &mut fmt::Formatter<'_>, xml_doc: &XmlDocument) -> fmt::Res
     write!(f, "\n")?;
     write!(f, "            DocumentInfo::new(")?;
     write!(f, "XmlVersion::{}, ", doc_info.version)?;
-    write!(f, "\"{}\", ", doc_info.encoding)?;
+    write!(f, "\"{}\".to_string(), ", doc_info.encoding)?;
     write!(f, "{}", if doc_info.standalone.is_none() { "None" } else
         {if doc_info.standalone.unwrap() {"true"} else {"false"}})?;
     write!(f, "),\n")?;
@@ -136,13 +136,11 @@ for PrintAccumulator {
     fn new(bl: &mut PrintBaseLevel<'_, '_>, e: &Box<dyn Element>, ed: &PrintElemData) -> Self {
         // FIXME: use symbolic values for indentation
         let depth = ed.depth + 3;
-//write!(bl.f, "depth {}:", depth);
-        write!(bl.f, "{}Box::new(", indent(depth))
-            .expect("Unable to write Box::new");
-        write!(bl.f, "\"{}\"\n", e.name())
-            .expect("Unable to write {}");
+        e.display(bl.f, depth)
+            .expect("Unable to write Element");
+
         PrintAccumulator {
-            depth:  depth,
+            depth:  depth + 2,
         }
     }
 
@@ -151,7 +149,8 @@ for PrintAccumulator {
     }
 
     fn summary(&self, bl: &mut PrintBaseLevel<'_, '_>) -> PrintWalkResult {
-        write!(bl.f, "{})\n", indent(self.depth))?;
+        write!(bl.f, "{})\n", indent(self.depth + 1))?;
+        write!(bl.f, "{})),\n", indent(self.depth))?;
         Ok(())
     }
 }

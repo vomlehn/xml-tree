@@ -38,7 +38,6 @@ impl<'a> XmlSchema<'a> {
     }
 
     pub fn display(&self) {
-        println!("XmlSchema::display");
         println!("{}", self.inner);
     }
 }

@@ -5,7 +5,7 @@
 
 //use std::error::Error;
 //use std::cell::RefCell;
-//use std::collections::BTreeMap;
+use std::collections::BTreeMap;
 use std::fmt;
 use std::fs::File;
 use std::io::{BufReader, Read};
@@ -25,6 +25,9 @@ use crate::xml_schema::XmlSchema;
 //use crate::walk_and_print::{PrintAccumulator, PrintBaseLevel, PrintElemData/*, PrintWalkable*/, PrintWalkData, PrintWalkResult};
 use crate::walk_and_print::print_walk;
 //use crate::walkable::Walkable;
+
+// FIXME: where should this function go?
+use crate::walk_and_print::indent;
 
 /*
  * Parsed XML document
@@ -199,53 +202,11 @@ impl fmt::Display for Box<dyn Element> {
 }
 
 impl<'a> fmt::Debug for Box<dyn Element> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.debug(f, 0)
-//        write!(f, "{}", *self)
+    fn fmt(&self, _f: &mut fmt::Formatter<'_>) -> fmt::Result {
+todo!();
     }
 }
 
-/*
-impl<'a> fmt::Display for dyn Element {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "schema element {}\n", self.name())?;
-        write!(f, "x...{} subelements\n", self.subelements().len());
-        for element in &*self.subelements() {
-            write!(f, "{}", self)?;
-        }
-        Ok(())
-    }
-}
-
-impl fmt::Debug for dyn Element {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self)
-    }
-}
-*/
-
-/*
-impl<'a> fmt::Display for dyn Element {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "schema element {}\n", self.name())?;
-        write!(f, "y...{} subelements\n", self.subelements().len());
-        for element in &*self.subelements() {
-            write!(f, "{}", element)?;
-        }
-        Ok(())
-    }
-}
-
-impl fmt::Debug for dyn Element {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.debug(f)
-    }
-}
- */
-
-/*
- * Define the structure used to construct the tree for the parsed document.
- */
 pub struct DirectElement {
     pub name: OwnedName,
     pub element_info: ElementInfo,
@@ -296,6 +257,25 @@ impl<'a> fmt::Debug for DirectElement {
 
 impl<'a> Element for DirectElement {
     fn display(&self, f: &mut fmt::Formatter<'_>, depth: usize) -> fmt::Result {
+        write!(f, "{}Box::new(DirectElement::new(\n", indent(depth))
+            .expect("Unable to write Box::new");
+
+        let owned_name = OwnedName {
+            local_name: self.name.to_string(),
+            namespace:  None,
+            prefix:     None,
+        };
+        owned_name_display(f, depth + 1, &owned_name)?;
+
+        let element_info = ElementInfo {
+            lineno:     0,
+            attributes: vec!(),
+            namespace:  Namespace(BTreeMap::<String, String>::new()),
+        };
+        element_info_display(f, depth + 1, &element_info)?;
+
+        write!(f, "{}vec!(\n", indent(depth + 1))?;
+/*
         const INDENT_STR: &str = "   ";
         let indent_string = INDENT_STR.to_string().repeat(depth);
 
@@ -316,6 +296,7 @@ impl<'a> Element for DirectElement {
 
             write!(f, "{}]\n", indent_string)?;
         }
+*/
 
         Ok(())
     }
@@ -338,6 +319,16 @@ impl<'a> Element for DirectElement {
     fn subelements<'b>(&'b self) -> &'b Vec<Box<(dyn Element)>> {
         &self.subelements
     }
+}
+
+fn owned_name_display(f: &mut fmt::Formatter<'_>, depth: usize, owned_name: &OwnedName) -> fmt::Result {
+    write!(f, "{}OwnedName{{local_name: {},\n", indent(depth), owned_name.local_name)?;
+// FIXME: handle Option<> better
+    write!(f, "{}namespace: {:?}, prefix: {:?}}}\n", indent(depth + 1), owned_name.namespace, owned_name.prefix)
+}
+
+fn element_info_display(f: &mut fmt::Formatter<'_>, depth: usize, element_info: &ElementInfo) -> fmt::Result {
+    write!(f, "{}ElementInfo::new({}, vec!(), Namespace(BTreeMap::<String, String>::new()\n", indent(depth), element_info.lineno)
 }
 
 /*
