@@ -12,108 +12,24 @@ use crate::walkable::walk;
 
 const INDENT: &str = "    ";
 
-/*
-pub struct XmlPrint<'a> {
-    f:  &'a mut fmt::Formatter<'fmt>,
-//    xml_doc:    &'a XmlDocument,
-}
-
-impl<'a> XmlPrint<'a> {
-//    pub fn new(f: &'a mut fmt::Formatter<'fmt>, xml_doc: &'a XmlDocument) -> Self {
-    pub fn new(f: &'a mut fmt::Formatter<'fmt>) -> Self {
-        XmlPrint {
-            f:          f,
-//            xml_doc:    xml_doc,
-        }
-    }
-
-    pub fn walk(&mut self, xml_doc: &'a XmlDocument) -> fmt::Result {
-        let print_base_level = PrintBaseLevel::new(self.f);
-        let print_walkable = PrintWalkable::new(print_base_level, &xml_doc);
-        let print_elem_data = PrintElemData::new(0);
-        print_walkable.walk_down(&xml_doc.root, &print_elem_data)
-    }
-}
-*/
-
-/*
-pub struct WalkAndPrint<'a> {
-    xml_doc:    &'a XmlDocument,
-}
-
-impl<'a> WalkAndPrint<'a> {
-    pub fn new(xml_doc: &'a XmlDocument) -> WalkAndPrint<'a> {
-        WalkAndPrint {
-            xml_doc:    xml_doc,
-        }
-    }
-}
-*/
-
-pub fn print_walk(f: &mut fmt::Formatter<'_>, xml_doc: &XmlDocument) -> fmt::Result
+pub fn print_walk(f: &mut fmt::Formatter<'_>, depth: usize, xml_doc: &XmlDocument) -> fmt::Result
 {
-    let depth = 2;
-    write!(f, "{}XmlDocument::new(", indent(depth))?;
+    let mut indent_str = indent(depth);
+    write!(f, "{}XmlDocument::new(", indent_str)?;
 
+    indent_str = indent(depth + 1);
     let doc_info = &xml_doc.document_info;
-    // FIXME: use indent()
-    write!(f, "\n")?;
-    write!(f, "            DocumentInfo::new(")?;
+    write!(f, "{}DocumentInfo::new(", indent_str)?;
     write!(f, "XmlVersion::{}, ", doc_info.version)?;
     write!(f, "\"{}\".to_string(), ", doc_info.encoding)?;
     write!(f, "{}", if doc_info.standalone.is_none() { "None" } else
         {if doc_info.standalone.unwrap() {"true"} else {"false"}})?;
-    write!(f, "),\n")?;
 
     let mut bl = PrintBaseLevel::new(f);
-    let ed = PrintElemData::new(0);
+    let ed = PrintElemData::new(depth);
     walk::<PrintAccumulator, PrintBaseLevel, PrintElemData, PrintWalkData, PrintWalkResult>(&mut bl, xml_doc, &ed)?;
-    write!(f, "{})\n", indent(depth))
+    write!(f, "{})", indent(depth))
 }
-
-/*
-struct PrintWalkable<'a> {
-    xml_doc:    &'a XmlDocument,
-    base:       RefCell<PrintBaseLevel<'a>>,
-}
-*/
-
-/*
-impl<'a> PrintWalkable<'a> {
-    pub fn new(base: PrintBaseLevel<'a>, xml_doc: &'a XmlDocument) -> PrintWalkable<'a> {
-        PrintWalkable {
-            xml_doc:    xml_doc,
-            base:       RefCell::new(base),
-        }
-    }
-}
-
-impl<'a> Walkable<'a, PrintAccumulator, PrintBaseLevel<'a>, PrintElemData, PrintWalkData, PrintWalkResult> for PrintWalkable<'a> {
-    fn xml_document(&self) -> &XmlDocument {
-        self.xml_doc
-    }
-
-    fn base_level_cell(&self) -> &RefCell<PrintBaseLevel<'a>>
-    {
-            &self.base
-    }
-}
-*/
-
-/*
-pub struct PrintWalkableData<'a, 'b> {
-//        xml_doc:    xml_doc,
-        base:       RefCell<PrintBaseLevel<'a, 'b>>,
-}
-
-impl<'a, 'b> PrintWalkableData<'a, 'b> {
-    pub fn new(base: PrintBaseLevel<'a, 'b>) -> PrintWalkableData<'a, 'b> {
-        PrintWalkableData {
-            base:   RefCell::new(base),
-        }
-    }
-}
-*/
 
 /**
  * Since we're printing, our return type is the same as the type
@@ -133,24 +49,23 @@ pub struct PrintAccumulator {
 
 impl<'a> Accumulator<'a, PrintBaseLevel<'_, '_>, PrintElemData, PrintWalkData, PrintWalkResult>
 for PrintAccumulator {
-    fn new(bl: &mut PrintBaseLevel<'_, '_>, e: &Box<dyn Element>, ed: &PrintElemData) -> Self {
-        // FIXME: use symbolic values for indentation
-        let depth = ed.depth + 3;
-        e.display(bl.f, depth)
+    fn new(bl: &mut PrintBaseLevel<'_, '_>, e: &Box<dyn Element>, ed: &PrintElemData) -> PrintAccumulator {
+        let depth = ed.depth;
+        e.display(bl.f, depth + 1)
             .expect("Unable to write Element");
 
         PrintAccumulator {
-            depth:  depth + 2,
+            depth:  depth + 1,
         }
     }
 
-    fn add(&mut self, _wd: &PrintWalkData) -> PrintWalkResult {
+    fn add(&mut self, _wd: &PrintWalkData, next_ed: &PrintElemData) -> PrintWalkResult {
         Ok(())
     }
 
     fn summary(&self, bl: &mut PrintBaseLevel<'_, '_>) -> PrintWalkResult {
-        write!(bl.f, "{})\n", indent(self.depth + 1))?;
-        write!(bl.f, "{})),\n", indent(self.depth))?;
+        write!(bl.f, "{})", indent(self.depth + 1))?;
+        write!(bl.f, "{})),", indent(self.depth))?;
         Ok(())
     }
 }
@@ -190,9 +105,9 @@ impl PrintElemData {
     }
 }
 
-impl ElemData<PrintElemData> for PrintElemData {
-    fn next_level(&self, _element: &Box<dyn Element>) -> PrintElemData {
-        PrintElemData::new(self.depth + 1)
+impl ElemData<PrintAccumulator, PrintElemData> for PrintElemData {
+    fn next_level(&self, acc: &PrintAccumulator,_element: &Box<dyn Element>) -> PrintElemData {
+        PrintElemData::new(acc.depth + 1)
     }
 }
 
@@ -203,7 +118,7 @@ impl ElemData<PrintElemData> for PrintElemData {
 pub type PrintWalkData = ();
 
 pub fn indent(n: usize) -> String {
-    INDENT.repeat(n)
+    "\n".to_owned() + &INDENT.repeat(n)
 }
 
 #[cfg(test)]

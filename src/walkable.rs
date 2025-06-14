@@ -11,9 +11,9 @@ use crate::xml_document::{Element, XmlDocument};
 /**
  * Data for the Element being worked on by walk_down().
  */
-pub trait ElemData<ED>
+pub trait ElemData<AC, ED>
 {
-    fn next_level(&self, element: &Box<dyn Element>) -> ED;
+    fn next_level(&self, acc: &AC, element: &Box<dyn Element>) -> ED;
 }
 
 /**
@@ -36,7 +36,7 @@ pub trait Accumulator<'a, BL, ED, WD, WR> {
     fn new(bl: &mut BL, e: &Box<dyn Element>, ed: &ED) -> Self
     where
         Self: Sized;
-    fn add(&mut self, wd: &WD) -> WR;
+    fn add(&mut self, wd: &WD, ed: &ED) -> WR;
     fn summary(&self, bl: &mut BL) -> WR;
 }
 
@@ -64,7 +64,7 @@ where
 pub fn walk<'a, AC, BL, ED, WD, WR>(bl: &mut BL, xml_doc: &XmlDocument, ed: &ED) -> WR
 where
     AC: Accumulator<'a, BL, ED, WD, WR>,
-    ED: ElemData<ED>,
+    ED: ElemData<AC, ED>,
     WR: Try<Output = WD>,
     WR: FromResidual,
 {
@@ -74,14 +74,14 @@ where
 fn walk_down<'a, AC, BL, ED, WD, WR>(bl: &mut BL, element: &Box<dyn Element>, ed: &ED) -> WR
 where
     AC: Accumulator<'a, BL, ED, WD, WR>,
-    ED: ElemData<ED>,
+    ED: ElemData<AC, ED>,
     WR: Try<Output = WD>,
     WR: FromResidual,
 {
     let mut acc = AC::new(bl, element, ed);
 
     // Process subelements and collect WalkData results in a vector
-    let next_ed = ed.next_level(element);
+    let next_ed = ed.next_level(&acc, element);
     let mut wd_vec = Vec::<WD>::new();
 
     for elem in element.subelements() {
@@ -91,7 +91,7 @@ where
 
     // Accumulate results
     for wd in &wd_vec {
-        acc.add(wd)?;
+        acc.add(wd, &next_ed)?;
     }
     acc.summary(bl)
 }
@@ -163,7 +163,7 @@ mod test_tests {
     }
 
     impl ElemData<TestElemData> for TestElemData {
-        fn next_level(&self, _element: &Box<dyn Element>) -> TestElemData {
+        fn next_level(&self, &acc: Accumulator, _element: &Box<dyn Element>) -> TestElemData {
             TestElemData::new(self.depth + 1)
         }
     }

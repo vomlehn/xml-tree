@@ -125,13 +125,13 @@ impl<'a> XmlDocument {
 impl<'a> fmt::Display for XmlDocument {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result
     {
-        print_walk(f, self)
+        print_walk(f, 0, self)
     }
 }
 
 impl<'a> fmt::Debug for XmlDocument {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        print_walk(f, self)
+        print_walk(f, 0, self)
     }
 }
 
@@ -257,7 +257,8 @@ impl<'a> fmt::Debug for DirectElement {
 
 impl<'a> Element for DirectElement {
     fn display(&self, f: &mut fmt::Formatter<'_>, depth: usize) -> fmt::Result {
-        write!(f, "{}Box::new(DirectElement::new(\n", indent(depth))
+
+        write!(f, "{}Box::new(DirectElement::new(", indent(depth))
             .expect("Unable to write Box::new");
 
         let owned_name = OwnedName {
@@ -274,31 +275,7 @@ impl<'a> Element for DirectElement {
         };
         element_info_display(f, depth + 1, &element_info)?;
 
-        write!(f, "{}vec!(\n", indent(depth + 1))?;
-/*
-        const INDENT_STR: &str = "   ";
-        let indent_string = INDENT_STR.to_string().repeat(depth);
-
-        write!(f, "{}\"{}\"", indent_string, self.name())?;
-        let subelements = &self.subelements;
-        println!("subelements.len {}", subelements.len());
-
-        if subelements.len() == 0 {
-            write!(f, " []\n")?;
-        } else {
-            write!(f, " [\n")?;
-
-
-            for _elem in subelements {
-                todo!()
-//                elem.display(f, depth + 1)?;
-            }
-
-            write!(f, "{}]\n", indent_string)?;
-        }
-*/
-
-        Ok(())
+        write!(f, "{}vec!(", indent(depth + 1))
     }
 
     fn debug(&self, f: &mut fmt::Formatter<'_>, depth: usize) -> fmt::Result {
@@ -322,13 +299,14 @@ impl<'a> Element for DirectElement {
 }
 
 fn owned_name_display(f: &mut fmt::Formatter<'_>, depth: usize, owned_name: &OwnedName) -> fmt::Result {
-    write!(f, "{}OwnedName{{local_name: {},\n", indent(depth), owned_name.local_name)?;
+    write!(f, "{}OwnedName{{local_name: \"{}\".to_string(),", indent(depth), owned_name.local_name)?;
 // FIXME: handle Option<> better
-    write!(f, "{}namespace: {:?}, prefix: {:?}}}\n", indent(depth + 1), owned_name.namespace, owned_name.prefix)
+    write!(f, "{}namespace: {:?}, prefix: {:?}}}", indent(depth + 1), owned_name.namespace, owned_name.prefix)
 }
 
 fn element_info_display(f: &mut fmt::Formatter<'_>, depth: usize, element_info: &ElementInfo) -> fmt::Result {
-    write!(f, "{}ElementInfo::new({}, vec!(), Namespace(BTreeMap::<String, String>::new()\n", indent(depth), element_info.lineno)
+    write!(f, "{}ElementInfo::new({}, vec!(),", indent(depth), element_info.lineno)?;
+    write!(f, "{}Namespace(BTreeMap::<String, String>::new()),", indent(depth + 1))
 }
 
 /*
@@ -715,7 +693,7 @@ pub trait BaseLevel {}
  * Data stored for the peers of the Element a given invocation of walk_down()
  */
 pub trait Accumulator<'a, BL, ED, WD, WR> {
-    fn new(bl: &mut BL, e: &Box<dyn Element>, ed: &ED) -> Self
+    fn new(bl: &mut BL, e: &Box<dyn Element>, ed: &ED) -> ED
     where
         Self: Sized;
     fn add(&mut self, wd: &WD) -> WR;
