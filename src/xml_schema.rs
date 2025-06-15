@@ -3,19 +3,10 @@
  */
 // FIXME: make sure errors returned are appropriate
 
-//use std::any::Any;
 use std::fmt;
 // FIXME: implement some more iterators
-//use std::iter;
-//use std::marker::Sync;
-//use std::ops::Deref;
-//use std::sync::{Arc, Mutex, MutexGuard};
-//use std::vec;
 
-//use crate::xml_document::Element;
 use crate::xml_document::XmlDocument;
-//use crate::xml_document_error::XmlDocumentError;
-// FIXME: reconsile the location of these functions
 use crate::walk_and_print::{indent, print_walk};
 
 pub struct XmlSchema<'a> {
@@ -106,13 +97,21 @@ impl fmt::Debug for XmlSchemaInner<'_> {
 }
 
 fn front_matter_display(f: &mut fmt::Formatter, depth: usize) -> fmt::Result {
-    let front_matter: Vec::<String> = vec!(
-        "// FIXME: insert banner".to_string(),
-        "use lazy_static::lazy_static;".to_string(), 
-        "use std::sync::Arc;".to_string(), 
-        "".to_string(), 
-        "use crate::xml_schema::{{DirectElement, XmlSchema}};".to_string(), 
-        "".to_string(), 
+    let front_matter: Vec::<&str> = vec!(
+        "// FIXME: insert banner",
+        "// Auto-generated file",
+        "use lazy_static::lazy_static;", 
+        "use std::collections::BTreeMap;",
+        "", 
+        "use xml::common::XmlVersion;",
+        "use xml::name::OwnedName;",
+        "use xml::namespace::Namespace;",
+        "",
+        "use crate::xml_document::DirectElement;", 
+        "use crate::xml_document_factory::{DocumentInfo, ElementInfo};",
+        "use crate::xml_schema::XmlSchema;", 
+        "use crate::XmlDocument;",
+        "", 
     );
 
     let indent_str = indent(depth);

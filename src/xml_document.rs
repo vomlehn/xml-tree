@@ -274,6 +274,7 @@ impl<'a> Element for DirectElement {
             namespace:  Namespace(BTreeMap::<String, String>::new()),
         };
         element_info_display(f, depth + 1, &element_info)?;
+        write!(f, "{}vec!(), vec!(), vec!(),", indent(depth + 1))?;
 
         write!(f, "{}vec!(", indent(depth + 1))
     }
@@ -301,12 +302,12 @@ impl<'a> Element for DirectElement {
 fn owned_name_display(f: &mut fmt::Formatter<'_>, depth: usize, owned_name: &OwnedName) -> fmt::Result {
     write!(f, "{}OwnedName{{local_name: \"{}\".to_string(),", indent(depth), owned_name.local_name)?;
 // FIXME: handle Option<> better
-    write!(f, "{}namespace: {:?}, prefix: {:?}}}", indent(depth + 1), owned_name.namespace, owned_name.prefix)
+    write!(f, "{}namespace: {:?}, prefix: {:?}}},", indent(depth + 1), owned_name.namespace, owned_name.prefix)
 }
 
 fn element_info_display(f: &mut fmt::Formatter<'_>, depth: usize, element_info: &ElementInfo) -> fmt::Result {
     write!(f, "{}ElementInfo::new({}, vec!(),", indent(depth), element_info.lineno)?;
-    write!(f, "{}Namespace(BTreeMap::<String, String>::new()),", indent(depth + 1))
+    write!(f, "{}Namespace(BTreeMap::<String, String>::new())),", indent(depth + 1))
 }
 
 /*
