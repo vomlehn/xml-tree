@@ -59,7 +59,7 @@ for PrintAccumulator {
         }
     }
 
-    fn add(&mut self, _wd: &PrintWalkData, next_ed: &PrintElemData) -> PrintWalkResult {
+    fn add(&mut self, _wd: &PrintWalkData, _next_ed: &PrintElemData) -> PrintWalkResult {
         Ok(())
     }
 

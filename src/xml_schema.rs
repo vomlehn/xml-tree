@@ -137,7 +137,8 @@ fn static_xml_schema_display(f: &mut fmt::Formatter, depth: usize, const_name: &
 }
 
 fn back_matter_display(f: &mut fmt::Formatter, depth: usize) -> fmt::Result {
-    write!(f, "{})", indent(depth))?;
-    write!(f, "{}}}", indent(depth - 1))?;
-    write!(f, "\n")
+    write!(f, "{});", indent(depth))?;
+    write!(f, "{}}}", indent(depth - 1))
+// FIXME: is this needed?
+// write!(f, "\n")
 }
