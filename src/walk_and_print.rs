@@ -14,10 +14,10 @@ const INDENT: &str = "    ";
 
 pub fn print_walk(f: &mut fmt::Formatter<'_>, depth: usize, xml_doc: &XmlDocument) -> fmt::Result
 {
-    let mut indent_str = indent(depth);
+    let mut indent_str = nl_indent(depth);
     write!(f, "{}XmlDocument::new(", indent_str)?;
 
-    indent_str = indent(depth + 1);
+    indent_str = nl_indent(depth + 1);
     let doc_info = &xml_doc.document_info;
     write!(f, "{}DocumentInfo::new(", indent_str)?;
     write!(f, "XmlVersion::{}, ", /*doc_info.version*/ "Version10")?;
@@ -29,7 +29,7 @@ pub fn print_walk(f: &mut fmt::Formatter<'_>, depth: usize, xml_doc: &XmlDocumen
     let mut bl = PrintBaseLevel::new(f);
     let ed = PrintElemData::new(depth);
     walk::<PrintAccumulator, PrintBaseLevel, PrintElemData, PrintWalkData, PrintWalkResult>(&mut bl, xml_doc, &ed)?;
-    write!(f, "{})", indent(depth))
+    write!(f, "{})", nl_indent(depth))
 }
 
 /**
@@ -65,8 +65,8 @@ for PrintAccumulator {
     }
 
     fn summary(&self, bl: &mut PrintBaseLevel<'_, '_>) -> PrintWalkResult {
-        write!(bl.f, "{})", indent(self.depth + 1))?;
-        write!(bl.f, "{})),", indent(self.depth))?;
+        write!(bl.f, "{})", nl_indent(self.depth + 1))?;
+        write!(bl.f, "{})),", nl_indent(self.depth))?;
         Ok(())
     }
 }
@@ -118,7 +118,7 @@ impl ElemData<PrintAccumulator, PrintElemData> for PrintElemData {
  */
 pub type PrintWalkData = ();
 
-pub fn indent(n: usize) -> String {
+pub fn nl_indent(n: usize) -> String {
     "\n".to_owned() + &INDENT.repeat(n)
 }
 
@@ -148,4 +148,32 @@ mod print_tests {
         println!("Display WalkAndPrint:");
         println!("{}", po);
     }
+}
+
+/**
+ * Print a descriptor of the given type.
+ * f:       Formatter
+ * depth:   Indentation
+ */
+// FIXME: uses of this need to be cleaned up and consolidated
+pub fn vec_display<T>(f: &mut fmt::Formatter, depth: usize, vec: &Vec<T>) -> fmt::Result
+where
+    T:  XmlDisplay
+{
+    if vec.len() == 0 {
+        write!(f, "{}vec!()", nl_indent(depth))?;
+    } else {
+        write!(f, "{}vec!(", nl_indent(depth + 1))?;
+        for elem in vec {
+                elem.print(f, depth)?;
+        }
+        write!(f, "{})", nl_indent(depth))?;
+    }
+
+    Ok(())
+}
+
+pub trait XmlDisplay
+{
+    fn print(&self, f: &mut fmt::Formatter<'_>, depth: usize) -> fmt::Result;
 }

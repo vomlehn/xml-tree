@@ -23,11 +23,11 @@ use crate::xml_document_error::XmlDocumentError;
 use crate::xml_document_factory::XmlDocumentFactory;
 use crate::xml_schema::XmlSchema;
 //use crate::walk_and_print::{PrintAccumulator, PrintBaseLevel, PrintElemData/*, PrintWalkable*/, PrintWalkData, PrintWalkResult};
-use crate::walk_and_print::print_walk;
+use crate::walk_and_print::{print_walk, vec_display, XmlDisplay};
 //use crate::walkable::Walkable;
 
 // FIXME: where should this function go?
-use crate::walk_and_print::indent;
+use crate::walk_and_print::nl_indent;
 
 /*
  * Parsed XML document
@@ -210,10 +210,10 @@ todo!();
 pub struct DirectElement {
     pub name: OwnedName,
     pub element_info: ElementInfo,
-    pub subelements: Vec<Box<(dyn Element)>>,
     pub before_element: Vec<XmlEvent>,
     pub content: Vec<XmlEvent>,
     pub after_element: Vec<XmlEvent>,
+    pub subelements: Vec<Box<(dyn Element)>>,
 }
 
 impl<'a> DirectElement {
@@ -258,7 +258,7 @@ impl<'a> fmt::Debug for DirectElement {
 impl<'a> Element for DirectElement {
     fn display(&self, f: &mut fmt::Formatter<'_>, depth: usize) -> fmt::Result {
 
-        write!(f, "{}Box::new(DirectElement::new(", indent(depth))
+        write!(f, "{}Box::new(DirectElement::new(", nl_indent(depth))
             .expect("Unable to write Box::new");
 
         let owned_name = OwnedName {
@@ -274,9 +274,17 @@ impl<'a> Element for DirectElement {
             namespace:  Namespace(BTreeMap::<String, String>::new()),
         };
         element_info_display(f, depth + 1, &element_info)?;
-        write!(f, "{}vec!(), vec!(), vec!(),", indent(depth + 1))?;
-
-        write!(f, "{}vec!(", indent(depth + 1))
+        write!(f, "{}", nl_indent(depth + 1))?;
+        vec_display::<XmlEvent>(f, depth, &self.before_element)?;
+        write!(f, ",")?;
+        vec_display::<XmlEvent>(f, depth, &self.content)?;
+        write!(f, ",")?;
+        vec_display::<XmlEvent>(f, depth, &self.after_element)?;
+        write!(f, ",")?;
+/*
+        vec!(), vec!(), vec!(),", 
+*/
+        write!(f, "{}vec!(", nl_indent(depth + 1))
     }
 
     fn debug(&self, f: &mut fmt::Formatter<'_>, depth: usize) -> fmt::Result {
@@ -299,15 +307,40 @@ impl<'a> Element for DirectElement {
     }
 }
 
+impl XmlDisplay for DirectElement {
+    fn print(&self, f: &mut fmt::Formatter<'_>, depth: usize) -> fmt::Result {
+
+        write!(f, "{}Box::new(DirectElement::new(", nl_indent(depth))
+            .expect("Unable to write Box::new");
+
+        let owned_name = OwnedName {
+            local_name: self.name.to_string(),
+            namespace:  None,
+            prefix:     None,
+        };
+        owned_name_display(f, depth + 1, &owned_name)?;
+
+        let element_info = ElementInfo {
+            lineno:     0,
+            attributes: vec!(),
+            namespace:  Namespace(BTreeMap::<String, String>::new()),
+        };
+        element_info_display(f, depth + 1, &element_info)?;
+        write!(f, "{}vec!(), vec!(), vec!(),", nl_indent(depth + 1))?;
+
+        write!(f, "{}vec!(", nl_indent(depth + 1))
+    }
+}
+
 fn owned_name_display(f: &mut fmt::Formatter<'_>, depth: usize, owned_name: &OwnedName) -> fmt::Result {
-    write!(f, "{}OwnedName{{local_name: \"{}\".to_string(),", indent(depth), owned_name.local_name)?;
+    write!(f, "{}OwnedName{{local_name: \"{}\".to_string(),", nl_indent(depth), owned_name.local_name)?;
 // FIXME: handle Option<> better
-    write!(f, "{}namespace: {:?}, prefix: {:?}}},", indent(depth + 1), owned_name.namespace, owned_name.prefix)
+    write!(f, "{}namespace: {:?}, prefix: {:?}}},", nl_indent(depth + 1), owned_name.namespace, owned_name.prefix)
 }
 
 fn element_info_display(f: &mut fmt::Formatter<'_>, depth: usize, element_info: &ElementInfo) -> fmt::Result {
-    write!(f, "{}ElementInfo::new({}, vec!(),", indent(depth), element_info.lineno)?;
-    write!(f, "{}Namespace(BTreeMap::<String, String>::new())),", indent(depth + 1))
+    write!(f, "{}ElementInfo::new({}, vec!(),", nl_indent(depth), element_info.lineno)?;
+    write!(f, "{}Namespace(BTreeMap::<String, String>::new())),", nl_indent(depth + 1))
 }
 
 /*
@@ -329,10 +362,6 @@ impl<'a> IndirectElement {
 }
 
 impl<'a> Element for IndirectElement {
-    fn display(&self, _f: &mut fmt::Formatter<'_>, _depth: usize) -> fmt::Result {
-        todo!()
-    }
-
     fn debug(&self, f: &mut fmt::Formatter<'_>, depth: usize) -> fmt::Result {
         self.display(f, depth)
     }
@@ -361,11 +390,18 @@ impl<'a> fmt::Debug for IndirectElement {
         self.debug(f, 0)
     }
 }
+
+impl XmlDisplay for IndirectElement {
+    fn print(&self, _f: &mut fmt::Formatter<'_>, _depth: usize) -> fmt::Result {
+        todo!()
+    }
+}
+
 */
 
 /*
     pub fn start_string(&self, depth: usize) -> String {
-        format!("{}<{}", Self::indent(depth), self.name.local_name)
+        format!("{}<{}", Self::nl_indent(depth), self.name.local_name)
     }
 
     pub fn attributes_string(&self) -> String {
@@ -394,7 +430,7 @@ impl<'a> fmt::Debug for IndirectElement {
         if !self.is_one_line() {
             Some(format!(
                 "{}</{}> (line {})",
-                Self::indent(depth),
+                Self::nl_indent(depth),
                 self.name.local_name,
                 self.element_info.lineno
             ))
@@ -699,4 +735,10 @@ pub trait Accumulator<'a, BL, ED, WD, WR> {
         Self: Sized;
     fn add(&mut self, wd: &WD) -> WR;
     fn summary(&self, bl: &mut BL) -> WR;
+}
+
+impl XmlDisplay for XmlEvent {
+    fn print(&self, f: &mut fmt::Formatter<'_>, depth: usize) -> fmt::Result {
+        write!(f, "{}{:?}", nl_indent(depth), self)
+    }
 }

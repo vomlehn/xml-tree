@@ -25,14 +25,20 @@ lazy_static! {
                     namespace: None, prefix: None},
                 ElementInfo::new(0, vec!(),
                     Namespace(BTreeMap::<String, String>::new())),
-                vec!(), vec!(), vec!(),
+                
+            vec!(),
+            vec!(),
+            vec!(),
                 vec!(
                     Box::new(DirectElement::new(
                         OwnedName{local_name: "import".to_string(),
                             namespace: None, prefix: None},
                         ElementInfo::new(0, vec!(),
                             Namespace(BTreeMap::<String, String>::new())),
-                        vec!(), vec!(), vec!(),
+                        
+                    vec!(),
+                    vec!(),
+                    vec!(),
                         vec!(
                         )
                     )),
@@ -41,14 +47,20 @@ lazy_static! {
                             namespace: None, prefix: None},
                         ElementInfo::new(0, vec!(),
                             Namespace(BTreeMap::<String, String>::new())),
-                        vec!(), vec!(), vec!(),
+                        
+                    vec!(),
+                    vec!(),
+                    vec!(),
                         vec!(
                             Box::new(DirectElement::new(
                                 OwnedName{local_name: "documentation".to_string(),
                                     namespace: None, prefix: None},
                                 ElementInfo::new(0, vec!(),
                                     Namespace(BTreeMap::<String, String>::new())),
-                                vec!(), vec!(), vec!(),
+                                
+                            vec!(),
+                            vec!(),
+                            vec!(),
                                 vec!(
                                 )
                             )),
@@ -59,21 +71,30 @@ lazy_static! {
                             namespace: None, prefix: None},
                         ElementInfo::new(0, vec!(),
                             Namespace(BTreeMap::<String, String>::new())),
-                        vec!(), vec!(), vec!(),
+                        
+                    vec!(),
+                    vec!(),
+                    vec!(),
                         vec!(
                             Box::new(DirectElement::new(
                                 OwnedName{local_name: "annotation".to_string(),
                                     namespace: None, prefix: None},
                                 ElementInfo::new(0, vec!(),
                                     Namespace(BTreeMap::<String, String>::new())),
-                                vec!(), vec!(), vec!(),
+                                
+                            vec!(),
+                            vec!(),
+                            vec!(),
                                 vec!(
                                     Box::new(DirectElement::new(
                                         OwnedName{local_name: "documentation".to_string(),
                                             namespace: None, prefix: None},
                                         ElementInfo::new(0, vec!(),
                                             Namespace(BTreeMap::<String, String>::new())),
-                                        vec!(), vec!(), vec!(),
+                                        
+                                    vec!(),
+                                    vec!(),
+                                    vec!(),
                                         vec!(
                                         )
                                     )),
@@ -84,21 +105,30 @@ lazy_static! {
                                     namespace: None, prefix: None},
                                 ElementInfo::new(0, vec!(),
                                     Namespace(BTreeMap::<String, String>::new())),
-                                vec!(), vec!(), vec!(),
+                                
+                            vec!(),
+                            vec!(),
+                            vec!(),
                                 vec!(
                                     Box::new(DirectElement::new(
                                         OwnedName{local_name: "annotation".to_string(),
                                             namespace: None, prefix: None},
                                         ElementInfo::new(0, vec!(),
                                             Namespace(BTreeMap::<String, String>::new())),
-                                        vec!(), vec!(), vec!(),
+                                        
+                                    vec!(),
+                                    vec!(),
+                                    vec!(),
                                         vec!(
                                             Box::new(DirectElement::new(
                                                 OwnedName{local_name: "documentation".to_string(),
                                                     namespace: None, prefix: None},
                                                 ElementInfo::new(0, vec!(),
                                                     Namespace(BTreeMap::<String, String>::new())),
-                                                vec!(), vec!(), vec!(),
+                                                
+                                            vec!(),
+                                            vec!(),
+                                            vec!(),
                                                 vec!(
                                                 )
                                             )),
@@ -109,7 +139,10 @@ lazy_static! {
                                             namespace: None, prefix: None},
                                         ElementInfo::new(0, vec!(),
                                             Namespace(BTreeMap::<String, String>::new())),
-                                        vec!(), vec!(), vec!(),
+                                        
+                                    vec!(),
+                                    vec!(),
+                                    vec!(),
                                         vec!(
                                         )
                                     )),
@@ -118,7 +151,10 @@ lazy_static! {
                                             namespace: None, prefix: None},
                                         ElementInfo::new(0, vec!(),
                                             Namespace(BTreeMap::<String, String>::new())),
-                                        vec!(), vec!(), vec!(),
+                                        
+                                    vec!(),
+                                    vec!(),
+                                    vec!(),
                                         vec!(
                                         )
                                     )),
@@ -131,21 +167,30 @@ lazy_static! {
                             namespace: None, prefix: None},
                         ElementInfo::new(0, vec!(),
                             Namespace(BTreeMap::<String, String>::new())),
-                        vec!(), vec!(), vec!(),
+                        
+                    vec!(),
+                    vec!(),
+                    vec!(),
                         vec!(
                             Box::new(DirectElement::new(
                                 OwnedName{local_name: "annotation".to_string(),
                                     namespace: None, prefix: None},
                                 ElementInfo::new(0, vec!(),
                                     Namespace(BTreeMap::<String, String>::new())),
-                                vec!(), vec!(), vec!(),
+                                
+                            vec!(),
+                            vec!(),
+                            vec!(),
                                 vec!(
                                     Box::new(DirectElement::new(
                                         OwnedName{local_name: "documentation".to_string(),
                                             namespace: None, prefix: None},
                                         ElementInfo::new(0, vec!(),
                                             Namespace(BTreeMap::<String, String>::new())),
-                                        vec!(), vec!(), vec!(),
+                                        
+                                    vec!(),
+                                    vec!(),
+                                    vec!(),
                                         vec!(
                                         )
                                     )),
@@ -154,7 +199,10 @@ lazy_static! {
                                             namespace: None, prefix: None},
                                         ElementInfo::new(0, vec!(),
                                             Namespace(BTreeMap::<String, String>::new())),
-                                        vec!(), vec!(), vec!(),
+                                        
+                                    vec!(),
+                                    vec!(),
+                                    vec!(),
                                         vec!(
                                         )
                                     )),
@@ -165,21 +213,30 @@ lazy_static! {
                                     namespace: None, prefix: None},
                                 ElementInfo::new(0, vec!(),
                                     Namespace(BTreeMap::<String, String>::new())),
-                                vec!(), vec!(), vec!(),
+                                
+                            vec!(),
+                            vec!(),
+                            vec!(),
                                 vec!(
                                     Box::new(DirectElement::new(
                                         OwnedName{local_name: "annotation".to_string(),
                                             namespace: None, prefix: None},
                                         ElementInfo::new(0, vec!(),
                                             Namespace(BTreeMap::<String, String>::new())),
-                                        vec!(), vec!(), vec!(),
+                                        
+                                    vec!(),
+                                    vec!(),
+                                    vec!(),
                                         vec!(
                                             Box::new(DirectElement::new(
                                                 OwnedName{local_name: "documentation".to_string(),
                                                     namespace: None, prefix: None},
                                                 ElementInfo::new(0, vec!(),
                                                     Namespace(BTreeMap::<String, String>::new())),
-                                                vec!(), vec!(), vec!(),
+                                                
+                                            vec!(),
+                                            vec!(),
+                                            vec!(),
                                                 vec!(
                                                 )
                                             )),
@@ -188,7 +245,10 @@ lazy_static! {
                                                     namespace: None, prefix: None},
                                                 ElementInfo::new(0, vec!(),
                                                     Namespace(BTreeMap::<String, String>::new())),
-                                                vec!(), vec!(), vec!(),
+                                                
+                                            vec!(),
+                                            vec!(),
+                                            vec!(),
                                                 vec!(
                                                 )
                                             )),
@@ -199,35 +259,50 @@ lazy_static! {
                                             namespace: None, prefix: None},
                                         ElementInfo::new(0, vec!(),
                                             Namespace(BTreeMap::<String, String>::new())),
-                                        vec!(), vec!(), vec!(),
+                                        
+                                    vec!(),
+                                    vec!(),
+                                    vec!(),
                                         vec!(
                                             Box::new(DirectElement::new(
                                                 OwnedName{local_name: "restriction".to_string(),
                                                     namespace: None, prefix: None},
                                                 ElementInfo::new(0, vec!(),
                                                     Namespace(BTreeMap::<String, String>::new())),
-                                                vec!(), vec!(), vec!(),
+                                                
+                                            vec!(),
+                                            vec!(),
+                                            vec!(),
                                                 vec!(
                                                     Box::new(DirectElement::new(
                                                         OwnedName{local_name: "enumeration".to_string(),
                                                             namespace: None, prefix: None},
                                                         ElementInfo::new(0, vec!(),
                                                             Namespace(BTreeMap::<String, String>::new())),
-                                                        vec!(), vec!(), vec!(),
+                                                        
+                                                    vec!(),
+                                                    vec!(),
+                                                    vec!(),
                                                         vec!(
                                                             Box::new(DirectElement::new(
                                                                 OwnedName{local_name: "annotation".to_string(),
                                                                     namespace: None, prefix: None},
                                                                 ElementInfo::new(0, vec!(),
                                                                     Namespace(BTreeMap::<String, String>::new())),
-                                                                vec!(), vec!(), vec!(),
+                                                                
+                                                            vec!(),
+                                                            vec!(),
+                                                            vec!(),
                                                                 vec!(
                                                                     Box::new(DirectElement::new(
                                                                         OwnedName{local_name: "documentation".to_string(),
                                                                             namespace: None, prefix: None},
                                                                         ElementInfo::new(0, vec!(),
                                                                             Namespace(BTreeMap::<String, String>::new())),
-                                                                        vec!(), vec!(), vec!(),
+                                                                        
+                                                                    vec!(),
+                                                                    vec!(),
+                                                                    vec!(),
                                                                         vec!(
                                                                         )
                                                                     )),
@@ -246,21 +321,30 @@ lazy_static! {
                                     namespace: None, prefix: None},
                                 ElementInfo::new(0, vec!(),
                                     Namespace(BTreeMap::<String, String>::new())),
-                                vec!(), vec!(), vec!(),
+                                
+                            vec!(),
+                            vec!(),
+                            vec!(),
                                 vec!(
                                     Box::new(DirectElement::new(
                                         OwnedName{local_name: "annotation".to_string(),
                                             namespace: None, prefix: None},
                                         ElementInfo::new(0, vec!(),
                                             Namespace(BTreeMap::<String, String>::new())),
-                                        vec!(), vec!(), vec!(),
+                                        
+                                    vec!(),
+                                    vec!(),
+                                    vec!(),
                                         vec!(
                                             Box::new(DirectElement::new(
                                                 OwnedName{local_name: "documentation".to_string(),
                                                     namespace: None, prefix: None},
                                                 ElementInfo::new(0, vec!(),
                                                     Namespace(BTreeMap::<String, String>::new())),
-                                                vec!(), vec!(), vec!(),
+                                                
+                                            vec!(),
+                                            vec!(),
+                                            vec!(),
                                                 vec!(
                                                 )
                                             )),
@@ -271,21 +355,30 @@ lazy_static! {
                                             namespace: None, prefix: None},
                                         ElementInfo::new(0, vec!(),
                                             Namespace(BTreeMap::<String, String>::new())),
-                                        vec!(), vec!(), vec!(),
+                                        
+                                    vec!(),
+                                    vec!(),
+                                    vec!(),
                                         vec!(
                                             Box::new(DirectElement::new(
                                                 OwnedName{local_name: "annotation".to_string(),
                                                     namespace: None, prefix: None},
                                                 ElementInfo::new(0, vec!(),
                                                     Namespace(BTreeMap::<String, String>::new())),
-                                                vec!(), vec!(), vec!(),
+                                                
+                                            vec!(),
+                                            vec!(),
+                                            vec!(),
                                                 vec!(
                                                     Box::new(DirectElement::new(
                                                         OwnedName{local_name: "documentation".to_string(),
                                                             namespace: None, prefix: None},
                                                         ElementInfo::new(0, vec!(),
                                                             Namespace(BTreeMap::<String, String>::new())),
-                                                        vec!(), vec!(), vec!(),
+                                                        
+                                                    vec!(),
+                                                    vec!(),
+                                                    vec!(),
                                                         vec!(
                                                         )
                                                     )),
@@ -296,21 +389,30 @@ lazy_static! {
                                                     namespace: None, prefix: None},
                                                 ElementInfo::new(0, vec!(),
                                                     Namespace(BTreeMap::<String, String>::new())),
-                                                vec!(), vec!(), vec!(),
+                                                
+                                            vec!(),
+                                            vec!(),
+                                            vec!(),
                                                 vec!(
                                                     Box::new(DirectElement::new(
                                                         OwnedName{local_name: "annotation".to_string(),
                                                             namespace: None, prefix: None},
                                                         ElementInfo::new(0, vec!(),
                                                             Namespace(BTreeMap::<String, String>::new())),
-                                                        vec!(), vec!(), vec!(),
+                                                        
+                                                    vec!(),
+                                                    vec!(),
+                                                    vec!(),
                                                         vec!(
                                                             Box::new(DirectElement::new(
                                                                 OwnedName{local_name: "documentation".to_string(),
                                                                     namespace: None, prefix: None},
                                                                 ElementInfo::new(0, vec!(),
                                                                     Namespace(BTreeMap::<String, String>::new())),
-                                                                vec!(), vec!(), vec!(),
+                                                                
+                                                            vec!(),
+                                                            vec!(),
+                                                            vec!(),
                                                                 vec!(
                                                                 )
                                                             )),
@@ -321,7 +423,10 @@ lazy_static! {
                                                             namespace: None, prefix: None},
                                                         ElementInfo::new(0, vec!(),
                                                             Namespace(BTreeMap::<String, String>::new())),
-                                                        vec!(), vec!(), vec!(),
+                                                        
+                                                    vec!(),
+                                                    vec!(),
+                                                    vec!(),
                                                         vec!(
                                                         )
                                                     )),
@@ -330,7 +435,10 @@ lazy_static! {
                                                             namespace: None, prefix: None},
                                                         ElementInfo::new(0, vec!(),
                                                             Namespace(BTreeMap::<String, String>::new())),
-                                                        vec!(), vec!(), vec!(),
+                                                        
+                                                    vec!(),
+                                                    vec!(),
+                                                    vec!(),
                                                         vec!(
                                                         )
                                                     )),
@@ -345,21 +453,30 @@ lazy_static! {
                                     namespace: None, prefix: None},
                                 ElementInfo::new(0, vec!(),
                                     Namespace(BTreeMap::<String, String>::new())),
-                                vec!(), vec!(), vec!(),
+                                
+                            vec!(),
+                            vec!(),
+                            vec!(),
                                 vec!(
                                     Box::new(DirectElement::new(
                                         OwnedName{local_name: "annotation".to_string(),
                                             namespace: None, prefix: None},
                                         ElementInfo::new(0, vec!(),
                                             Namespace(BTreeMap::<String, String>::new())),
-                                        vec!(), vec!(), vec!(),
+                                        
+                                    vec!(),
+                                    vec!(),
+                                    vec!(),
                                         vec!(
                                             Box::new(DirectElement::new(
                                                 OwnedName{local_name: "documentation".to_string(),
                                                     namespace: None, prefix: None},
                                                 ElementInfo::new(0, vec!(),
                                                     Namespace(BTreeMap::<String, String>::new())),
-                                                vec!(), vec!(), vec!(),
+                                                
+                                            vec!(),
+                                            vec!(),
+                                            vec!(),
                                                 vec!(
                                                 )
                                             )),
@@ -368,7 +485,10 @@ lazy_static! {
                                                     namespace: None, prefix: None},
                                                 ElementInfo::new(0, vec!(),
                                                     Namespace(BTreeMap::<String, String>::new())),
-                                                vec!(), vec!(), vec!(),
+                                                
+                                            vec!(),
+                                            vec!(),
+                                            vec!(),
                                                 vec!(
                                                 )
                                             )),
@@ -379,21 +499,30 @@ lazy_static! {
                                             namespace: None, prefix: None},
                                         ElementInfo::new(0, vec!(),
                                             Namespace(BTreeMap::<String, String>::new())),
-                                        vec!(), vec!(), vec!(),
+                                        
+                                    vec!(),
+                                    vec!(),
+                                    vec!(),
                                         vec!(
                                             Box::new(DirectElement::new(
                                                 OwnedName{local_name: "annotation".to_string(),
                                                     namespace: None, prefix: None},
                                                 ElementInfo::new(0, vec!(),
                                                     Namespace(BTreeMap::<String, String>::new())),
-                                                vec!(), vec!(), vec!(),
+                                                
+                                            vec!(),
+                                            vec!(),
+                                            vec!(),
                                                 vec!(
                                                     Box::new(DirectElement::new(
                                                         OwnedName{local_name: "documentation".to_string(),
                                                             namespace: None, prefix: None},
                                                         ElementInfo::new(0, vec!(),
                                                             Namespace(BTreeMap::<String, String>::new())),
-                                                        vec!(), vec!(), vec!(),
+                                                        
+                                                    vec!(),
+                                                    vec!(),
+                                                    vec!(),
                                                         vec!(
                                                         )
                                                     )),
@@ -402,7 +531,10 @@ lazy_static! {
                                                             namespace: None, prefix: None},
                                                         ElementInfo::new(0, vec!(),
                                                             Namespace(BTreeMap::<String, String>::new())),
-                                                        vec!(), vec!(), vec!(),
+                                                        
+                                                    vec!(),
+                                                    vec!(),
+                                                    vec!(),
                                                         vec!(
                                                         )
                                                     )),
@@ -415,21 +547,30 @@ lazy_static! {
                                             namespace: None, prefix: None},
                                         ElementInfo::new(0, vec!(),
                                             Namespace(BTreeMap::<String, String>::new())),
-                                        vec!(), vec!(), vec!(),
+                                        
+                                    vec!(),
+                                    vec!(),
+                                    vec!(),
                                         vec!(
                                             Box::new(DirectElement::new(
                                                 OwnedName{local_name: "annotation".to_string(),
                                                     namespace: None, prefix: None},
                                                 ElementInfo::new(0, vec!(),
                                                     Namespace(BTreeMap::<String, String>::new())),
-                                                vec!(), vec!(), vec!(),
+                                                
+                                            vec!(),
+                                            vec!(),
+                                            vec!(),
                                                 vec!(
                                                     Box::new(DirectElement::new(
                                                         OwnedName{local_name: "documentation".to_string(),
                                                             namespace: None, prefix: None},
                                                         ElementInfo::new(0, vec!(),
                                                             Namespace(BTreeMap::<String, String>::new())),
-                                                        vec!(), vec!(), vec!(),
+                                                        
+                                                    vec!(),
+                                                    vec!(),
+                                                    vec!(),
                                                         vec!(
                                                         )
                                                     )),
@@ -440,21 +581,30 @@ lazy_static! {
                                                     namespace: None, prefix: None},
                                                 ElementInfo::new(0, vec!(),
                                                     Namespace(BTreeMap::<String, String>::new())),
-                                                vec!(), vec!(), vec!(),
+                                                
+                                            vec!(),
+                                            vec!(),
+                                            vec!(),
                                                 vec!(
                                                     Box::new(DirectElement::new(
                                                         OwnedName{local_name: "annotation".to_string(),
                                                             namespace: None, prefix: None},
                                                         ElementInfo::new(0, vec!(),
                                                             Namespace(BTreeMap::<String, String>::new())),
-                                                        vec!(), vec!(), vec!(),
+                                                        
+                                                    vec!(),
+                                                    vec!(),
+                                                    vec!(),
                                                         vec!(
                                                             Box::new(DirectElement::new(
                                                                 OwnedName{local_name: "documentation".to_string(),
                                                                     namespace: None, prefix: None},
                                                                 ElementInfo::new(0, vec!(),
                                                                     Namespace(BTreeMap::<String, String>::new())),
-                                                                vec!(), vec!(), vec!(),
+                                                                
+                                                            vec!(),
+                                                            vec!(),
+                                                            vec!(),
                                                                 vec!(
                                                                 )
                                                             )),
@@ -463,7 +613,10 @@ lazy_static! {
                                                                     namespace: None, prefix: None},
                                                                 ElementInfo::new(0, vec!(),
                                                                     Namespace(BTreeMap::<String, String>::new())),
-                                                                vec!(), vec!(), vec!(),
+                                                                
+                                                            vec!(),
+                                                            vec!(),
+                                                            vec!(),
                                                                 vec!(
                                                                 )
                                                             )),
@@ -480,21 +633,30 @@ lazy_static! {
                                     namespace: None, prefix: None},
                                 ElementInfo::new(0, vec!(),
                                     Namespace(BTreeMap::<String, String>::new())),
-                                vec!(), vec!(), vec!(),
+                                
+                            vec!(),
+                            vec!(),
+                            vec!(),
                                 vec!(
                                     Box::new(DirectElement::new(
                                         OwnedName{local_name: "extension".to_string(),
                                             namespace: None, prefix: None},
                                         ElementInfo::new(0, vec!(),
                                             Namespace(BTreeMap::<String, String>::new())),
-                                        vec!(), vec!(), vec!(),
+                                        
+                                    vec!(),
+                                    vec!(),
+                                    vec!(),
                                         vec!(
                                             Box::new(DirectElement::new(
                                                 OwnedName{local_name: "attribute".to_string(),
                                                     namespace: None, prefix: None},
                                                 ElementInfo::new(0, vec!(),
                                                     Namespace(BTreeMap::<String, String>::new())),
-                                                vec!(), vec!(), vec!(),
+                                                
+                                            vec!(),
+                                            vec!(),
+                                            vec!(),
                                                 vec!(
                                                 )
                                             )),
@@ -507,28 +669,40 @@ lazy_static! {
                                     namespace: None, prefix: None},
                                 ElementInfo::new(0, vec!(),
                                     Namespace(BTreeMap::<String, String>::new())),
-                                vec!(), vec!(), vec!(),
+                                
+                            vec!(),
+                            vec!(),
+                            vec!(),
                                 vec!(
                                     Box::new(DirectElement::new(
                                         OwnedName{local_name: "element".to_string(),
                                             namespace: None, prefix: None},
                                         ElementInfo::new(0, vec!(),
                                             Namespace(BTreeMap::<String, String>::new())),
-                                        vec!(), vec!(), vec!(),
+                                        
+                                    vec!(),
+                                    vec!(),
+                                    vec!(),
                                         vec!(
                                             Box::new(DirectElement::new(
                                                 OwnedName{local_name: "annotation".to_string(),
                                                     namespace: None, prefix: None},
                                                 ElementInfo::new(0, vec!(),
                                                     Namespace(BTreeMap::<String, String>::new())),
-                                                vec!(), vec!(), vec!(),
+                                                
+                                            vec!(),
+                                            vec!(),
+                                            vec!(),
                                                 vec!(
                                                     Box::new(DirectElement::new(
                                                         OwnedName{local_name: "documentation".to_string(),
                                                             namespace: None, prefix: None},
                                                         ElementInfo::new(0, vec!(),
                                                             Namespace(BTreeMap::<String, String>::new())),
-                                                        vec!(), vec!(), vec!(),
+                                                        
+                                                    vec!(),
+                                                    vec!(),
+                                                    vec!(),
                                                         vec!(
                                                         )
                                                     )),
@@ -537,7 +711,10 @@ lazy_static! {
                                                             namespace: None, prefix: None},
                                                         ElementInfo::new(0, vec!(),
                                                             Namespace(BTreeMap::<String, String>::new())),
-                                                        vec!(), vec!(), vec!(),
+                                                        
+                                                    vec!(),
+                                                    vec!(),
+                                                    vec!(),
                                                         vec!(
                                                         )
                                                     )),
@@ -550,21 +727,30 @@ lazy_static! {
                                             namespace: None, prefix: None},
                                         ElementInfo::new(0, vec!(),
                                             Namespace(BTreeMap::<String, String>::new())),
-                                        vec!(), vec!(), vec!(),
+                                        
+                                    vec!(),
+                                    vec!(),
+                                    vec!(),
                                         vec!(
                                             Box::new(DirectElement::new(
                                                 OwnedName{local_name: "annotation".to_string(),
                                                     namespace: None, prefix: None},
                                                 ElementInfo::new(0, vec!(),
                                                     Namespace(BTreeMap::<String, String>::new())),
-                                                vec!(), vec!(), vec!(),
+                                                
+                                            vec!(),
+                                            vec!(),
+                                            vec!(),
                                                 vec!(
                                                     Box::new(DirectElement::new(
                                                         OwnedName{local_name: "documentation".to_string(),
                                                             namespace: None, prefix: None},
                                                         ElementInfo::new(0, vec!(),
                                                             Namespace(BTreeMap::<String, String>::new())),
-                                                        vec!(), vec!(), vec!(),
+                                                        
+                                                    vec!(),
+                                                    vec!(),
+                                                    vec!(),
                                                         vec!(
                                                         )
                                                     )),
@@ -575,21 +761,30 @@ lazy_static! {
                                                     namespace: None, prefix: None},
                                                 ElementInfo::new(0, vec!(),
                                                     Namespace(BTreeMap::<String, String>::new())),
-                                                vec!(), vec!(), vec!(),
+                                                
+                                            vec!(),
+                                            vec!(),
+                                            vec!(),
                                                 vec!(
                                                     Box::new(DirectElement::new(
                                                         OwnedName{local_name: "annotation".to_string(),
                                                             namespace: None, prefix: None},
                                                         ElementInfo::new(0, vec!(),
                                                             Namespace(BTreeMap::<String, String>::new())),
-                                                        vec!(), vec!(), vec!(),
+                                                        
+                                                    vec!(),
+                                                    vec!(),
+                                                    vec!(),
                                                         vec!(
                                                             Box::new(DirectElement::new(
                                                                 OwnedName{local_name: "documentation".to_string(),
                                                                     namespace: None, prefix: None},
                                                                 ElementInfo::new(0, vec!(),
                                                                     Namespace(BTreeMap::<String, String>::new())),
-                                                                vec!(), vec!(), vec!(),
+                                                                
+                                                            vec!(),
+                                                            vec!(),
+                                                            vec!(),
                                                                 vec!(
                                                                 )
                                                             )),
@@ -598,7 +793,10 @@ lazy_static! {
                                                                     namespace: None, prefix: None},
                                                                 ElementInfo::new(0, vec!(),
                                                                     Namespace(BTreeMap::<String, String>::new())),
-                                                                vec!(), vec!(), vec!(),
+                                                                
+                                                            vec!(),
+                                                            vec!(),
+                                                            vec!(),
                                                                 vec!(
                                                                 )
                                                             )),
@@ -615,35 +813,50 @@ lazy_static! {
                                     namespace: None, prefix: None},
                                 ElementInfo::new(0, vec!(),
                                     Namespace(BTreeMap::<String, String>::new())),
-                                vec!(), vec!(), vec!(),
+                                
+                            vec!(),
+                            vec!(),
+                            vec!(),
                                 vec!(
                                     Box::new(DirectElement::new(
                                         OwnedName{local_name: "extension".to_string(),
                                             namespace: None, prefix: None},
                                         ElementInfo::new(0, vec!(),
                                             Namespace(BTreeMap::<String, String>::new())),
-                                        vec!(), vec!(), vec!(),
+                                        
+                                    vec!(),
+                                    vec!(),
+                                    vec!(),
                                         vec!(
                                             Box::new(DirectElement::new(
                                                 OwnedName{local_name: "attribute".to_string(),
                                                     namespace: None, prefix: None},
                                                 ElementInfo::new(0, vec!(),
                                                     Namespace(BTreeMap::<String, String>::new())),
-                                                vec!(), vec!(), vec!(),
+                                                
+                                            vec!(),
+                                            vec!(),
+                                            vec!(),
                                                 vec!(
                                                     Box::new(DirectElement::new(
                                                         OwnedName{local_name: "annotation".to_string(),
                                                             namespace: None, prefix: None},
                                                         ElementInfo::new(0, vec!(),
                                                             Namespace(BTreeMap::<String, String>::new())),
-                                                        vec!(), vec!(), vec!(),
+                                                        
+                                                    vec!(),
+                                                    vec!(),
+                                                    vec!(),
                                                         vec!(
                                                             Box::new(DirectElement::new(
                                                                 OwnedName{local_name: "documentation".to_string(),
                                                                     namespace: None, prefix: None},
                                                                 ElementInfo::new(0, vec!(),
                                                                     Namespace(BTreeMap::<String, String>::new())),
-                                                                vec!(), vec!(), vec!(),
+                                                                
+                                                            vec!(),
+                                                            vec!(),
+                                                            vec!(),
                                                                 vec!(
                                                                 )
                                                             )),
@@ -652,7 +865,10 @@ lazy_static! {
                                                                     namespace: None, prefix: None},
                                                                 ElementInfo::new(0, vec!(),
                                                                     Namespace(BTreeMap::<String, String>::new())),
-                                                                vec!(), vec!(), vec!(),
+                                                                
+                                                            vec!(),
+                                                            vec!(),
+                                                            vec!(),
                                                                 vec!(
                                                                 )
                                                             )),
@@ -665,21 +881,30 @@ lazy_static! {
                                                     namespace: None, prefix: None},
                                                 ElementInfo::new(0, vec!(),
                                                     Namespace(BTreeMap::<String, String>::new())),
-                                                vec!(), vec!(), vec!(),
+                                                
+                                            vec!(),
+                                            vec!(),
+                                            vec!(),
                                                 vec!(
                                                     Box::new(DirectElement::new(
                                                         OwnedName{local_name: "annotation".to_string(),
                                                             namespace: None, prefix: None},
                                                         ElementInfo::new(0, vec!(),
                                                             Namespace(BTreeMap::<String, String>::new())),
-                                                        vec!(), vec!(), vec!(),
+                                                        
+                                                    vec!(),
+                                                    vec!(),
+                                                    vec!(),
                                                         vec!(
                                                             Box::new(DirectElement::new(
                                                                 OwnedName{local_name: "documentation".to_string(),
                                                                     namespace: None, prefix: None},
                                                                 ElementInfo::new(0, vec!(),
                                                                     Namespace(BTreeMap::<String, String>::new())),
-                                                                vec!(), vec!(), vec!(),
+                                                                
+                                                            vec!(),
+                                                            vec!(),
+                                                            vec!(),
                                                                 vec!(
                                                                 )
                                                             )),
@@ -690,21 +915,30 @@ lazy_static! {
                                                             namespace: None, prefix: None},
                                                         ElementInfo::new(0, vec!(),
                                                             Namespace(BTreeMap::<String, String>::new())),
-                                                        vec!(), vec!(), vec!(),
+                                                        
+                                                    vec!(),
+                                                    vec!(),
+                                                    vec!(),
                                                         vec!(
                                                             Box::new(DirectElement::new(
                                                                 OwnedName{local_name: "annotation".to_string(),
                                                                     namespace: None, prefix: None},
                                                                 ElementInfo::new(0, vec!(),
                                                                     Namespace(BTreeMap::<String, String>::new())),
-                                                                vec!(), vec!(), vec!(),
+                                                                
+                                                            vec!(),
+                                                            vec!(),
+                                                            vec!(),
                                                                 vec!(
                                                                     Box::new(DirectElement::new(
                                                                         OwnedName{local_name: "documentation".to_string(),
                                                                             namespace: None, prefix: None},
                                                                         ElementInfo::new(0, vec!(),
                                                                             Namespace(BTreeMap::<String, String>::new())),
-                                                                        vec!(), vec!(), vec!(),
+                                                                        
+                                                                    vec!(),
+                                                                    vec!(),
+                                                                    vec!(),
                                                                         vec!(
                                                                         )
                                                                     )),
@@ -719,21 +953,30 @@ lazy_static! {
                                                     namespace: None, prefix: None},
                                                 ElementInfo::new(0, vec!(),
                                                     Namespace(BTreeMap::<String, String>::new())),
-                                                vec!(), vec!(), vec!(),
+                                                
+                                            vec!(),
+                                            vec!(),
+                                            vec!(),
                                                 vec!(
                                                     Box::new(DirectElement::new(
                                                         OwnedName{local_name: "annotation".to_string(),
                                                             namespace: None, prefix: None},
                                                         ElementInfo::new(0, vec!(),
                                                             Namespace(BTreeMap::<String, String>::new())),
-                                                        vec!(), vec!(), vec!(),
+                                                        
+                                                    vec!(),
+                                                    vec!(),
+                                                    vec!(),
                                                         vec!(
                                                             Box::new(DirectElement::new(
                                                                 OwnedName{local_name: "documentation".to_string(),
                                                                     namespace: None, prefix: None},
                                                                 ElementInfo::new(0, vec!(),
                                                                     Namespace(BTreeMap::<String, String>::new())),
-                                                                vec!(), vec!(), vec!(),
+                                                                
+                                                            vec!(),
+                                                            vec!(),
+                                                            vec!(),
                                                                 vec!(
                                                                 )
                                                             )),
@@ -742,7 +985,10 @@ lazy_static! {
                                                                     namespace: None, prefix: None},
                                                                 ElementInfo::new(0, vec!(),
                                                                     Namespace(BTreeMap::<String, String>::new())),
-                                                                vec!(), vec!(), vec!(),
+                                                                
+                                                            vec!(),
+                                                            vec!(),
+                                                            vec!(),
                                                                 vec!(
                                                                 )
                                                             )),
@@ -753,21 +999,30 @@ lazy_static! {
                                                             namespace: None, prefix: None},
                                                         ElementInfo::new(0, vec!(),
                                                             Namespace(BTreeMap::<String, String>::new())),
-                                                        vec!(), vec!(), vec!(),
+                                                        
+                                                    vec!(),
+                                                    vec!(),
+                                                    vec!(),
                                                         vec!(
                                                             Box::new(DirectElement::new(
                                                                 OwnedName{local_name: "annotation".to_string(),
                                                                     namespace: None, prefix: None},
                                                                 ElementInfo::new(0, vec!(),
                                                                     Namespace(BTreeMap::<String, String>::new())),
-                                                                vec!(), vec!(), vec!(),
+                                                                
+                                                            vec!(),
+                                                            vec!(),
+                                                            vec!(),
                                                                 vec!(
                                                                     Box::new(DirectElement::new(
                                                                         OwnedName{local_name: "documentation".to_string(),
                                                                             namespace: None, prefix: None},
                                                                         ElementInfo::new(0, vec!(),
                                                                             Namespace(BTreeMap::<String, String>::new())),
-                                                                        vec!(), vec!(), vec!(),
+                                                                        
+                                                                    vec!(),
+                                                                    vec!(),
+                                                                    vec!(),
                                                                         vec!(
                                                                         )
                                                                     )),
@@ -778,21 +1033,30 @@ lazy_static! {
                                                                     namespace: None, prefix: None},
                                                                 ElementInfo::new(0, vec!(),
                                                                     Namespace(BTreeMap::<String, String>::new())),
-                                                                vec!(), vec!(), vec!(),
+                                                                
+                                                            vec!(),
+                                                            vec!(),
+                                                            vec!(),
                                                                 vec!(
                                                                     Box::new(DirectElement::new(
                                                                         OwnedName{local_name: "annotation".to_string(),
                                                                             namespace: None, prefix: None},
                                                                         ElementInfo::new(0, vec!(),
                                                                             Namespace(BTreeMap::<String, String>::new())),
-                                                                        vec!(), vec!(), vec!(),
+                                                                        
+                                                                    vec!(),
+                                                                    vec!(),
+                                                                    vec!(),
                                                                         vec!(
                                                                             Box::new(DirectElement::new(
                                                                                 OwnedName{local_name: "documentation".to_string(),
                                                                                     namespace: None, prefix: None},
                                                                                 ElementInfo::new(0, vec!(),
                                                                                     Namespace(BTreeMap::<String, String>::new())),
-                                                                                vec!(), vec!(), vec!(),
+                                                                                
+                                                                            vec!(),
+                                                                            vec!(),
+                                                                            vec!(),
                                                                                 vec!(
                                                                                 )
                                                                             )),
@@ -803,21 +1067,30 @@ lazy_static! {
                                                                             namespace: None, prefix: None},
                                                                         ElementInfo::new(0, vec!(),
                                                                             Namespace(BTreeMap::<String, String>::new())),
-                                                                        vec!(), vec!(), vec!(),
+                                                                        
+                                                                    vec!(),
+                                                                    vec!(),
+                                                                    vec!(),
                                                                         vec!(
                                                                             Box::new(DirectElement::new(
                                                                                 OwnedName{local_name: "annotation".to_string(),
                                                                                     namespace: None, prefix: None},
                                                                                 ElementInfo::new(0, vec!(),
                                                                                     Namespace(BTreeMap::<String, String>::new())),
-                                                                                vec!(), vec!(), vec!(),
+                                                                                
+                                                                            vec!(),
+                                                                            vec!(),
+                                                                            vec!(),
                                                                                 vec!(
                                                                                     Box::new(DirectElement::new(
                                                                                         OwnedName{local_name: "documentation".to_string(),
                                                                                             namespace: None, prefix: None},
                                                                                         ElementInfo::new(0, vec!(),
                                                                                             Namespace(BTreeMap::<String, String>::new())),
-                                                                                        vec!(), vec!(), vec!(),
+                                                                                        
+                                                                                    vec!(),
+                                                                                    vec!(),
+                                                                                    vec!(),
                                                                                         vec!(
                                                                                         )
                                                                                     )),
@@ -832,21 +1105,30 @@ lazy_static! {
                                                                     namespace: None, prefix: None},
                                                                 ElementInfo::new(0, vec!(),
                                                                     Namespace(BTreeMap::<String, String>::new())),
-                                                                vec!(), vec!(), vec!(),
+                                                                
+                                                            vec!(),
+                                                            vec!(),
+                                                            vec!(),
                                                                 vec!(
                                                                     Box::new(DirectElement::new(
                                                                         OwnedName{local_name: "annotation".to_string(),
                                                                             namespace: None, prefix: None},
                                                                         ElementInfo::new(0, vec!(),
                                                                             Namespace(BTreeMap::<String, String>::new())),
-                                                                        vec!(), vec!(), vec!(),
+                                                                        
+                                                                    vec!(),
+                                                                    vec!(),
+                                                                    vec!(),
                                                                         vec!(
                                                                             Box::new(DirectElement::new(
                                                                                 OwnedName{local_name: "documentation".to_string(),
                                                                                     namespace: None, prefix: None},
                                                                                 ElementInfo::new(0, vec!(),
                                                                                     Namespace(BTreeMap::<String, String>::new())),
-                                                                                vec!(), vec!(), vec!(),
+                                                                                
+                                                                            vec!(),
+                                                                            vec!(),
+                                                                            vec!(),
                                                                                 vec!(
                                                                                 )
                                                                             )),
@@ -861,21 +1143,30 @@ lazy_static! {
                                                             namespace: None, prefix: None},
                                                         ElementInfo::new(0, vec!(),
                                                             Namespace(BTreeMap::<String, String>::new())),
-                                                        vec!(), vec!(), vec!(),
+                                                        
+                                                    vec!(),
+                                                    vec!(),
+                                                    vec!(),
                                                         vec!(
                                                             Box::new(DirectElement::new(
                                                                 OwnedName{local_name: "annotation".to_string(),
                                                                     namespace: None, prefix: None},
                                                                 ElementInfo::new(0, vec!(),
                                                                     Namespace(BTreeMap::<String, String>::new())),
-                                                                vec!(), vec!(), vec!(),
+                                                                
+                                                            vec!(),
+                                                            vec!(),
+                                                            vec!(),
                                                                 vec!(
                                                                     Box::new(DirectElement::new(
                                                                         OwnedName{local_name: "documentation".to_string(),
                                                                             namespace: None, prefix: None},
                                                                         ElementInfo::new(0, vec!(),
                                                                             Namespace(BTreeMap::<String, String>::new())),
-                                                                        vec!(), vec!(), vec!(),
+                                                                        
+                                                                    vec!(),
+                                                                    vec!(),
+                                                                    vec!(),
                                                                         vec!(
                                                                         )
                                                                     )),
@@ -884,7 +1175,10 @@ lazy_static! {
                                                                             namespace: None, prefix: None},
                                                                         ElementInfo::new(0, vec!(),
                                                                             Namespace(BTreeMap::<String, String>::new())),
-                                                                        vec!(), vec!(), vec!(),
+                                                                        
+                                                                    vec!(),
+                                                                    vec!(),
+                                                                    vec!(),
                                                                         vec!(
                                                                         )
                                                                     )),
@@ -895,14 +1189,20 @@ lazy_static! {
                                                                     namespace: None, prefix: None},
                                                                 ElementInfo::new(0, vec!(),
                                                                     Namespace(BTreeMap::<String, String>::new())),
-                                                                vec!(), vec!(), vec!(),
+                                                                
+                                                            vec!(),
+                                                            vec!(),
+                                                            vec!(),
                                                                 vec!(
                                                                     Box::new(DirectElement::new(
                                                                         OwnedName{local_name: "complexContent".to_string(),
                                                                             namespace: None, prefix: None},
                                                                         ElementInfo::new(0, vec!(),
                                                                             Namespace(BTreeMap::<String, String>::new())),
-                                                                        vec!(), vec!(), vec!(),
+                                                                        
+                                                                    vec!(),
+                                                                    vec!(),
+                                                                    vec!(),
                                                                         vec!(
                                                                         )
                                                                     )),
@@ -923,21 +1223,30 @@ lazy_static! {
                             namespace: None, prefix: None},
                         ElementInfo::new(0, vec!(),
                             Namespace(BTreeMap::<String, String>::new())),
-                        vec!(), vec!(), vec!(),
+                        
+                    vec!(),
+                    vec!(),
+                    vec!(),
                         vec!(
                             Box::new(DirectElement::new(
                                 OwnedName{local_name: "annotation".to_string(),
                                     namespace: None, prefix: None},
                                 ElementInfo::new(0, vec!(),
                                     Namespace(BTreeMap::<String, String>::new())),
-                                vec!(), vec!(), vec!(),
+                                
+                            vec!(),
+                            vec!(),
+                            vec!(),
                                 vec!(
                                     Box::new(DirectElement::new(
                                         OwnedName{local_name: "documentation".to_string(),
                                             namespace: None, prefix: None},
                                         ElementInfo::new(0, vec!(),
                                             Namespace(BTreeMap::<String, String>::new())),
-                                        vec!(), vec!(), vec!(),
+                                        
+                                    vec!(),
+                                    vec!(),
+                                    vec!(),
                                         vec!(
                                         )
                                     )),
@@ -948,21 +1257,30 @@ lazy_static! {
                                     namespace: None, prefix: None},
                                 ElementInfo::new(0, vec!(),
                                     Namespace(BTreeMap::<String, String>::new())),
-                                vec!(), vec!(), vec!(),
+                                
+                            vec!(),
+                            vec!(),
+                            vec!(),
                                 vec!(
                                     Box::new(DirectElement::new(
                                         OwnedName{local_name: "annotation".to_string(),
                                             namespace: None, prefix: None},
                                         ElementInfo::new(0, vec!(),
                                             Namespace(BTreeMap::<String, String>::new())),
-                                        vec!(), vec!(), vec!(),
+                                        
+                                    vec!(),
+                                    vec!(),
+                                    vec!(),
                                         vec!(
                                             Box::new(DirectElement::new(
                                                 OwnedName{local_name: "documentation".to_string(),
                                                     namespace: None, prefix: None},
                                                 ElementInfo::new(0, vec!(),
                                                     Namespace(BTreeMap::<String, String>::new())),
-                                                vec!(), vec!(), vec!(),
+                                                
+                                            vec!(),
+                                            vec!(),
+                                            vec!(),
                                                 vec!(
                                                 )
                                             )),
@@ -975,14 +1293,20 @@ lazy_static! {
                                     namespace: None, prefix: None},
                                 ElementInfo::new(0, vec!(),
                                     Namespace(BTreeMap::<String, String>::new())),
-                                vec!(), vec!(), vec!(),
+                                
+                            vec!(),
+                            vec!(),
+                            vec!(),
                                 vec!(
                                     Box::new(DirectElement::new(
                                         OwnedName{local_name: "maxInclusive".to_string(),
                                             namespace: None, prefix: None},
                                         ElementInfo::new(0, vec!(),
                                             Namespace(BTreeMap::<String, String>::new())),
-                                        vec!(), vec!(), vec!(),
+                                        
+                                    vec!(),
+                                    vec!(),
+                                    vec!(),
                                         vec!(
                                         )
                                     )),
@@ -991,7 +1315,10 @@ lazy_static! {
                                             namespace: None, prefix: None},
                                         ElementInfo::new(0, vec!(),
                                             Namespace(BTreeMap::<String, String>::new())),
-                                        vec!(), vec!(), vec!(),
+                                        
+                                    vec!(),
+                                    vec!(),
+                                    vec!(),
                                         vec!(
                                         )
                                     )),
@@ -1000,7 +1327,10 @@ lazy_static! {
                                             namespace: None, prefix: None},
                                         ElementInfo::new(0, vec!(),
                                             Namespace(BTreeMap::<String, String>::new())),
-                                        vec!(), vec!(), vec!(),
+                                        
+                                    vec!(),
+                                    vec!(),
+                                    vec!(),
                                         vec!(
                                         )
                                     )),
@@ -1009,21 +1339,30 @@ lazy_static! {
                                             namespace: None, prefix: None},
                                         ElementInfo::new(0, vec!(),
                                             Namespace(BTreeMap::<String, String>::new())),
-                                        vec!(), vec!(), vec!(),
+                                        
+                                    vec!(),
+                                    vec!(),
+                                    vec!(),
                                         vec!(
                                             Box::new(DirectElement::new(
                                                 OwnedName{local_name: "annotation".to_string(),
                                                     namespace: None, prefix: None},
                                                 ElementInfo::new(0, vec!(),
                                                     Namespace(BTreeMap::<String, String>::new())),
-                                                vec!(), vec!(), vec!(),
+                                                
+                                            vec!(),
+                                            vec!(),
+                                            vec!(),
                                                 vec!(
                                                     Box::new(DirectElement::new(
                                                         OwnedName{local_name: "documentation".to_string(),
                                                             namespace: None, prefix: None},
                                                         ElementInfo::new(0, vec!(),
                                                             Namespace(BTreeMap::<String, String>::new())),
-                                                        vec!(), vec!(), vec!(),
+                                                        
+                                                    vec!(),
+                                                    vec!(),
+                                                    vec!(),
                                                         vec!(
                                                         )
                                                     )),
@@ -1032,7 +1371,10 @@ lazy_static! {
                                                             namespace: None, prefix: None},
                                                         ElementInfo::new(0, vec!(),
                                                             Namespace(BTreeMap::<String, String>::new())),
-                                                        vec!(), vec!(), vec!(),
+                                                        
+                                                    vec!(),
+                                                    vec!(),
+                                                    vec!(),
                                                         vec!(
                                                         )
                                                     )),
@@ -1047,7 +1389,10 @@ lazy_static! {
                                     namespace: None, prefix: None},
                                 ElementInfo::new(0, vec!(),
                                     Namespace(BTreeMap::<String, String>::new())),
-                                vec!(), vec!(), vec!(),
+                                
+                            vec!(),
+                            vec!(),
+                            vec!(),
                                 vec!(
                                 )
                             )),

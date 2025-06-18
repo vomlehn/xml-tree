@@ -7,7 +7,7 @@ use std::fmt;
 // FIXME: implement some more iterators
 
 use crate::xml_document::XmlDocument;
-use crate::walk_and_print::{indent, print_walk};
+use crate::walk_and_print::{nl_indent, print_walk, XmlDisplay};
 
 pub struct XmlSchema<'a> {
     pub inner: XmlSchemaInner<'a>,
@@ -18,6 +18,10 @@ unsafe impl<'a> Sync for XmlSchema<'a> {
 }
 
 impl<'a> XmlSchema<'a> {
+    pub fn display(&self) {
+        println!("{}", self.inner);
+    }
+
     pub fn new(const_name: &'a str, schema_type: &'a str, schema_name: &'a str, xml_document: XmlDocument) -> XmlSchema<'a> {
         XmlSchema {
             inner:  XmlSchemaInner {
@@ -28,9 +32,11 @@ impl<'a> XmlSchema<'a> {
             }
         }
     }
+}
 
-    pub fn display(&self) {
-        println!("{}", self.inner);
+impl<'a> XmlDisplay for XmlSchema<'a> {
+    fn print(&self, f: &mut fmt::Formatter, depth: usize) -> fmt::Result {
+        write!(f, "{}{}", nl_indent(depth), self.inner)
     }
 }
 
@@ -77,7 +83,7 @@ impl fmt::Display for XmlSchemaInner<'_> {
         let depth = 0;
         front_matter_display(f, depth)?;
 
-        let indent_str = indent(depth);
+        let indent_str = nl_indent(depth);
         write!(f, "{}lazy_static! {{", indent_str)?;
 
         static_xml_schema_display(f, depth + 1, self.const_name, self.schema_type, self.schema_name)?;
@@ -93,6 +99,12 @@ impl fmt::Debug for XmlSchemaInner<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "inner \"{}\" (\"{}\")\n", self.const_name, self.schema_name)?;
         write!(f, "xml_document {:?}\n", self.xml_document)
+    }
+}
+
+impl XmlDisplay for XmlSchemaInner<'_> {
+    fn print(&self, f: &mut fmt::Formatter, depth: usize) -> fmt::Result {
+        write!(f, "{}{}", nl_indent(depth), self)
     }
 }
 
@@ -114,7 +126,7 @@ fn front_matter_display(f: &mut fmt::Formatter, depth: usize) -> fmt::Result {
         "", 
     );
 
-    let indent_str = indent(depth);
+    let indent_str = nl_indent(depth);
 
     for front in front_matter {
         write!(f, "{}{}", indent_str, front)?;
@@ -124,10 +136,10 @@ fn front_matter_display(f: &mut fmt::Formatter, depth: usize) -> fmt::Result {
 }
 
 fn static_xml_schema_display(f: &mut fmt::Formatter, depth: usize, const_name: &str, schema_type: &str, schema_name: &str) -> fmt::Result {
-    let indent_str = indent(depth);
+    let indent_str = nl_indent(depth);
     write!(f, "{}pub static ref {const_name}: {schema_type}<'static> = {schema_type}::new(", indent_str)?;
 
-    let indent_str = indent(depth + 1);
+    let indent_str = nl_indent(depth + 1);
     for name in vec!(const_name, schema_type, schema_name) {
         write!(f, "{}\"{}\",", indent_str, name)?;
     }
@@ -136,8 +148,8 @@ fn static_xml_schema_display(f: &mut fmt::Formatter, depth: usize, const_name: &
 }
 
 fn back_matter_display(f: &mut fmt::Formatter, depth: usize) -> fmt::Result {
-    write!(f, "{});", indent(depth))?;
-    write!(f, "{}}}", indent(depth - 1))
+    write!(f, "{});", nl_indent(depth))?;
+    write!(f, "{}}}", nl_indent(depth - 1))
 // FIXME: is this needed?
 // write!(f, "\n")
 }

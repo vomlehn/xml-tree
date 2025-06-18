@@ -190,7 +190,7 @@ mod test_tests {
     {
         fn new(bl: &mut TestBaseLevel, e: &'a Box<dyn Element>, ed: &TestElemData) -> Self {
             TestAccumulator {
-                result: indent(ed.depth) +  e.name.local_name.as_str() + "\n",
+                result: nl_indent(ed.depth) +  e.name.local_name.as_str() + "\n",
             }
         }
 
@@ -229,7 +229,7 @@ mod test_tests {
         */
     }
 
-    pub fn indent(n: usize) -> String {
+    pub fn nl_indent(n: usize) -> String {
         INDENT.repeat(n)
     }
 
@@ -249,9 +249,9 @@ mod test_tests {
             Ok(twd) => {
                 println!("Actual: {:?}", twd.data);
                 let expected = "n1\n".to_owned() +
-                    &indent(1) + "n2\n" +
-                    &indent(1) + "n3\n" +
-                    &indent(2) + "n4\n";
+                    &nl_indent(1) + "n2\n" +
+                    &nl_indent(1) + "n3\n" +
+                    &nl_indent(2) + "n4\n";
                 println!("Expected: {:?}", expected);
 
                 assert_eq!(twd.data, expected);
