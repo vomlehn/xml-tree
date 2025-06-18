@@ -1,3 +1,6 @@
+/*
+ * I don't know what this is supposed to implement
+ */
 
 // FIXME: insert banner
 // Auto-generated file

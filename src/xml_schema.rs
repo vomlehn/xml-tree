@@ -6,6 +6,7 @@
 use std::fmt;
 // FIXME: implement some more iterators
 
+use crate::banner::write_banner_file;
 use crate::xml_document::XmlDocument;
 use crate::walk_and_print::{nl_indent, print_walk, XmlDisplay};
 
@@ -125,6 +126,8 @@ fn front_matter_display(f: &mut fmt::Formatter, depth: usize) -> fmt::Result {
         "use crate::XmlDocument;",
         "", 
     );
+
+    write_banner_file(f)?;
 
     let indent_str = nl_indent(depth);
 

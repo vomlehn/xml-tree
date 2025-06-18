@@ -6,18 +6,18 @@ pub mod xml_document_error;
 pub mod xml_schema;
 
 mod t;
-mod multiterator;
+mod banner;
+mod multiterator; // FIXME: toss this
 mod parser;
 mod walkable;
 mod walk_and_print;
 mod xml_document_factory;
 mod xsd_schema;
 
+pub use crate::banner::set_banner_file_name;
 pub use crate::walkable::{Accumulator, ElemData, WalkData/*, Walkable*/};
-//pub use crate::walk_and_print::XmlPrint;
 pub use crate::xml_document::{Element, XmlDocument};
 pub use crate::xml_document_error::XmlDocumentError;
 pub use crate::xml_document_factory::XmlDocumentFactory;
-//pub use crate::xml_schema::{SchemaElement, XmlSchema};
 pub use crate::xml_schema::XmlSchema;
 pub use crate::xsd_schema::XSD_SCHEMA;
