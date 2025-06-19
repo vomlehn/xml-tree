@@ -190,7 +190,6 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
      * Parse the current element and subelements. The <StartElement> has
      * already been read, read up to, and including, the <EndElement>
      * element_in:   Definition for this element
-//     * depth:                   Number of levels of element nesting
      * name_in:                 Name of the element
      * element_info_in:         Other information about the element
      *
@@ -198,19 +197,23 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
      */
     fn parse_element<T: Read>(
         &mut self,
+        parent_element:     &Box<dyn Element>,
+        name_in:            OwnedName,
+        element_info_in:    ElementInfo,
         // FIXME: remove if uneeded
-        _element: &Box<dyn Element>,
-//        depth: usize,
-        name_in: OwnedName,
-        element_info_in: ElementInfo,
-        // FIXME: remove if uneeded
-        _pieces: Vec::<XmlEvent>,
+        _pieces:            Vec::<XmlEvent>,
     ) -> Result<DirectElement, XmlDocumentError> {
         
         // First, we set up the element
         let mut pieces = Vec::new();
         let mut element = DirectElement::new(name_in.clone(), element_info_in.clone(), vec!(), vec!(), vec!(), vec!());
         element.before_element = Vec::new();
+println!("parse_element: name_in {}", name_in.local_name);
+print!("...");
+for e in parent_element.subelements() {
+    print!(" {}", e.name());
+}
+println!();
 
         loop {
             let xml_element = {
@@ -235,6 +238,7 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
                     let start_name = name.clone();
                     let attributes2 = attributes.clone();
                     let namespace2 = namespace.clone();
+println!("StartElement has name {}", start_name.local_name);
 
                     let next_element =
                         match element.get(start_name.local_name.as_str()) {
@@ -257,8 +261,7 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
                         pieces,
                     )?;
 //                    element.before_element = pieces;
-//let x: u8 = subelement;
-                    element.subelements.push(Box::new(subelement));
+                    element.subelements_mut().push(Box::new(subelement));
                     pieces = Vec::<XmlEvent>::new();
                 }
                 XmlEvent::EndElement { name } => {

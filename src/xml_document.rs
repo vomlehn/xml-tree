@@ -174,21 +174,23 @@ impl ElementInfo {
 
 /*
  * trait making DirectElement and IndirectElement work well together
- * name:        Function that returns the name of the element
- * get:         Search for an element by name. FIXME: This is probably for
- *              future expansion.
- * name:        Returns the name for the element. FIXME: This really only
- *              makes sense for DirectElements and should probably be removed
- * subelements: Returns a reference to a vector of Elements. These are
- *              sub-Elements for DirectElements and a linear set of elements
- *              at the same depth as the parent element for IndirectElements.
+ * name:            Function that returns the name of the element
+ * get:             Search for an element by name. FIXME: This is probably for
+ *                  future expansion.
+ * name:            Returns the name for the element. FIXME: This really only
+ *                  makes sense for DirectElements and should probably be removed
+ * subelements:     Returns a reference to a vector of Elements. These are
+ *                  sub-elements for DirectElements and a linear set of elements
+ *                  at the same depth as the parent element for IndirectElements.
+ * subelements_mut: Like subelements but returns a mutable value
  */
 pub trait Element {
     fn display(&self, f: &mut fmt::Formatter<'_>, depth: usize) -> fmt::Result;
     fn debug(&self, f: &mut fmt::Formatter<'_>, depth: usize) -> fmt::Result;
-    fn get(&self, name: &str) -> Option<Box<dyn Element>>;
+    fn get(&mut self, name: &str) -> Option<&Box<dyn Element>>;
     fn name<'b>(&'b self) -> &'b str;
     fn subelements<'b>(&'b self) -> &'b Vec<Box<(dyn Element)>>;
+    fn subelements_mut<'b>(&'b mut self) -> &'b mut Vec<Box<(dyn Element)>>;
 }
 
 /* Check all Display impls to ensure status is passed back properly */
@@ -202,8 +204,9 @@ impl fmt::Display for Box<dyn Element> {
 }
 
 impl<'a> fmt::Debug for Box<dyn Element> {
-    fn fmt(&self, _f: &mut fmt::Formatter<'_>) -> fmt::Result {
-todo!();
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+// FIXME: do better
+        self.display(f, 0)
     }
 }
 
@@ -291,19 +294,40 @@ impl<'a> Element for DirectElement {
         self.display(f, depth)
     }
 
-    fn get(&self, _name: &str) -> Option<Box<dyn Element>> {
-        todo!();
+    /**
+     * Find a subelement (one level deeper) with the given name
+     */
+    fn get(&mut self, name: &str) -> Option<&Box<dyn Element>> {
+println!("get: looking for {}", name);
+println!("...");
+for x in self.subelements() {
+    println!(" {}", x);
+}
+        self.subelements()
+            .iter()
+            .find(|&x| x.name() == name)
     }
 
+    /*
+     * Return the element name
+     */
+    // FIXME: maybe remove this from Element
     fn name<'aaa>(&'aaa self) -> &'aaa str {
         &self.name.local_name
     }
 
     /**
-     * No subelements here
+     * Return a vector of all subelements.
      */
-    fn subelements<'b>(&'b self) -> &'b Vec<Box<(dyn Element)>> {
+    fn subelements<'b>(&'b self) -> &'b Vec<Box<(dyn Element + 'static)>> {
         &self.subelements
+    }
+
+    /**
+     * Return a mutable vector of all subelements.
+     */
+    fn subelements_mut<'b>(&'b mut self) -> &'b mut Vec<Box<(dyn Element + 'static)>> {
+        &mut self.subelements
     }
 }
 
