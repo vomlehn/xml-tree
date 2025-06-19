@@ -119,7 +119,11 @@ impl ElemData<PrintAccumulator, PrintElemData> for PrintElemData {
 pub type PrintWalkData = ();
 
 pub fn nl_indent(n: usize) -> String {
-    "\n".to_owned() + &INDENT.repeat(n)
+    "\n".to_owned() + &indent(n)
+}
+
+pub fn indent(n: usize) -> String {
+    INDENT.repeat(n)
 }
 
 #[cfg(test)]
@@ -161,7 +165,7 @@ where
     T:  XmlDisplay
 {
     if vec.len() == 0 {
-        write!(f, "{}vec!()", nl_indent(depth))?;
+        write!(f, "vec!()")?;
     } else {
         write!(f, "{}vec!(", nl_indent(depth + 1))?;
         for elem in vec {

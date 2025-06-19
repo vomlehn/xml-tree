@@ -229,9 +229,11 @@ mod test_tests {
         */
     }
 
+/*
     pub fn nl_indent(n: usize) -> String {
         INDENT.repeat(n)
     }
+*/
 
     #[test]
     fn test_result_return() {

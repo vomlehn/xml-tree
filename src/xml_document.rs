@@ -279,14 +279,12 @@ impl<'a> Element for DirectElement {
         element_info_display(f, depth + 1, &element_info)?;
         write!(f, "{}", nl_indent(depth + 1))?;
         vec_display::<XmlEvent>(f, depth, &self.before_element)?;
-        write!(f, ",")?;
+        write!(f, ", ")?;
         vec_display::<XmlEvent>(f, depth, &self.content)?;
-        write!(f, ",")?;
+        write!(f, ", ")?;
         vec_display::<XmlEvent>(f, depth, &self.after_element)?;
         write!(f, ",")?;
-/*
-        vec!(), vec!(), vec!(),", 
-*/
+//        vec_display::<Box<dyn Element>>(f, depth, &self.subelements())
         write!(f, "{}vec!(", nl_indent(depth + 1))
     }
 
@@ -298,14 +296,17 @@ impl<'a> Element for DirectElement {
      * Find a subelement (one level deeper) with the given name
      */
     fn get(&mut self, name: &str) -> Option<&Box<dyn Element>> {
-println!("get: looking for {}", name);
+println!("get: looking for {} in {}", name, self.name());
 println!("...");
 for x in self.subelements() {
     println!(" {}", x);
 }
         self.subelements()
             .iter()
-            .find(|&x| x.name() == name)
+            .find(|&x| {
+                println!("get: is {} == {}", x.name(), name);
+                x.name() == name
+            })
     }
 
     /*
@@ -762,6 +763,12 @@ pub trait Accumulator<'a, BL, ED, WD, WR> {
 }
 
 impl XmlDisplay for XmlEvent {
+    fn print(&self, f: &mut fmt::Formatter<'_>, depth: usize) -> fmt::Result {
+        write!(f, "{}{:?}", nl_indent(depth), self)
+    }
+}
+
+impl XmlDisplay for Box<dyn Element> {
     fn print(&self, f: &mut fmt::Formatter<'_>, depth: usize) -> fmt::Result {
         write!(f, "{}{:?}", nl_indent(depth), self)
     }
