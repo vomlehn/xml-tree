@@ -70,8 +70,8 @@ pub enum XmlDocumentError {
     #[error("Line {0}: Unknown XTCE parsing error")]
     Unknown(LineNumber),
 
-    #[error("line {0}: Unknown or misplaced element: <{1}>")]
-    UnknownElement(LineNumber, String),
+    #[error("line {0}: Unknown or misplaced element: <{1}> in <{2}>")]
+    UnknownElement(LineNumber, String, String),
 
     // FIXME: get line number from the XmlEvent
     #[error("Line {0}: XML error: {1}")]
