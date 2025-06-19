@@ -187,7 +187,7 @@ impl ElementInfo {
 pub trait Element {
     fn display(&self, f: &mut fmt::Formatter<'_>, depth: usize) -> fmt::Result;
     fn debug(&self, f: &mut fmt::Formatter<'_>, depth: usize) -> fmt::Result;
-    fn get(&mut self, name: &str) -> Option<&Box<dyn Element>>;
+    fn get(&self, name: &str) -> Option<&Box<dyn Element>>;
     fn name<'b>(&'b self) -> &'b str;
     fn subelements<'b>(&'b self) -> &'b Vec<Box<(dyn Element)>>;
     fn subelements_mut<'b>(&'b mut self) -> &'b mut Vec<Box<(dyn Element)>>;
@@ -295,7 +295,7 @@ impl<'a> Element for DirectElement {
     /**
      * Find a subelement (one level deeper) with the given name
      */
-    fn get(&mut self, name: &str) -> Option<&Box<dyn Element>> {
+    fn get(&self, name: &str) -> Option<&Box<dyn Element>> {
 println!("get: looking for {} in {}", name, self.name());
 println!("...");
 for x in self.subelements() {

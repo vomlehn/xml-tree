@@ -209,6 +209,7 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
         let mut element = DirectElement::new(name_in.clone(), element_info_in.clone(), vec!(), vec!(), vec!(), vec!());
         element.before_element = Vec::new();
 println!("parse_element: name_in {}", name_in.local_name);
+println!("parse_element: parent_element name {}", parent_element.name());
 print!("...");
 for e in parent_element.subelements() {
     print!(" {}", e.name());
@@ -241,11 +242,12 @@ println!();
 println!("StartElement has name {}", start_name.local_name);
 
                     let next_element =
-                        match element.get(start_name.local_name.as_str()) {
+                        match parent_element.get(start_name.local_name.as_str()) {
                             None => {
                                 return Err(XmlDocumentError::UnknownElement(
                                     lineno,
                                     start_name.local_name.to_string(),
+                                    parent_element.name().to_string()
                                 ))
                             }
                             Some(elem) => elem,
