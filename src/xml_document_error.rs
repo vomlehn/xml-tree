@@ -80,3 +80,8 @@ pub enum XmlDocumentError {
     #[error("No elements defined")]
     XmlNoElementDefined(),
 }
+
+// FIXME: don't use debug format
+pub fn warning(err: &XmlDocumentError) {
+    eprintln!("Warning: {:?}", err);
+}

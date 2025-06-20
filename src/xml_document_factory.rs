@@ -6,16 +6,21 @@
 
 //use std::borrow::Borrow;
 //use std::cell::RefCell;
+use std::collections::BTreeMap;
 use std::io::Read;
+use xml::attribute::OwnedAttribute;
 use xml::name::OwnedName;
 use xml::reader::XmlEvent;
+use xml::namespace::Namespace;
 
 use crate::parser::Parser;
 //use crate::walk_and_print::PrintBaseLevel;
 pub use crate::xml_document::{DirectElement, DocumentInfo, Element, ElementInfo, XmlDocument};
-pub use crate::xml_document_error::XmlDocumentError;
+pub use crate::xml_document_error::{warning, XmlDocumentError};
 //use crate::xml_schema::{Element, XmlSchema};
 use crate::xml_schema::XmlSchema;
+
+const READING_XML: bool = false;
 
 /*
  * Structure used to hold parsing information
@@ -241,23 +246,46 @@ println!();
                     let namespace2 = namespace.clone();
 println!("StartElement has name {}", start_name.local_name);
 
-                    let next_element =
-                        match parent_element.get(start_name.local_name.as_str()) {
+                    let subelement = parent_element.get(start_name.local_name.as_str());
+                    let next_element = if READING_XML {
+                        match subelement {
                             None => {
                                 return Err(XmlDocumentError::UnknownElement(
                                     lineno,
                                     start_name.local_name.to_string(),
                                     parent_element.name().to_string()
                                 ))
-                            }
+                            },
                             Some(elem) => elem,
-                        };
+                        }
+                    } else {
+                        match subelement {
+                            None => {
+                                warning(&XmlDocumentError::UnknownElement(
+                                    lineno,
+                                    start_name.local_name.to_string(),
+                                    parent_element.name().to_string()
+                                ));
+                                let e = DirectElement::new(
+                                        OwnedName {local_name: "FIXME".to_string(),
+                                            namespace: None, prefix: None},
+                                        ElementInfo::new(lineno,
+                                            Vec::<OwnedAttribute>::new(),
+                                            Namespace (BTreeMap::<String, String>::new()),
+                                        ),
+
+                                        vec!(), vec!(), vec!(), vec!()
+                                );
+                                &(Box::new(e) as Box<dyn Element>)
+                            },
+                            Some(elem) => elem,
+                        }
+                    };
 
                     let element_info =
                         ElementInfo::new(lineno, attributes2.clone(), namespace2.clone());
                     let subelement = self.parse_element::<R>(
                         &next_element,
-//                        depth,
                         start_name.clone(),
                         element_info.clone(),
                         pieces,
