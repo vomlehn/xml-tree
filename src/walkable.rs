@@ -71,21 +71,22 @@ where
     walk_down::<AC, BL, ED, WD, WR>(bl, &xml_doc.root, ed)
 }
 
-fn walk_down<'a, AC, BL, ED, WD, WR>(bl: &mut BL, element: &Box<dyn Element>, ed: &ED) -> WR
+// FIXME: this assumes the root has only one element
+fn walk_down<'a, AC, BL, ED, WD, WR>(bl: &mut BL, elements: &Vec<Box<dyn Element>>, ed: &ED) -> WR
 where
     AC: Accumulator<'a, BL, ED, WD, WR>,
     ED: ElemData<AC, ED>,
     WR: Try<Output = WD>,
     WR: FromResidual,
 {
-    let mut acc = AC::new(bl, element, ed);
+    let mut acc = AC::new(bl, &(*elements)[0], ed);
 
     // Process subelements and collect WalkData results in a vector
-    let next_ed = ed.next_level(&acc, element);
+    let next_ed = ed.next_level(&acc, &(*elements)[0]);
     let mut wd_vec = Vec::<WD>::new();
 
-    for elem in element.subelements() {
-        let wd = walk_down::<AC, BL, ED, WD, WR>(bl, elem, &next_ed)?;
+    for elem in (*elements)[0].subelements() {
+        let wd = walk_down::<AC, BL, ED, WD, WR>(bl, &elem.subelements(), &next_ed)?;
         wd_vec.push(wd);
     }
 

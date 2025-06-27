@@ -38,11 +38,11 @@ use crate::walk_and_print::nl_indent;
 //#[derive(Debug)]
 pub struct XmlDocument {
     pub document_info:  DocumentInfo,
-    pub root:           Box<dyn Element>,
+    pub root:           Vec<Box<dyn Element>>,
 }
 
 impl<'a> XmlDocument {
-    pub fn new(document_info: DocumentInfo, root: Box<dyn Element>) -> XmlDocument {
+    pub fn new(document_info: DocumentInfo, root: Vec<Box<dyn Element>>) -> XmlDocument {
         XmlDocument {
             document_info:  document_info,
             root:           root,
@@ -246,6 +246,27 @@ impl<'a> DirectElement {
     }
 }
 
+impl Default for DirectElement {
+    fn default() -> DirectElement {
+        DirectElement {
+            name: OwnedName {
+                local_name: "".to_string(),
+                namespace:  None,
+                prefix:     None
+            },
+            element_info: ElementInfo {
+                lineno:     0,
+                attributes: vec!(),
+                namespace:  Namespace(BTreeMap::<String, String>::new()),
+            },
+            subelements: vec!(),
+            before_element: vec!(),
+            content: vec!(),
+            after_element: vec!(),
+        }
+    }
+}
+
 impl<'a> fmt::Display for DirectElement {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.display(f, 0)
@@ -261,7 +282,7 @@ impl<'a> fmt::Debug for DirectElement {
 impl<'a> Element for DirectElement {
     fn display(&self, f: &mut fmt::Formatter<'_>, depth: usize) -> fmt::Result {
 
-        write!(f, "{}Box::new(DirectElement::new(", nl_indent(depth))
+        write!(f, "{}vec!(Box::new(DirectElement::new(", nl_indent(depth))
             .expect("Unable to write Box::new");
 
         let owned_name = OwnedName {
@@ -367,116 +388,6 @@ fn element_info_display(f: &mut fmt::Formatter<'_>, depth: usize, element_info: 
     write!(f, "{}ElementInfo::new({}, vec!(),", nl_indent(depth), element_info.lineno)?;
     write!(f, "{}Namespace(BTreeMap::<String, String>::new())),", nl_indent(depth + 1))
 }
-
-/*
-/**
- * IndirectElements allow for duplicting part of the XML tree. They are
- * probably only going to be used for manually constructed trees, though
- * it would theoretically be possible to automatically extract them.
- */
-pub struct IndirectElement {
-    subelements:    Vec<Box<(dyn Element)>>,
-}
-
-impl<'a> IndirectElement {
-    fn new() -> IndirectElement {
-        IndirectElement {
-            subelements:    Vec::new(),
-        }
-    }
-}
-
-impl<'a> Element for IndirectElement {
-    fn debug(&self, f: &mut fmt::Formatter<'_>, depth: usize) -> fmt::Result {
-        self.display(f, depth)
-    }
-
-    fn get(&self, _name: &str) -> Option<Box<dyn Element>> {
-        todo!();
-    }
-
-    fn name<'b>(&'b self) -> &'b str {
-        todo!();
-    }
-
-    fn subelements<'b>(&'b self) -> &'b Vec<Box<(dyn Element)>> {
-        &self.subelements
-    }
-}
-
-impl<'a> fmt::Display for IndirectElement {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.display(f, 0)
-    }
-}
-
-impl<'a> fmt::Debug for IndirectElement {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.debug(f, 0)
-    }
-}
-
-impl XmlDisplay for IndirectElement {
-    fn print(&self, _f: &mut fmt::Formatter<'_>, _depth: usize) -> fmt::Result {
-        todo!()
-    }
-}
-
-*/
-
-/*
-    pub fn start_string(&self, depth: usize) -> String {
-        format!("{}<{}", Self::nl_indent(depth), self.name.local_name)
-    }
-
-    pub fn attributes_string(&self) -> String {
-        let mut result = "".to_string();
-
-        for attribute in &self.element_info.attributes {
-            result = result + format!(" {}=\"{}\"", attribute.name, attribute.value).as_str();
-        }
-
-        result
-    }
-
-    fn is_one_line(&self) -> bool {
-        self.subelements.len() == 0 && self.content.len() == 0
-    }
-
-    pub fn end_first_line_string(&self) -> String {
-        if self.is_one_line() {
-            format!(" /> (line {})", self.element_info.lineno)
-        } else {
-            format!("> (line {})", self.element_info.lineno)
-        }
-    }
-
-    pub fn end_n_line_string(&self, depth: usize) -> Option<String> {
-        if !self.is_one_line() {
-            Some(format!(
-                "{}</{}> (line {})",
-                Self::nl_indent(depth),
-                self.name.local_name,
-                self.element_info.lineno
-            ))
-        } else {
-            None
-        }
-    }
-
-    pub fn display_start(&self, f: &mut fmt::Formatter<'_>, depth: usize) -> fmt::Result {
-        write!(f, "{}", self.start_string(depth))?;
-        write!(f, "{}", self.attributes_string())?;
-        write!(f, "{}", self.end_first_line_string())
-    }
-
-    pub fn display_end(&self, f: &mut fmt::Formatter<'_>, depth: usize) -> fmt::Result {
-        if let Some(string) = self.end_n_line_string(depth) {
-            write!(f, "{}", string)?;
-        }
-        Ok(())
-    }
-*/
 
 /**
  * Basic information about the document

@@ -1,3 +1,4 @@
+// FIXME: probably consolidate this with xml_document.rs
 /*
  * Take an Element tree and generate an XmlFactorTree, which is used
  * to parse XML input
@@ -39,16 +40,46 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
     ) -> Result<XmlDocument, XmlDocumentError> {
         let parser = Parser::<T>::new(reader);
 
-        let xml_factory = XmlDocumentFactory::<T> {
+        let mut xml_factory = XmlDocumentFactory::<T> {
             parser: parser,
             xml_schema: xml_schema,
         };
 
-        xml_factory.parse_end_document()
+        let document_info = xml_factory.parse_start_document()?;
+        let elements = xml_factory.parse_elements("XML root element")?;
+
+        // Let's look for the end of the document
+        loop {
+            // FIXME: this isn't really right
+            let next_item = xml_factory.parser.next();
+            match next_item.unwrap().event {
+                XmlEvent::EndDocument => {
+                    break;
+                }
+
+                _ => panic!("FIXME: didn't find EndDocument when expected"),
+            }
+        }
+
+        // FIXME: add errors to XmlDocumentError
+        match elements.len() {
+            0 => panic!("No XML elements in document"),
+            1 => {},
+            _ => panic!("Exactly one XML element allowed in document"),
+        }
+
+        Ok(XmlDocument {
+            document_info:  document_info,
+            root:           elements,
+        })
     }
 
     /*
-     * Parse the StartDocument event.
+     * Search for, and parse, the StartDocument event.
+     *
+     * Returns:
+     * Ok(DocumentInfo)
+     * Err(XmlDocumentError)
      */
     fn parse_start_document(&mut self) -> Result<DocumentInfo, XmlDocumentError> {
         let mut comments_before = Vec::<XmlEvent>::new();
@@ -62,6 +93,9 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
                     encoding,
                     standalone,
                 } => {
+/*
+                    let document_info = self.parse_start_document()?;
+*/
                     let document_info =
                         DocumentInfo::new(version.clone(), encoding.clone(), standalone.clone());
                     break document_info;
@@ -93,104 +127,213 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
     }
 
     /*
-     * Parse until we find an EndDocument, filling in the
+     * Collect mutiple StartElements at a given level.  This means parsing
+     * a bunch of pieces (Comment, Whitespace, Characters...) until we find
+     * a StartElement, then handling that Element.
+     *
+     * Returns:
+     * Ok(Vec<Box<dyn Element>>>)   An XmlDocument
+     * Err(XmlDocumentError)
      */
-    fn parse_end_document(mut self) -> Result<XmlDocument, XmlDocumentError> {
-        let mut pieces = Vec::<XmlEvent>::new();
-        let document_info = self.parse_start_document()?;
-        let start_name = OwnedName {
-            local_name: "".to_string(),
-            prefix: None,
-            namespace: None,
-        };
+    fn parse_elements(&mut self, parent_name: &str) -> Result<Vec<Box<dyn Element>>, XmlDocumentError> {
+        let mut elements = Vec::<Box<dyn Element>>::new();
 
-        let start_element = loop {
-            // Read the next element
+        loop {
+            let before_pieces = self.parse_pieces()?;
             let xml_element = self.parser.next()?;
             let lineno = xml_element.lineno;
 
             match &xml_element.event {
-                XmlEvent::StartDocument { .. } => {
-                    return Err(XmlDocumentError::StartAfterStart(lineno));
-                },
-
-                XmlEvent::EndDocument => {
-                    return Err(XmlDocumentError::Unknown(0));
-                },
-
                 XmlEvent::StartElement {
                     name,
                     attributes,
                     namespace,
                 } => {
-                    let start_name = name.clone();
+                    let start_name = name;
+                    println!("parse_element: got {:?} for start element", xml_element.event);
+                    // FIXME: is this the right now
+                    let (before_pieces, end_name, subelements) = self.parse_element(&start_name.local_name)?;
+
+                    // FIXME: use namespace and prefix
+                    if end_name.local_name != start_name.local_name {
+                        // FIXME: use XmlDocumentError
+                        panic!("Closing element name {:?} != opening element name {:?}",
+                            end_name, start_name);
+                    }
+
+                    let after_pieces = self.parse_pieces()?;
+
                     let element_info =
                         ElementInfo::new(lineno, attributes.clone(), namespace.clone());
 
-                    // Parse all of the items contained within this element
-//                    let root_element = self.xml_schema.inner.xml_document.root;
-                    let element = self.parse_element::<R>(
-                        &self.xml_schema.inner.xml_document.root,
-                        start_name.clone(),
-                        element_info,
-                        pieces,
-                    )?;
-// FIXME: in theory, parse_element does this, but I think it doesn't
-//                    element.before_element = pieces;
+                    // FIXME: look for content and after_element?
+                    let element = DirectElement::new(start_name.clone(), element_info,
+                        before_pieces, vec!(), after_pieces, subelements);
+                    elements.push(Box::new(element));
+                },
 
-                    // Get out of here so we can move on to the next element.
-                    break Box::new(element);
+                XmlEvent::ProcessingInstruction {
+    //                processing_instruction,
+                    name,
+                    data
+                } => {
+                    self.parser.skip();
+                    panic!("FIXME: stop skipping processing_instruction");
+                },
+
+                // Anything else means that we don't have any more elements at this
+                // level.
+                _ => {
+                    self.parser.skip();
+                    println!("parse_element: got unexpected {:?}", xml_element.event);
+                    todo!();
+    //                Ok(None)
+    //                return XmlDocumentError::UnexpectedXml(xml_element.event.clone())
+                },
+            }
+        }
+
+        Ok(elements)
+    }
+
+    /*
+     * Parse an EndElement corresponding to an already seen StartElement. There may be
+     * a number of things to parse before the EndElement is seen, including
+     * sub-StartElements.
+     *
+     * self:        XmlDocumentFactor
+     * parent_name: Name of the element enclosing this element
+     *
+     * Returns:
+     * Ok<(Vec<XmlEvent>, OwnedName)>   Name from the EndElement, any an preceeding
+     *                                  pieces
+     * Err<XmlDocumentError>            An error was found
+     */
+    fn parse_element(&mut self, parent_name: &str) -> Result<(Vec<XmlEvent>, OwnedName, Vec<Box<dyn Element>>), XmlDocumentError> {
+        let mut subelements = Vec::new();
+
+        loop {
+            let before_pieces = self.parse_pieces()?;
+            let xml_element = self.parser.lookahead()?;
+
+            match &xml_element.event {
+                // FIXME: supply names
+                XmlEvent::StartDocument {
+                    version,
+                    encoding,
+                    standalone,
+                } => {
+//                    Vec<Box<dyn Element>>
+//                let start_name = name;
+//                // FIXME: anything better for the parse_elements() argument?
+                    let subelements = self.parse_elements("XML document root");
+                },
+
+                XmlEvent::EndDocument => {
+                    self.parser.skip();
+//                // FIXME: anything better for the parse_elements() argument?
+                    let owned_name = OwnedName {local_name: "FIXME".to_string(),
+                        namespace: None, prefix: None};
+                    return Ok((before_pieces, owned_name, subelements));
+                },
+
+                // FIXME: fix the arguments
+                XmlEvent::StartElement {name, ..} => {
+                    let start_name = name.clone();
+                    let subelements = self.parse_elements(&start_name.local_name)?;
+
+                    // Collect the various incidental pieces
+                    let after_pieces = self.parse_pieces()?;
+                    // FIXME: think about this
+                    if after_pieces.len() != 0 {
+                        panic!("pieces after parsing element");
+                    }
+
+                    // Get the next XmlEvent, which *should* be an EndElement
+                    let direct_element = self.parser.next()?;
+                    match direct_element.event {
+                        XmlEvent::EndElement { name } => {},
+                        _ => {
+                            // FIXME: get this right
+                            panic!("Missing XmlEvent::EndElement");
+                        },
+                    }
+                    
+                    // Verify that the name given in the start element and the name from
+                    // the end element match.
+                    // FIXME: doesn't seem quite right
+                    let end_name = match xml_element.event.clone() {
+                        XmlEvent::EndElement {name} => name,
+                        _ => panic!("FIXME: figure this out"),
+                    };
                 },
 
                 XmlEvent::EndElement { name } => {
-                    // This EndElement was not proceeded by a StartElement,
-                    // oops!
-                    let end_name = name.clone();
-                    return Err(XmlDocumentError::MisplacedElementEnd(
-                        lineno,
-                        start_name.local_name,
-                        end_name.local_name,
-                    ));
-                }
+                    // Leave the EndElement in lookahead so that the StarElement code can
+                    // parse it
+                },
 
-                XmlEvent::Comment(cmnt) => {
-                    pieces.push(XmlEvent::Comment(cmnt.clone()));
-                    continue;
-                }
+                XmlEvent::ProcessingInstruction {
+//                processing_instruction,
+                    name,
+                    data
+                } => {
+                    self.parser.skip();
+                    panic!("FIXME: stop skipping processing_instruction");
+                },
 
-                XmlEvent::Whitespace(ws) => {
-                    pieces.push(XmlEvent::Comment(ws.clone()));
-                    continue;
-                }
-
-                XmlEvent::Characters(characters) => {
-                    pieces.push(XmlEvent::Comment(characters.clone()));
-                    continue;
-                }
-
-                XmlEvent::CData(cdata) => {
-                    pieces.push(XmlEvent::Comment(cdata.clone()));
-                    continue;
-                }
-                /*
-                                XmlEvent::ProcessingInstruction(processing_instruction, name, data) => {
-                println!("Skipping processing_instruction");
-                                    continue;
-                                },
-                */
-
-                _ => return Err(XmlDocumentError::UnexpectedXml(xml_element.event.clone())),
-            };
-        };
-
-        let xml_document = XmlDocument {
-            document_info:  document_info,
-            root:           start_element,
-        };
-
-        Ok(xml_document)
+                // Anything else means that we don't have any more elements at this
+                // level.
+                _ => {
+                    self.parser.skip();
+                    println!("parse_element: got unexpected {:?}", xml_element.event);
+                    todo!();
+//                Ok(None)
+//                return XmlDocumentError::UnexpectedXml(xml_element.event.clone())
+                },
+            }
+        }
     }
 
+    /*
+     * Accumulate a list of the following:
+     *
+     * o    XmlEvent::Comment
+     * o    XmlEvent::Whitespace
+     * o    XmlEvent::Characters
+     * o    XmlEvent::CData
+     *
+     * The parser will return the first XmlElement that is not one of these.
+     *
+     * Returns:
+     * Ok(Vec<XmlEvent>)
+     * Err(XmlDocumentError>
+     */
+    fn parse_pieces(&mut self) -> Result<Vec<XmlEvent>, XmlDocumentError> {
+        let mut pieces = Vec::<XmlEvent>::new();
+
+        loop {
+            let xml_element = self.parser.lookahead()?;
+            let lineno = xml_element.lineno;
+
+            match xml_element.event {
+                XmlEvent::Comment(cmnt) => pieces.push(XmlEvent::Comment(cmnt.clone())),
+                XmlEvent::Whitespace(ws) =>
+                    pieces.push(XmlEvent::Whitespace(ws.clone())),
+                XmlEvent::Characters(characters) =>
+                    pieces.push(XmlEvent::Characters(characters.clone())),
+                XmlEvent::CData(cdata) => pieces.push(XmlEvent::CData(cdata.clone())),
+
+                _ => break,
+            }
+
+            self.parser.skip();
+        }
+
+        Ok(pieces)
+    }
+
+/*
     /*
      * Parse the current element and subelements. The <StartElement> has
      * already been read, read up to, and including, the <EndElement>
@@ -198,28 +341,21 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
      * name_in:                 Name of the element
      * element_info_in:         Other information about the element
      *
-     * This only produces DirectElements
+     * Returns:
+     * Ok(DirectElement)
+     * Err(XmlDocumentError)
      */
-    fn parse_element<T: Read>(
+    fn parse_start_element_remainder<T: Read>(
         &mut self,
-        parent_element:     &Box<dyn Element>,
         name_in:            OwnedName,
         element_info_in:    ElementInfo,
-        // FIXME: remove if uneeded
-        _pieces:            Vec::<XmlEvent>,
     ) -> Result<DirectElement, XmlDocumentError> {
-        
-        // First, we set up the element
+        let mut before_element = Vec::new();
+        let mut content = Vec::new();
+        let mut after_element = Vec::new();
+        let mut subelements = Vec::new();
+
         let mut pieces = Vec::new();
-        let mut element = DirectElement::new(name_in.clone(), element_info_in.clone(), vec!(), vec!(), vec!(), vec!());
-        element.before_element = Vec::new();
-println!("parse_element: name_in {}", name_in.local_name);
-println!("parse_element: parent_element name {}", parent_element.name());
-print!("...");
-for e in parent_element.subelements() {
-    print!(" {}", e.name());
-}
-println!();
 
         loop {
             let xml_element = {
@@ -244,66 +380,30 @@ println!();
                     let start_name = name.clone();
                     let attributes2 = attributes.clone();
                     let namespace2 = namespace.clone();
-println!("StartElement has name {}", start_name.local_name);
-
-                    let subelement = parent_element.get(start_name.local_name.as_str());
-                    let next_element = if READING_XML {
-                        match subelement {
-                            None => {
-                                return Err(XmlDocumentError::UnknownElement(
-                                    lineno,
-                                    start_name.local_name.to_string(),
-                                    parent_element.name().to_string()
-                                ))
-                            },
-                            Some(elem) => elem,
-                        }
-                    } else {
-                        match subelement {
-                            None => {
-                                warning(&XmlDocumentError::UnknownElement(
-                                    lineno,
-                                    start_name.local_name.to_string(),
-                                    parent_element.name().to_string()
-                                ));
-                                let e = DirectElement::new(
-                                        OwnedName {local_name: "FIXME".to_string(),
-                                            namespace: None, prefix: None},
-                                        ElementInfo::new(lineno,
-                                            Vec::<OwnedAttribute>::new(),
-                                            Namespace (BTreeMap::<String, String>::new()),
-                                        ),
-
-                                        vec!(), vec!(), vec!(), vec!()
-                                );
-                                &(Box::new(e) as Box<dyn Element>)
-                            },
-                            Some(elem) => elem,
-                        }
-                    };
-
                     let element_info =
                         ElementInfo::new(lineno, attributes2.clone(), namespace2.clone());
-                    let subelement = self.parse_element::<R>(
-                        &next_element,
+println!("StartElement has name {}", start_name.local_name);
+                    let next_element = self.start_element(&mut subelements, &start_name, lineno)?;
+
+                    let subelement = self.parse_start_element_remainder::<R>(
                         start_name.clone(),
                         element_info.clone(),
-                        pieces,
                     )?;
-//                    element.before_element = pieces;
-                    element.subelements_mut().push(Box::new(subelement));
+
+                      
+                    subelements_mut().push(Box::new(subelement));
                     pieces = Vec::<XmlEvent>::new();
                 }
                 XmlEvent::EndElement { name } => {
-                    if name.local_name != *element.name() {
+                    if start_name.local_name != *element.name() {
                         return Err(XmlDocumentError::MisplacedElementEnd(
                             lineno,
-                            element.name().to_string(),
-                            name.local_name.to_string(),
+                            start_name.local_name.to_string(),
+                            end_name.local_name.to_string(),
                         ));
                     }
 
-                    element.content = pieces;
+                    content = pieces;
                     // FIXME: is this right or should it be an error?
                     return Ok(*Box::new(element));
                 }
@@ -329,7 +429,59 @@ println!("StartElement has name {}", start_name.local_name);
                 }
             };
         }
+
+        DirectElement::new(name_in.clone(), element_info_in.clone(), before_element, content, after_element, subelements)
     }
+
+    fn start_element(
+        &mut self,
+        subelements:    &mut Vec<Box<dyn Element>>,
+        start_name:     &OwnedName,
+        lineno:         usize,
+    ) -> Result<&Box<dyn Element>, XmlDocumentError> {
+        let subelement = parent_element.get(start_name.local_name.as_str());
+
+        let next_element = if READING_XML {
+            match subelement {
+                None => {
+                    return Err(XmlDocumentError::UnknownElement(
+                        lineno,
+                        start_name.local_name.to_string(),
+                        parent_element.name().to_string()
+                    ))
+                },
+                Some(elem) => elem,
+            }
+        } else {
+            // Reading XSD. It's an error if the element is found, otherwise
+            // we create a new element.
+            match subelement {
+                None => {
+                    warning(&XmlDocumentError::UnknownElement(
+                        lineno,
+                        start_name.local_name.to_string(),
+                        parent_element.name().to_string()
+                    ));
+                    let e = DirectElement::new(
+                            OwnedName {local_name: "FIXME".to_string(),
+                                namespace: None, prefix: None},
+                            ElementInfo::new(lineno,
+                                Vec::<OwnedAttribute>::new(),
+                                Namespace (BTreeMap::<String, String>::new()),
+                            ),
+
+                            vec!(), vec!(), vec!(), vec!()
+                    );
+                    let elem = Box::new(e) as Box<dyn Element>;
+                    parent_element.subelements_mut().push(elem);
+                    &elem
+                },
+                Some(elem) => elem,
+            }
+        };
+        Ok(next_element)
+    }
+*/
 }
 
 /*

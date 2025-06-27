@@ -23,7 +23,7 @@ lazy_static! {
         "XsdSchema",
         XmlDocument::new(
             DocumentInfo::new(XmlVersion::Version10, "encoding".to_string(), None),
-            Box::new(DirectElement::new(
+            vec!(Box::new(DirectElement::new(
                 OwnedName{local_name: "XsdSchema".to_string(),
                     namespace: None, prefix: None},
                 ElementInfo::new(0, vec!(),
@@ -1057,7 +1057,7 @@ lazy_static! {
                         )
                     )),
                 )
-            )),
+            ))),
         )
     );
 }
