@@ -1,4 +1,3 @@
-// FIXME: probably consolidate this with xml_document.rs
 /*
  * Take an Element tree and generate an XmlFactorTree, which is used
  * to parse XML input
@@ -10,11 +9,12 @@
 use std::collections::BTreeMap;
 use std::io::Read;
 use xml::attribute::OwnedAttribute;
+use xml::common::XmlVersion;
 use xml::name::OwnedName;
 use xml::reader::XmlEvent;
 use xml::namespace::Namespace;
 
-use crate::parser::Parser;
+use crate::parser::{LineNumber, Parser};
 //use crate::walk_and_print::PrintBaseLevel;
 pub use crate::xml_document::{DirectElement, DocumentInfo, Element, ElementInfo, XmlDocument};
 pub use crate::xml_document_error::{warning, XmlDocumentError};
@@ -33,6 +33,20 @@ pub struct XmlDocumentFactory<'a, R: Read + 'a> {
     pub xml_schema: &'a XmlSchema<'a>,
 }
 
+#[derive(Clone, Debug, PartialEq)]
+enum ParseState {
+    Init,
+    Top,
+    InElement(OwnedName, LineNumber),
+    End,
+}
+
+struct ElementArgs {
+    name:       String,
+    attributes: Vec<OwnedAttribute>,
+    namespace:  String,
+}
+
 impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
     pub fn new_from_reader<T: Read + 'a>(
         reader: T,
@@ -45,13 +59,174 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
             xml_schema: xml_schema,
         };
 
+/*
         let document_info = xml_factory.parse_start_document()?;
-        let elements = xml_factory.parse_elements("XML root element")?;
+        let before_pieces = self.parse_pieces()?;
+*/
+        let xml_document = xml_factory.parse_document::<T>();
+        xml_document
+    }
 
+    fn parse_document<T: Read + 'a>(&mut self) -> Result<XmlDocument, XmlDocumentError> {
+
+        let mut pieces = Vec::new();
+        let mut elements: Vec<Box<dyn Element>> = Vec::new();
+        let mut document_info_opt = None;
+        let mut parent_name = vec!("XML document root");
+        let mut states = vec!(ParseState::Init);
+//        let mut elem_args = None;
+//        let mut result = None;
+
+        let top_element = loop {
+            let xml_element = self.parser.next()?;
+            let lineno = xml_element.lineno;
+
+            match xml_element.event {
+                XmlEvent::StartDocument {
+                    version,
+                    encoding,
+                    standalone,
+                } => {
+                    Self::swap_state(&mut states, vec!(ParseState::Init), ParseState::Top)?;
+                    let document_info = DocumentInfo::new(version, encoding, standalone);
+                    document_info_opt = Some(document_info);
+                }
+
+                XmlEvent::EndDocument => {
+                    let state = match states.pop() {
+                        None => panic!("FIXME: internal error: no state on stack"),
+                        Some(state) => if states.len() != 0 {
+                            panic!("FIXME: internal error: premature EndDocument");
+                        } else {
+                            state
+                        },
+                    };
+
+                    let top_element = match state {
+                        ParseState::Top => panic!("FIXME: no elements in file"),
+                        ParseState::InElement(_, _) => {
+                            if elements.len() != 0 {
+                                panic!("FIXME: {} unclosed elements", elements.len())
+                            }
+
+                            elements.pop().unwrap()
+                        },
+
+                        _ => panic!("FIXME: internal error: unexpected state {:?}", state),
+                    };
+
+                    break top_element;
+                },
+
+                XmlEvent::StartElement {
+                    name,
+                    attributes,
+                    namespace
+                } => {
+                    Self::push_state(&mut states, vec!(ParseState::Top, ParseState::InElement(name.clone(), lineno)),
+                        ParseState::InElement(name.clone(), lineno))?;
+                    let element_info = ElementInfo::new(lineno, attributes, namespace);
+                    let element = DirectElement::new(name, element_info, vec!(), vec!(), vec!(), vec!());
+                    elements.push(Box::new(element));
+                },
+
+                XmlEvent::EndElement {
+                    name
+                } => {
+                    if states.len() == 0 {
+                        panic!("FIXME: end element without start element");
+                    }
+                    Self::pop_state(&mut states, vec!(ParseState::InElement(name.clone(), lineno)))?;
+
+                    let element = elements.pop().unwrap();
+                    let last = states.last_mut().unwrap();
+
+                    match last {
+                        ParseState::InElement(last_name, last_lineno) => {
+                            if element.name() != name.local_name {
+                                panic!("FIXME: <{}> on line {} does not match <{}> on line {}", element.name(), element.lineno(), last_name, last_lineno);
+                            }
+                        },
+                        _ => panic!("FIXME: unexpected state: {:?}", last),
+                    }
+                },
+
+                XmlEvent::Comment(_) |
+                XmlEvent::Whitespace(_) |
+                XmlEvent::Characters(_) |
+                XmlEvent::CData(_) => pieces.push(xml_element),
+
+                // FIXME: check this
+                _ => return Err(XmlDocumentError::UnexpectedXml(xml_element.event.clone())),
+            }
+        };
+
+        let document_info = document_info_opt.unwrap();
+        Ok(XmlDocument::new(document_info, vec!(top_element)))
+    }
+
+    /*
+     * Verifies that the state on the top of the stack is as expected
+     */
+    fn check_state(states: &Vec<ParseState>, expected: Vec<ParseState>) -> Result<(), XmlDocumentError> {
+        if expected.contains(&states.last().unwrap()) {
+            panic!("FIXME: need proper error");
+        }
+        Ok(())
+    }
+
+    /*
+     * Verifies that the top of the state matches the expected current state and, if so, pops it
+     * and pushes the new state
+     */
+    fn swap_state<'b>(states: &mut Vec<ParseState>, expected: Vec<ParseState>, new: ParseState) -> Result<(), XmlDocumentError> {
+        Self::check_state(states, expected)?;
+        states.pop();
+        states.push(new);
+        Ok(())
+    }
+
+    fn push_state<'b>(states: &mut Vec<ParseState>, expected: Vec<ParseState>, new: ParseState) -> Result<(), XmlDocumentError> {
+        Self::check_state(states, expected)?;
+        states.push(new);
+        Ok(())
+    }
+
+    fn pop_state(states: &mut Vec<ParseState>, expected: Vec<ParseState>) -> Result<(), XmlDocumentError> {
+        Self::check_state(states, expected)?;
+        states.pop();
+        Ok(())
+    }
+
+/*
+    fn start_document(version: XmlVersion, encoding: String, standalone: Option<bool>) -> Result<Option<DocumentInfo>, XmlDocumentError> {
+        let document_info = DocumentInfo::new(version, encoding, standalone);
+        Ok(Some(document_info))
+    }
+
+    fn end_document(cur_state: ParseState, xml_element: XmlEvent) -> Result<(), XmlDocumentError> {
+        Ok(ParseState::End)
+    }
+
+    fn start_element(cur_state: ParseState, xml_element: XmlEvent) -> Result<Option<ElementArgs>, XmlDocumentError> {
+        if let XmlEvent::StartElement(name, attributes, namespace) = xml_element {
+            Some(ElementArgs::new(name, attributes, namespace))
+        } else {
+            panic!("FIXME: Internal error: expected but failed to find StartElement");
+        }
+    }
+
+    fn end_element(cur_state: ParseState, xml_element: XmlEvent) -> Result<(), XmlDocumentError> {
+        Ok(())
+    }
+*/
+
+/*
         // Let's look for the end of the document
         loop {
             // FIXME: this isn't really right
             let next_item = xml_factory.parser.next();
+println!("Looking for EndDocument");
             match next_item.unwrap().event {
                 XmlEvent::EndDocument => {
                     break;
@@ -73,7 +248,9 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
             root:           elements,
         })
     }
+*/
 
+/*
     /*
      * Search for, and parse, the StartDocument event.
      *
@@ -135,12 +312,12 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
      * Ok(Vec<Box<dyn Element>>>)   An XmlDocument
      * Err(XmlDocumentError)
      */
-    fn parse_elements(&mut self, parent_name: &str) -> Result<Vec<Box<dyn Element>>, XmlDocumentError> {
+    fn parse_elements(&mut self, parent_name: &str, before_pieces: Vec<XmlEvent>) -> Result<Vec<Box<dyn Element>>, XmlDocumentError> {
         let mut elements = Vec::<Box<dyn Element>>::new();
 
         loop {
-            let before_pieces = self.parse_pieces()?;
             let xml_element = self.parser.next()?;
+println!("parse_elements: looking for StartElement, have {:?}", xml_element.event);
             let lineno = xml_element.lineno;
 
             match &xml_element.event {
@@ -149,28 +326,15 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
                     attributes,
                     namespace,
                 } => {
-                    let start_name = name;
-                    println!("parse_element: got {:?} for start element", xml_element.event);
-                    // FIXME: is this the right now
-                    let (before_pieces, end_name, subelements) = self.parse_element(&start_name.local_name)?;
-
-                    // FIXME: use namespace and prefix
-                    if end_name.local_name != start_name.local_name {
-                        // FIXME: use XmlDocumentError
-                        panic!("Closing element name {:?} != opening element name {:?}",
-                            end_name, start_name);
-                    }
-
-                    let after_pieces = self.parse_pieces()?;
-
-                    let element_info =
-                        ElementInfo::new(lineno, attributes.clone(), namespace.clone());
-
-                    // FIXME: look for content and after_element?
-                    let element = DirectElement::new(start_name.clone(), element_info,
-                        before_pieces, vec!(), after_pieces, subelements);
-                    elements.push(Box::new(element));
+                    element = self.start_element(name, attributes, namespace, before_pieces)?;
+                    elements.push(element);
                 },
+
+                XmlEvent::EndElement => {
+                    panic!("FIXME: unexpected EndElement");
+                },
+
+                XmlEvent::EndDocument {} => { break; },
 
                 XmlEvent::ProcessingInstruction {
     //                processing_instruction,
@@ -184,9 +348,10 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
                 // Anything else means that we don't have any more elements at this
                 // level.
                 _ => {
+                    before_pieces.push(xml_element.event);
                     self.parser.skip();
-                    println!("parse_element: got unexpected {:?}", xml_element.event);
-                    todo!();
+//                    println!("parse_element: got unexpected {:?}", xml_element.event);
+//                    todo!();
     //                Ok(None)
     //                return XmlDocumentError::UnexpectedXml(xml_element.event.clone())
                 },
@@ -196,6 +361,72 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
         Ok(elements)
     }
 
+    /* We have parsed a StartElement and need to parse everything inside of it up to the
+     * corresponding EndElement.
+     * name:        The OwnedName from the StartElement
+     * attributes:  The OwnedAttribute from the StartElement
+     * namespace:   The Namespace from the StartElement
+     *
+     * Returns:
+     * Ok(Box<dyn Element>)
+     * Err(XmlDocumentError)
+     */
+    fn start_element(&self, parent_name: OwnedName, parent_attributes: OwnedAttribute, parent_namespace: Namespace, parent_before_pieces: Vec<XmlEvent>) -> Result<Box<dyn Element>, XmlDocumentError> {
+        let start_name = parent_name;
+
+        let element = loop {
+            // FIXME: need a better name
+            let after_pieces = self.parse_pieces()?;
+            let xml_element = self.parser.lookahead()?;
+println!("parse_start_element: {:?}", xml_element.event);
+
+            match &xml_element.event {
+                XmlEvent::StartElement {
+                    name,
+                    attributes,
+                    namespace,
+                } => {
+                    // FIXME: not sure whether the pieces should be before or after
+                    let elements = self.parse_elements(parent_name, parent_before_pieces)?;
+                },
+
+                XmlEvent::EndElement { name } => {
+                    let end_name = name;
+
+                    // FIXME: use namespace and prefix
+                    if end_name.local_name != parent_name.local_name {
+                        // FIXME: use XmlDocumentError
+                        panic!("Closing element name {:?} != opening element name {:?}",
+                            end_name, parent_name);
+                    }
+
+                    // FIXME: should this be here?
+                    let after_pieces = self.parse_pieces()?;
+
+                    let element_info =
+                        ElementInfo::new(lineno, parent_attributes.clone(), parent_namespace.clone());
+
+                    // FIXME: look for content and after_element?
+                    let element = DirectElement::new(parent_name.clone(), element_info,
+                        parent_before_pieces, vec!(), after_pieces, subelements);
+                    break element;
+                },
+
+                // FIXME: handle processing instructions
+ 
+                // Anything else means that we don't have any more elements at this
+                // level.
+                _ => {
+                    println!("parse_element: got unexpected {:?}", xml_element.event);
+                    todo!();
+                },
+            }
+
+            Ok(element)
+        };
+    }
+
+/*
     /*
      * Parse an EndElement corresponding to an already seen StartElement. There may be
      * a number of things to parse before the EndElement is seen, including
@@ -213,35 +444,17 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
         let mut subelements = Vec::new();
 
         loop {
-            let before_pieces = self.parse_pieces()?;
+            let mut before_pieces = self.parse_pieces()?;
             let xml_element = self.parser.lookahead()?;
+println!("parse_element: {:?}", xml_element.event);
 
             match &xml_element.event {
-                // FIXME: supply names
-                XmlEvent::StartDocument {
-                    version,
-                    encoding,
-                    standalone,
-                } => {
-//                    Vec<Box<dyn Element>>
-//                let start_name = name;
-//                // FIXME: anything better for the parse_elements() argument?
-                    let subelements = self.parse_elements("XML document root");
-                },
-
-                XmlEvent::EndDocument => {
-                    self.parser.skip();
-//                // FIXME: anything better for the parse_elements() argument?
-                    let owned_name = OwnedName {local_name: "FIXME".to_string(),
-                        namespace: None, prefix: None};
-                    return Ok((before_pieces, owned_name, subelements));
-                },
-
                 // FIXME: fix the arguments
                 XmlEvent::StartElement {name, ..} => {
                     let start_name = name.clone();
                     let subelements = self.parse_elements(&start_name.local_name)?;
 
+/*
                     // Collect the various incidental pieces
                     let after_pieces = self.parse_pieces()?;
                     // FIXME: think about this
@@ -251,11 +464,12 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
 
                     // Get the next XmlEvent, which *should* be an EndElement
                     let direct_element = self.parser.next()?;
+                    let ev = direct_element.event.clone();
                     match direct_element.event {
                         XmlEvent::EndElement { name } => {},
                         _ => {
                             // FIXME: get this right
-                            panic!("Missing XmlEvent::EndElement");
+                            panic!("Missing XmlEvent::EndElement, got {:?}", ev);
                         },
                     }
                     
@@ -266,11 +480,19 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
                         XmlEvent::EndElement {name} => name,
                         _ => panic!("FIXME: figure this out"),
                     };
+*/
                 },
 
                 XmlEvent::EndElement { name } => {
-                    // Leave the EndElement in lookahead so that the StarElement code can
-                    // parse it
+                    self.parser.skip();
+//                // FIXME: anything better for the parse_elements() argument?
+                    let owned_name = OwnedName {local_name: "FIXME".to_string(),
+                        namespace: None, prefix: None};
+                    return Ok((before_pieces, owned_name, subelements));
+                },
+
+                XmlEvent::EndDocument => {
+                    panic!("FIXME: unexpected document");
                 },
 
                 XmlEvent::ProcessingInstruction {
@@ -285,15 +507,17 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
                 // Anything else means that we don't have any more elements at this
                 // level.
                 _ => {
+                    before_pieces.push(xml_element.event);
                     self.parser.skip();
-                    println!("parse_element: got unexpected {:?}", xml_element.event);
-                    todo!();
+//                    println!("parse_element: got unexpected {:?}", xml_element.event);
+//                    todo!();
 //                Ok(None)
 //                return XmlDocumentError::UnexpectedXml(xml_element.event.clone())
                 },
             }
         }
     }
+*/
 
     /*
      * Accumulate a list of the following:
@@ -314,6 +538,7 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
 
         loop {
             let xml_element = self.parser.lookahead()?;
+println!("parse_pieces: {:?}", xml_element.event);
             let lineno = xml_element.lineno;
 
             match xml_element.event {
@@ -332,6 +557,7 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
 
         Ok(pieces)
     }
+*/
 
 /*
     /*

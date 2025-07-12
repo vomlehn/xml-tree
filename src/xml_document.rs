@@ -189,6 +189,7 @@ pub trait Element {
     fn debug(&self, f: &mut fmt::Formatter<'_>, depth: usize) -> fmt::Result;
     fn get(&self, name: &str) -> Option<&Box<dyn Element>>;
     fn name<'b>(&'b self) -> &'b str;
+    fn lineno(&self) -> LineNumber;
     fn subelements<'b>(&'b self) -> &'b Vec<Box<(dyn Element)>>;
     fn subelements_mut<'b>(&'b mut self) -> &'b mut Vec<Box<(dyn Element)>>;
 }
@@ -336,6 +337,10 @@ for x in self.subelements() {
     // FIXME: maybe remove this from Element
     fn name<'aaa>(&'aaa self) -> &'aaa str {
         &self.name.local_name
+    }
+
+    fn lineno(&self) -> LineNumber {
+        self.element_info.lineno
     }
 
     /**
