@@ -6,18 +6,18 @@
 
 //use std::borrow::Borrow;
 //use std::cell::RefCell;
-use std::collections::BTreeMap;
+//use std::collections::BTreeMap;
 use std::io::Read;
 use xml::attribute::OwnedAttribute;
-use xml::common::XmlVersion;
+//use xml::common::XmlVersion;
 use xml::name::OwnedName;
 use xml::reader::XmlEvent;
 use xml::namespace::Namespace;
 
-use crate::parser::{LineNumber, Parser};
+use crate::parser::{LineNumber, Parser, XmlDirectElement/*, XmlElement*/};
 //use crate::walk_and_print::PrintBaseLevel;
 pub use crate::xml_document::{DirectElement, DocumentInfo, Element, ElementInfo, XmlDocument};
-pub use crate::xml_document_error::{warning, XmlDocumentError};
+pub use crate::xml_document_error::XmlDocumentError;
 //use crate::xml_schema::{Element, XmlSchema};
 use crate::xml_schema::XmlSchema;
 
@@ -68,174 +68,76 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
     }
 
     fn parse_document<T: Read + 'a>(&mut self) -> Result<XmlDocument, XmlDocumentError> {
+        let document_info = self.parse_start_document()?;
 
-        let mut pieces = Vec::new();
-        let mut elements: Vec<Box<dyn Element>> = Vec::new();
-        let mut document_info_opt = None;
-        let mut parent_name = vec!("XML document root");
-        let mut states = vec!(ParseState::Init);
-//        let mut elem_args = None;
-//        let mut result = None;
-
-        let top_element = loop {
-            let xml_element = self.parser.next()?;
-            let lineno = xml_element.lineno;
-
-            match xml_element.event {
-                XmlEvent::StartDocument {
-                    version,
-                    encoding,
-                    standalone,
-                } => {
-                    Self::swap_state(&mut states, vec!(ParseState::Init), ParseState::Top)?;
-                    let document_info = DocumentInfo::new(version, encoding, standalone);
-                    document_info_opt = Some(document_info);
-                }
-
-                XmlEvent::EndDocument => {
-                    let state = match states.pop() {
-                        None => panic!("FIXME: internal error: no state on stack"),
-                        Some(state) => if states.len() != 0 {
-                            panic!("FIXME: internal error: premature EndDocument");
-                        } else {
-                            state
-                        },
-                    };
-
-                    let top_element = match state {
-                        ParseState::Top => {
-                            println!("{} elements on stack", elements.len());
-                                panic!("FIXME: no elements in file");
-                        },
-                        ParseState::InElement(_, _) => {
-                            if elements.len() != 0 {
-                                panic!("FIXME: {} unclosed elements", elements.len())
-                            }
-
-                            elements.pop().unwrap()
-                        },
-
-                        _ => panic!("FIXME: internal error: unexpected state {:?}", state),
-                    };
-
-                    break top_element;
-                },
-
-                XmlEvent::StartElement {
-                    name,
-                    attributes,
-                    namespace
-                } => {
-                    Self::push_state(&mut states, vec!(ParseState::Top, ParseState::InElement(name.clone(), lineno)),
-                        ParseState::InElement(name.clone(), lineno))?;
-                    let element_info = ElementInfo::new(lineno, attributes, namespace);
-                    let element = DirectElement::new(name, element_info, vec!(), vec!(), vec!(), vec!());
-                    elements.push(Box::new(element));
-                },
-
-                XmlEvent::EndElement {
-                    name
-                } => {
-                    if states.len() == 0 {
-                        panic!("FIXME: end element without start element");
-                    }
-                    Self::pop_state(&mut states, vec!(ParseState::InElement(name.clone(), lineno)))?;
-
-                    let element = elements.pop().unwrap();
-                    let last = states.last_mut().unwrap();
-
-                    match last {
-                        ParseState::InElement(last_name, last_lineno) => {
-                            if element.name() != name.local_name {
-                                panic!("FIXME: <{}> on line {} does not match <{}> on line {}", element.name(), element.lineno(), last_name, last_lineno);
-                            }
-                        },
-                        ParseState::Top => {
-                            println!("Found Top, end of all elements");
-                        },
-                        _ => panic!("FIXME: unexpected state: {:?}", last),
-                    }
-                },
-
-                XmlEvent::Comment(_) |
-                XmlEvent::Whitespace(_) |
-                XmlEvent::Characters(_) |
-                XmlEvent::CData(_) => pieces.push(xml_element),
-
-                // FIXME: check this
-                _ => return Err(XmlDocumentError::UnexpectedXml(xml_element.event.clone())),
-            }
+        let xml_element = self.parser.lookahead()?;
+        let event = xml_element.event.clone();
+        let top_element = if let XmlEvent::StartElement{name, attributes, namespace} = xml_element.event {
+            self.parser.skip();
+            let element_info = ElementInfo::new(xml_element.lineno, attributes, namespace);
+            self.parse_element(name, element_info)?
+        } else {
+            panic!("FIXME: Expected element, got {:?}", xml_element.event);
         };
-
-        let document_info = document_info_opt.unwrap();
+            
+        self.end_element(&event)?;
         Ok(XmlDocument::new(document_info, vec!(top_element)))
     }
 
     /*
-     * FIXME: figure out InElement
+     * Parse a StartDocument. Nothing can preceed this
      */
-    fn contains_state(states: &Vec<ParseState>, expected: &Vec<ParseState>) -> bool {
-        for state in states {
-            match state {
-                ParseState::Init | ParseState::Top | ParseState::End => {
-                    for exp in expected {
-                        match exp {
-                            ParseState::Init | ParseState::Top | ParseState::End => if state == exp { return true }
-                            ParseState::InElement(_, _) => {}
-                        }
-                    }
+    fn parse_start_document(&mut self) -> Result<DocumentInfo, XmlDocumentError> {
+        let xml_element = self.parser.next()?;
+
+        if let XmlEvent::StartDocument{version, encoding, standalone} = xml_element.event {
+            Ok(DocumentInfo::new(version, encoding, standalone))
+        } else {
+            panic!("FIXME: document doesn't start with StartDocument")
+        }
+    }
+
+    /*
+     * Parse an element. We have already seen the XmlStartElement as a lookahead.
+     */
+    fn parse_element(&mut self, name: OwnedName, element_info: ElementInfo) ->
+        Result<Box<dyn Element>, XmlDocumentError> {
+        self.parser.skip();
+        let mut element = DirectElement::new(name, element_info, vec!(), vec!(), vec!(), vec!());
+        let mut subelements = Vec::new();
+
+        loop {
+            let xml_element = self.parser.lookahead()?;
+            match xml_element.event {
+                XmlEvent::StartElement{name, attributes, namespace} => {
+                    let element_info = ElementInfo::new(xml_element.lineno, attributes, namespace);
+                    let subelement = self.parse_element(name, element_info)?;
+                    subelements.push(subelement);
                 },
 
-                ParseState::InElement(owned_name, _) => {
-                    for exp in expected {
-                        match exp {
-                            ParseState::Init | ParseState::Top | ParseState::End => {},
-                            ParseState::InElement(name, _) => {
-                                if owned_name == name { return true; }
-                            },
-                        }
+                XmlEvent::EndElement{name} => {
+                    if element.name() != name.local_name {
+                        panic!("FIXME: name of element {} at {} does not match name of closing element {} at {}", element.name(), element.lineno(), name, xml_element.lineno);
                     }
-                }
+                    break;
+                },
+
+                _ => panic!("FIXME: got {:?} instead of closing element {} at {}", xml_element.event, element.name(), element.lineno()),
             }
         }
 
-        return false
+        element.subelements_mut().append(&mut subelements);
+        Ok(Box::new(element))
     }
 
     /*
-     * Verifies that the state on the top of the stack is as expected
+     * We expect EndDocument, parsed as a lookahead
      */
-    fn check_state(states: &Vec<ParseState>, expected: Vec<ParseState>) -> Result<(), XmlDocumentError> {
-        if !Self::contains_state(states, &expected) {
-            panic!("FIXME: need proper error, expected {:?}, states.last() {:?}", expected, states.last().unwrap());
+    fn end_element(&mut self, event: &XmlEvent) -> Result<(), XmlDocumentError> {
+        if let XmlEvent::EndDocument = event {
+            self.parser.skip();
+            return Ok(())
         }
-        Ok(())
-    }
-
-    /*
-     * Verifies that the top of the state matches the expected current state and, if so, pops it
-     * and pushes the new state
-     */
-    fn swap_state<'b>(states: &mut Vec<ParseState>, expected: Vec<ParseState>, new: ParseState) -> Result<(), XmlDocumentError> {
-//println!("swap_state: {:?}->{:?}", states.last().unwrap(), new);
-        Self::check_state(states, expected)?;
-        states.pop();
-        states.push(new);
-        Ok(())
-    }
-
-    fn push_state<'b>(states: &mut Vec<ParseState>, expected: Vec<ParseState>, new: ParseState) -> Result<(), XmlDocumentError> {
-//println!("push_state: {:?}", new);
-        Self::check_state(states, expected)?;
-        states.push(new);
-        Ok(())
-    }
-
-    fn pop_state(states: &mut Vec<ParseState>, expected: Vec<ParseState>) -> Result<(), XmlDocumentError> {
-//println!("pop_state: {:?}", states.last().unwrap());
-        Self::check_state(states, expected)?;
-        states.pop();
-        Ok(())
+        panic!("FIXME: Expected end of document but found {:?}", event)
     }
 }
-
