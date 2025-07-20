@@ -127,8 +127,13 @@ impl<R: Read> Parser<R> {
      * Err(XmlDocumentError)
      */
     pub fn next(&mut self) -> Result<XmlDirectElement, XmlDocumentError> {
+        let result = self.lookahead();
+        if let Err(e) = result {
+            return Err(e);
+        }
+
         self.skip();
-        self.lookahead()
+        result
     }
 
     /*

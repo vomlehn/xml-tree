@@ -8,20 +8,20 @@
 //use std::cell::RefCell;
 //use std::collections::BTreeMap;
 use std::io::Read;
-use xml::attribute::OwnedAttribute;
+//use xml::attribute::OwnedAttribute;
 //use xml::common::XmlVersion;
 use xml::name::OwnedName;
 use xml::reader::XmlEvent;
-use xml::namespace::Namespace;
+//use xml::namespace::Namespace;
 
-use crate::parser::{LineNumber, Parser, XmlDirectElement/*, XmlElement*/};
+use crate::parser::{/*LineNumber, */Parser/*, XmlDirectElement*//*, XmlElement*/};
 //use crate::walk_and_print::PrintBaseLevel;
 pub use crate::xml_document::{DirectElement, DocumentInfo, Element, ElementInfo, XmlDocument};
 pub use crate::xml_document_error::XmlDocumentError;
 //use crate::xml_schema::{Element, XmlSchema};
 use crate::xml_schema::XmlSchema;
 
-const READING_XML: bool = false;
+// const READING_XML: bool = false;
 
 /*
  * Structure used to hold parsing information
@@ -31,20 +31,6 @@ const READING_XML: bool = false;
 pub struct XmlDocumentFactory<'a, R: Read + 'a> {
     parser: Parser<R>,
     pub xml_schema: &'a XmlSchema<'a>,
-}
-
-#[derive(Clone, Debug, PartialEq)]
-enum ParseState {
-    Init,
-    Top,
-    InElement(OwnedName, LineNumber),
-    End,
-}
-
-struct ElementArgs {
-    name:       String,
-    attributes: Vec<OwnedAttribute>,
-    namespace:  String,
 }
 
 impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
@@ -71,6 +57,7 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
         let document_info = self.parse_start_document()?;
 
         let xml_element = self.parser.lookahead()?;
+println!("parse_document: {:?}", xml_element);
         let event = xml_element.event.clone();
         let top_element = if let XmlEvent::StartElement{name, attributes, namespace} = xml_element.event {
             self.parser.skip();
@@ -89,6 +76,7 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
      */
     fn parse_start_document(&mut self) -> Result<DocumentInfo, XmlDocumentError> {
         let xml_element = self.parser.next()?;
+println!("parse_start_document: {:?}", xml_element);
 
         if let XmlEvent::StartDocument{version, encoding, standalone} = xml_element.event {
             Ok(DocumentInfo::new(version, encoding, standalone))
@@ -108,21 +96,29 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
 
         loop {
             let xml_element = self.parser.lookahead()?;
+println!("parse_element: {:?}", xml_element);
             match xml_element.event {
                 XmlEvent::StartElement{name, attributes, namespace} => {
+                    self.parser.skip();
                     let element_info = ElementInfo::new(xml_element.lineno, attributes, namespace);
                     let subelement = self.parse_element(name, element_info)?;
                     subelements.push(subelement);
                 },
 
                 XmlEvent::EndElement{name} => {
+                    self.parser.skip();
                     if element.name() != name.local_name {
-                        panic!("FIXME: name of element {} at {} does not match name of closing element {} at {}", element.name(), element.lineno(), name, xml_element.lineno);
+                        panic!("FIXME: name of element <{}> at {} does not match name of closing element <{}> at {}", element.name(), element.lineno(), name.local_name, xml_element.lineno);
                     }
                     break;
                 },
 
-                _ => panic!("FIXME: got {:?} instead of closing element {} at {}", xml_element.event, element.name(), element.lineno()),
+                XmlEvent::Whitespace(_) |
+                    XmlEvent::Characters(_) => {
+                    self.parser.skip();
+                },
+
+                _ => panic!("FIXME: got {:?} instead of closing element <{}> at {}", xml_element.event, element.name(), element.lineno()),
             }
         }
 
