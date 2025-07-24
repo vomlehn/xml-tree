@@ -3,6 +3,7 @@
  * generate an XmlDocument
  */
 
+use dyn_clone::DynClone;
 //use std::error::Error;
 //use std::cell::RefCell;
 use std::collections::BTreeMap;
@@ -184,15 +185,17 @@ impl ElementInfo {
  *                  at the same depth as the parent element for IndirectElements.
  * subelements_mut: Like subelements but returns a mutable value
  */
-pub trait Element {
+pub trait Element: DynClone {
     fn display(&self, f: &mut fmt::Formatter<'_>, depth: usize) -> fmt::Result;
     fn debug(&self, f: &mut fmt::Formatter<'_>, depth: usize) -> fmt::Result;
     fn get(&self, name: &str) -> Option<&Box<dyn Element>>;
     fn name<'b>(&'b self) -> &'b str;
     fn lineno(&self) -> LineNumber;
-    fn subelements<'b>(&'b self) -> &'b Vec<Box<(dyn Element)>>;
-    fn subelements_mut<'b>(&'b mut self) -> &'b mut Vec<Box<(dyn Element)>>;
+    fn subelements<'b>(&'b self) -> &'b Vec<Box<dyn Element>>;
+    fn subelements_mut<'b>(&'b mut self) -> &'b mut Vec<Box<dyn Element>>;
 }
+
+dyn_clone::clone_trait_object!(Element);
 
 /* Check all Display impls to ensure status is passed back properly */
 // FIXME: why do I need two dyn Element? Maybe eliminate everything
@@ -211,13 +214,14 @@ impl<'a> fmt::Debug for Box<dyn Element> {
     }
 }
 
+#[derive(Clone)]
 pub struct DirectElement {
     pub name: OwnedName,
     pub element_info: ElementInfo,
     pub before_element: Vec<XmlEvent>,
     pub content: Vec<XmlEvent>,
     pub after_element: Vec<XmlEvent>,
-    pub subelements: Vec<Box<(dyn Element)>>,
+    pub subelements: Vec<Box<dyn Element>>,
 }
 
 impl<'a> DirectElement {
@@ -346,14 +350,14 @@ for x in self.subelements() {
     /**
      * Return a vector of all subelements.
      */
-    fn subelements<'b>(&'b self) -> &'b Vec<Box<(dyn Element + 'static)>> {
+    fn subelements<'b>(&'b self) -> &'b Vec<Box<dyn Element + 'static>> {
         &self.subelements
     }
 
     /**
      * Return a mutable vector of all subelements.
      */
-    fn subelements_mut<'b>(&'b mut self) -> &'b mut Vec<Box<(dyn Element + 'static)>> {
+    fn subelements_mut<'b>(&'b mut self) -> &'b mut Vec<Box<dyn Element + 'static>> {
         &mut self.subelements
     }
 }
