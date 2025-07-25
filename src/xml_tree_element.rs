@@ -16,7 +16,7 @@ pub struct XmlTreeElement {
     open_subelement:    Option<Box<dyn Element>>,
 }
 
-impl ElementData for XmlTreeElement {
+impl ElementData<Box<dyn Element>> for XmlTreeElement {
     fn start(name: OwnedName, element_info: ElementInfo) -> XmlTreeElement {
         let element = Box::new(DirectElement::new(name, element_info, vec!(), vec!(), vec!(), vec!()));
         XmlTreeElement {
