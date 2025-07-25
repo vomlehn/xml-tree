@@ -4,28 +4,30 @@
  */
 // FIXME: delete all uses of expect(), everywhere
 
-//use std::borrow::Borrow;
-//use std::cell::RefCell;
-//use std::collections::BTreeMap;
 use std::io::Read;
-//use xml::attribute::OwnedAttribute;
-//use xml::common::XmlVersion;
 use xml::name::OwnedName;
 use xml::reader::XmlEvent;
-//use xml::namespace::Namespace;
 
-use crate::parser::{/*LineNumber, */Parser/*, XmlDirectElement*//*, XmlElement*/};
-//use crate::walk_and_print::PrintBaseLevel;
-pub use crate::xml_document::{DirectElement, DocumentInfo, Element, ElementInfo, XmlDocument};
+use crate::parser::{LineNumber, Parser/*, XmlDirectElement*//*, XmlElement*/};
+pub use crate::xml_document::{DocumentInfo, Element, ElementInfo, XmlDocument};
 pub use crate::xml_document_error::XmlDocumentError;
-//use crate::xml_schema::{Element, XmlSchema};
+use crate::xml_tree_element::XmlTreeElement;
 use crate::xml_schema::XmlSchema;
 
+/**
+ * Information about an element as we parse it
+ * D    The return type
+ */
 pub trait ElementData {
     /**
      * Create a new struct for the currently parsed element
      */
     fn start(name: OwnedName, element_info: ElementInfo) -> Self;
+
+    /**
+     * Return the final result from processing an Element
+     */
+    fn end(&self) -> Box<dyn Element>;
 
     /**
      * Start processing a subelement
@@ -43,54 +45,19 @@ pub trait ElementData {
     fn in_element(&self) -> bool;
 
     /**
-     * Get the element we are processing
+     * Returns the name of the element we are working on
      */
-    fn element(&self) -> Box<dyn Element>;
+    fn name(&self) -> &str;
+
+    /**
+     * Returns the line number of the start element we are working on
+     */
+    fn lineno(&self) -> LineNumber;
 
     /**
      * Get the subelement we have processed
      */
     fn open_subelement(&self) -> Option<Box<dyn Element>>;
-}
-
-/**
- * Construct a tree
- */
-struct TreeElementData {
-    element:            Box<dyn Element>,
-    open_subelement:    Option<Box<dyn Element>>,
-}
-
-impl ElementData for TreeElementData {
-    fn start(name: OwnedName, element_info: ElementInfo) -> TreeElementData {
-        let element = Box::new(DirectElement::new(name, element_info, vec!(), vec!(), vec!(), vec!()));
-        TreeElementData {
-            element:            element,
-            open_subelement:    None,
-        }
-    }
-
-    fn in_element(&self) -> bool {
-        self.open_subelement.is_some()
-    }
-
-    fn start_subelement(&mut self, subelement: Box<dyn Element>) {
-        self.open_subelement = Some(subelement);
-    }
-
-    fn end_subelement(&mut self) {
-        let open_subelement = self.open_subelement().unwrap();
-        self.element.subelements_mut().push(open_subelement);
-        self.open_subelement = None;
-    }
-
-    fn element(&self) -> Box<dyn Element>{
-        self.element.clone()
-    }
-
-    fn open_subelement(&self) -> Option<Box<dyn Element>> {
-        self.open_subelement.clone()
-    }
 }
 
 /*
@@ -159,7 +126,7 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
     fn parse_element(&mut self, name: OwnedName, element_info: ElementInfo, depth: usize) ->
         Result<Box<dyn Element>, XmlDocumentError> {
         self.parser.skip();
-        let mut element_data = TreeElementData::start(name, element_info);
+        let mut element_data = XmlTreeElement::start(name, element_info);
 
         // Now parse all subelements of this element until we get to the EndElement for this
         // element.
@@ -171,7 +138,7 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
 
                     if element_data.in_element() {
                         panic!("FIXME: element <{}> definition should be closed before defining <{}>",
-                            element_data.element().name(), element_data.open_subelement().unwrap().name());
+                            element_data.name(), element_data.open_subelement().unwrap().name());
                     }
 
                     let element_info = ElementInfo::new(xml_element.lineno, attributes, namespace);
@@ -201,7 +168,7 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
 
                 XmlEvent::EndDocument => {
                     if element_data.in_element() {
-                        panic!("FIXME: element <{}> at {} is not closed", element_data.element().name(), element_data.element().lineno());
+                        panic!("FIXME: element <{}> at {} is not closed", element_data.name(), element_data.lineno());
                     }
                 }
 
@@ -210,11 +177,11 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
                     self.parser.skip();
                 },
 
-                _ => panic!("FIXME: got {:?} instead of closing element <{}> at {}", xml_element.event, element_data.element().name(), element_data.element().lineno()),
+                _ => panic!("FIXME: got {:?} instead of closing element <{}> at {}", xml_element.event, element_data.name(), element_data.lineno()),
             }
         }
 
-        Ok(element_data.element())
+        Ok(element_data.end())
     }
 
     /*
