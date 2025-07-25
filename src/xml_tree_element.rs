@@ -16,8 +16,11 @@ pub struct XmlTreeElement {
     open_subelement:    Option<Box<dyn Element>>,
 }
 
-impl ElementData<Box<dyn Element>> for XmlTreeElement {
-    fn start(name: OwnedName, element_info: ElementInfo) -> XmlTreeElement {
+impl ElementData for XmlTreeElement
+{
+    type ElementResult = Box<dyn Element>;
+
+    fn start(name: OwnedName, element_info: ElementInfo) -> Self {
         let element = Box::new(DirectElement::new(name, element_info, vec!(), vec!(), vec!(), vec!()));
         XmlTreeElement {
             element:            element,
@@ -55,8 +58,3 @@ impl ElementData<Box<dyn Element>> for XmlTreeElement {
         self.open_subelement.clone()
     }
 }
-
-struct XmlTreeElementResult {
-}
-
-//impl XmlDocumentResult for 

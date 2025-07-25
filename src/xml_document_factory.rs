@@ -18,7 +18,10 @@ use crate::xml_schema::XmlSchema;
  * Information about an element as we parse it
  * D    The return type
  */
-pub trait ElementData<RET> {
+pub trait ElementData
+{
+    type ElementResult;
+
     /**
      * Create a new struct for the currently parsed element
      */
@@ -27,13 +30,12 @@ pub trait ElementData<RET> {
     /**
      * Return the final result from processing an Element
      */
-    fn end(&self) -> RET;
-//    fn end(&self) -> Box<dyn Element>;
+    fn end(&self) -> Self::ElementResult;
 
     /**
      * Start processing a subelement
      */
-    fn start_subelement(&mut self, subelement: Box<dyn Element>);
+    fn start_subelement(&mut self, subelement: Self::ElementResult);
 
     /**
      * Finish processing a subelement
@@ -58,7 +60,7 @@ pub trait ElementData<RET> {
     /**
      * Get the subelement we have processed
      */
-    fn open_subelement(&self) -> Option<Box<dyn Element>>;
+    fn open_subelement(&self) -> Option<Self::ElementResult>;
 }
 
 /*
