@@ -5,11 +5,12 @@
 use xml::name::OwnedName;
 
 use crate::parser::LineNumber;
-pub use crate::xml_document::{DirectElement, Element, ElementInfo};
-use crate::xml_document_factory::{ElementData};
+// FIXME: rename XmlDocument to XmlTreeDocument
+pub use crate::xml_document::{DirectElement, Element, ElementInfo, XmlDocument};
+use crate::xml_document_factory::{DocumentData, DocumentInfo, ElementData};
 
 /**
- * Construct a tree
+ * Information for one element in an XML tree
  */
 pub struct XmlTreeElement {
     element:            Box<dyn Element>,
@@ -56,5 +57,23 @@ impl ElementData for XmlTreeElement
 
     fn open_subelement(&self) -> Option<Box<dyn Element>> {
         self.open_subelement.clone()
+    }
+}
+
+pub struct XmlTreeDocument {
+    document_info:  DocumentInfo,
+}
+
+impl DocumentData for XmlTreeDocument {
+    type DocumentResult = XmlDocument;
+
+    fn start(document_info: DocumentInfo) -> Self {
+        XmlTreeDocument {
+            document_info:  document_info,
+        }
+    }
+
+    fn end(&self, top_element: Vec<Box<dyn Element>>) -> Self::DocumentResult {
+        XmlDocument::new(self.document_info.clone(), top_element)
     }
 }

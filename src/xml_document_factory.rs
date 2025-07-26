@@ -11,12 +11,11 @@ use xml::reader::XmlEvent;
 use crate::parser::{LineNumber, Parser/*, XmlDirectElement*//*, XmlElement*/};
 pub use crate::xml_document::{DocumentInfo, Element, ElementInfo, XmlDocument};
 pub use crate::xml_document_error::XmlDocumentError;
-use crate::xml_tree_element::XmlTreeElement;
+use crate::xml_tree_element::{XmlTreeDocument, XmlTreeElement};
 use crate::xml_schema::XmlSchema;
 
 /**
  * Information about an element as we parse it
- * D    The return type
  */
 pub trait ElementData
 {
@@ -63,6 +62,20 @@ pub trait ElementData
     fn open_subelement(&self) -> Option<Self::ElementResult>;
 }
 
+pub trait DocumentData {
+    type DocumentResult;
+
+    /**
+     * Create a new struct for the currently parsed document
+     */
+    fn start(document_info: DocumentInfo) -> Self;
+
+    /**
+     * Return the final result from processing an Element
+     */
+    fn end(&self, top_element: Vec<Box<dyn Element>>) -> Self::DocumentResult;
+}
+
 /*
  * Structure used to hold parsing information
  * parser:          Used to extract XmlElement objects from the input stream
@@ -91,6 +104,7 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
 
     fn parse_document<T: Read + 'a>(&mut self) -> Result<XmlDocument, XmlDocumentError> {
         let document_info = self.parse_start_document()?;
+        let document_data = XmlTreeDocument::start(document_info);
 
         // Read the next XML event, which is expected to be the start of an element. We use a
         // lookahead so that we can be specific about an error if one occurred
@@ -107,7 +121,8 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
 
         self.parse_end_document()?;
 
-        Ok(XmlDocument::new(document_info, vec!(top_element)))
+        Ok(document_data.end(vec!(top_element)))
+//        Ok(XmlDocument::new(document_info, vec!(top_element)))
     }
 
     /*

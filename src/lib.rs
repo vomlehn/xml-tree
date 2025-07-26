@@ -5,7 +5,6 @@ pub mod xml_document;
 pub mod xml_document_error;
 pub mod xml_schema;
 
-mod t;
 mod banner;
 mod multiterator; // FIXME: toss this
 mod parser;
