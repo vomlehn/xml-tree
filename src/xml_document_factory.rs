@@ -5,13 +5,14 @@
 // FIXME: delete all uses of expect(), everywhere
 
 use std::io::Read;
+use std::marker::PhantomData;
 use xml::name::OwnedName;
 use xml::reader::XmlEvent;
 
 use crate::parser::{LineNumber, Parser/*, XmlDirectElement*//*, XmlElement*/};
 pub use crate::xml_document::{DocumentInfo, Element, ElementInfo, XmlDocument};
 pub use crate::xml_document_error::XmlDocumentError;
-use crate::xml_tree_element::{XmlTreeDocument, XmlTreeElement};
+use crate::xml_tree_element::{XmlTreeDocument};
 use crate::xml_schema::XmlSchema;
 
 /**
@@ -81,21 +82,29 @@ pub trait DocumentData {
  * parser:          Used to extract XmlElement objects from the input stream
  * xml_schema:  Definition of what the input is expected to look like
  */
-pub struct XmlDocumentFactory<'a, R: Read + 'a> {
-    parser: Parser<R>,
+pub struct XmlDocumentFactory<'a, R: Read + 'a, E>
+where
+    E: ElementData
+{
+    parser:         Parser<R>,
     pub xml_schema: &'a XmlSchema<'a>,
+    marker1:        PhantomData<E>,
 }
 
-impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
+impl<'a, R: Read + 'a, E> XmlDocumentFactory<'_, R, E>
+where
+    E:  ElementData<ElementResult = Box<dyn Element>>,
+{
     pub fn new_from_reader<T: Read + 'a> (
         reader: T,
         xml_schema: &'a XmlSchema<'a>,
     ) -> Result<XmlDocument, XmlDocumentError> {
         let parser = Parser::<T>::new(reader);
 
-        let mut xml_factory = XmlDocumentFactory::<T> {
-            parser: parser,
+        let mut xml_factory = XmlDocumentFactory::<T, E> {
+            parser:     parser,
             xml_schema: xml_schema,
+            marker1:    PhantomData,
         };
 
         let xml_document = xml_factory.parse_document::<T>();
@@ -144,7 +153,7 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
     fn parse_element(&mut self, name: OwnedName, element_info: ElementInfo, depth: usize) ->
         Result<Box<dyn Element>, XmlDocumentError> {
         self.parser.skip();
-        let mut element_data = XmlTreeElement::start(name, element_info);
+        let mut element_data = E::start(name, element_info);
 
         // Now parse all subelements of this element until we get to the EndElement for this
         // element.
@@ -155,6 +164,7 @@ impl<'a, R: Read + 'a> XmlDocumentFactory<'_, R> {
                 XmlEvent::StartElement{name, attributes, namespace} => {
 
                     if element_data.in_element() {
+//println!("parse_element: {:?}", element_data.open_subelement());
                         panic!("FIXME: element <{}> definition should be closed before defining <{}>",
                             element_data.name(), element_data.open_subelement().unwrap().name());
                     }

@@ -4,13 +4,10 @@
  */
 
 use dyn_clone::DynClone;
-//use std::error::Error;
-//use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::fmt;
 use std::fs::File;
 use std::io::{BufReader, Read};
-//use std::ops::Deref;
 use std::sync::Arc;
 use xml::attribute::OwnedAttribute;
 use xml::common::XmlVersion;
@@ -19,13 +16,11 @@ use xml::namespace::Namespace;
 use xml::reader::XmlEvent;
 
 use crate::parser::LineNumber;
-//use crate::xml_document::DirectElement;
+use crate::xml_tree_element::XmlTreeElement;
 use crate::xml_document_error::XmlDocumentError;
 use crate::xml_document_factory::XmlDocumentFactory;
 use crate::xml_schema::XmlSchema;
-//use crate::walk_and_print::{PrintAccumulator, PrintBaseLevel, PrintElemData/*, PrintWalkable*/, PrintWalkData, PrintWalkResult};
 use crate::walk_and_print::{print_walk, vec_display, XmlDisplay};
-//use crate::walkable::Walkable;
 
 // FIXME: where should this function go?
 use crate::walk_and_print::nl_indent;
@@ -68,7 +63,7 @@ impl<'a> XmlDocument {
         xml_schema: &'b XmlSchema<'b>,
     ) -> Result<XmlDocument, XmlDocumentError> {
         // Create the factory using the reader and XML definition
-        let xml_document = XmlDocumentFactory::<R>::new_from_reader(buf_reader, xml_schema)?;
+        let xml_document = XmlDocumentFactory::<R, XmlTreeElement>::new_from_reader(buf_reader, xml_schema)?;
         Ok(xml_document)
     }
 

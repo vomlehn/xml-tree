@@ -9,12 +9,15 @@ use crate::parser::LineNumber;
 pub use crate::xml_document::{DirectElement, Element, ElementInfo, XmlDocument};
 use crate::xml_document_factory::{DocumentData, DocumentInfo, ElementData};
 
+type XmlTreeResult = Box<dyn Element>;
+
 /**
  * Information for one element in an XML tree
  */
+#[derive(Debug)]
 pub struct XmlTreeElement {
-    element:            Box<dyn Element>,
-    open_subelement:    Option<Box<dyn Element>>,
+    element:            XmlTreeResult,
+    open_subelement:    Option<XmlTreeResult>,
 }
 
 impl ElementData for XmlTreeElement
@@ -29,7 +32,7 @@ impl ElementData for XmlTreeElement
         }
     }
 
-    fn end(&self) -> Box<dyn Element> {
+    fn end(&self) -> Self::ElementResult {
         self.element.clone()
     }
 
@@ -37,7 +40,7 @@ impl ElementData for XmlTreeElement
         self.open_subelement.is_some()
     }
 
-    fn start_subelement(&mut self, subelement: Box<dyn Element>) {
+    fn start_subelement(&mut self, subelement: Self::ElementResult) {
         self.open_subelement = Some(subelement);
     }
 
@@ -47,16 +50,16 @@ impl ElementData for XmlTreeElement
         self.open_subelement = None;
     }
 
+    fn open_subelement(&self) -> Option<Self::ElementResult> {
+        self.open_subelement.clone()
+    }
+
     fn name(&self) -> &str {
         self.element.name()
     }
 
     fn lineno(&self) -> LineNumber {
         self.element.lineno()
-    }
-
-    fn open_subelement(&self) -> Option<Box<dyn Element>> {
-        self.open_subelement.clone()
     }
 }
 
