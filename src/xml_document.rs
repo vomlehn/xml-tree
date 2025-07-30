@@ -16,7 +16,7 @@ use xml::namespace::Namespace;
 use xml::reader::XmlEvent;
 
 use crate::parser::LineNumber;
-use crate::xml_tree_element::XmlTreeElement;
+use crate::xml_tree_element::{XmlTreeDocument, XmlTreeElement};
 use crate::xml_document_error::XmlDocumentError;
 use crate::xml_document_factory::XmlDocumentFactory;
 use crate::xml_schema::XmlSchema;
@@ -63,7 +63,7 @@ impl<'a> XmlDocument {
         xml_schema: &'b XmlSchema<'b>,
     ) -> Result<XmlDocument, XmlDocumentError> {
         // Create the factory using the reader and XML definition
-        let xml_document = XmlDocumentFactory::<R, XmlTreeElement>::new_from_reader(buf_reader, xml_schema)?;
+        let xml_document = XmlDocumentFactory::<R, XmlTreeElement, XmlTreeDocument>::new(buf_reader, xml_schema)?;
         Ok(xml_document)
     }
 
