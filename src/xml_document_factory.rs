@@ -13,7 +13,6 @@ use xml::name::OwnedName;
 use xml::reader::XmlEvent;
 
 use crate::parser::{LineNumber, Parser};
-//pub use crate::xml_document::{DocumentInfo, Element, ElementInfo, XmlDocument};
 pub use crate::xml_document::{DocumentInfo, Element, ElementInfo};
 // Should be able to eleminate this
 pub use crate::xml_document::XmlDocument;
@@ -121,8 +120,11 @@ where
         xml_schema: &'a XmlSchema<'a>,
     ) -> DW::DocumentResult
         where
+//            <DW as DocumentWorking>::DocumentResult: FromResidual<<<EW as ElementWorking>::ElementResult as Try>::Residual>,
+//            <EW as ElementWorking>::ElementResult: FromResidual<Option<Infallible>>
+//    type ElementResult: Try<Output = Self::ElementValue> + FromResidual<Result<Infallible, XmlDocumentError>>;
             <DW as DocumentWorking>::DocumentResult: FromResidual<<<EW as ElementWorking>::ElementResult as Try>::Residual>,
-            <EW as ElementWorking>::ElementResult: FromResidual<Option<Infallible>>
+            <EW as ElementWorking>::ElementResult: FromResidual<Result<Infallible, XmlDocumentError>>,
         {
         let parser = Parser::<T>::new(reader);
 
@@ -140,7 +142,7 @@ where
     fn parse_document<T: Read + 'a>(&mut self) -> DW::DocumentResult
     where
         <DW as DocumentWorking>::DocumentResult: FromResidual<<<EW as ElementWorking>::ElementResult as Try>::Residual>,
-        <EW as ElementWorking>::ElementResult: FromResidual<Option<Infallible>>,
+        <EW as ElementWorking>::ElementResult: FromResidual<Result<Infallible, XmlDocumentError>>,
     {
         let document_info = self.parse_start_document()?;
         let document_data = XmlTreeDocument::start(document_info);
@@ -160,7 +162,6 @@ where
 
         self.parse_end_document()?;
         document_data.end(vec!(top_element))
-//        Ok(XmlDocument::new(document_info, vec!(top_element)))
     }
 
     /*
@@ -181,7 +182,7 @@ where
      */
     fn parse_element(&mut self, name: OwnedName, element_info: ElementInfo, depth: usize) -> EW::ElementResult
     where
-        <EW as ElementWorking>::ElementResult: FromResidual<Option<Infallible>>,
+        <EW as ElementWorking>::ElementResult: FromResidual<Result<Infallible, XmlDocumentError>>,
     {
         self.parser.skip();
         let mut element_working = EW::start(name, element_info);
