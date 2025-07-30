@@ -1,7 +1,7 @@
-// FIXME: Make sure I don't have XmlDocument used in here
 /*
- * Take an Element tree and generate an XmlFactorTree, which is used
- * to parse XML input
+ * Takes XML input from a Reader and parses it. It uses the ElementWorking and
+ * DocumentWorking traits so that it can be used to do all sorts of things
+ * while parsing.
  */
 // FIXME: delete all uses of expect(), everywhere
 
@@ -69,11 +69,9 @@ pub trait ElementWorking
 }
 
 pub trait DocumentWorking {
-//    type DocumentResult: Try + FromResidual;
     type DocumentValue;
 
     type DocumentResult: Try<Output = Self::DocumentValue> + FromResidual<Result<Infallible, XmlDocumentError>>;
-//    type ElementResult: Try<Output = Self::ElementValue> + FromResidual<Result<Infallible, XmlDocumentError>>;
 
     /**
      * Create a new struct for the currently parsed document
@@ -109,7 +107,6 @@ where
 impl<'a, R: Read + 'a, EW, DW> XmlDocumentFactory<'_, R, EW, DW>
 where
     EW: ElementWorking<ElementValue = Box<dyn Element>>,
-//    DW: DocumentWorking<DocumentResult = Result<XmlDocument, XmlDocumentError>>,
     DW: DocumentWorking,
 {
 //    FIXME: should T be R?
@@ -118,9 +115,6 @@ where
         xml_schema: &'a XmlSchema<'a>,
     ) -> DW::DocumentResult
         where
-//            <DW as DocumentWorking>::DocumentResult: FromResidual<<<EW as ElementWorking>::ElementResult as Try>::Residual>,
-//            <EW as ElementWorking>::ElementResult: FromResidual<Option<Infallible>>
-//    type ElementResult: Try<Output = Self::ElementValue> + FromResidual<Result<Infallible, XmlDocumentError>>;
             <DW as DocumentWorking>::DocumentResult: FromResidual<<<EW as ElementWorking>::ElementResult as Try>::Residual>,
             <EW as ElementWorking>::ElementResult: FromResidual<Result<Infallible, XmlDocumentError>>,
         {
@@ -137,7 +131,6 @@ where
         xml_document
     }
 
-//    fn parse_document<T: Read + 'a>(&mut self) -> DW::DocumentResult
     fn parse_document<T: Read + 'a>(&mut self) -> <DW as DocumentWorking>::DocumentResult
     where
         <DW as DocumentWorking>::DocumentResult: FromResidual<<<EW as ElementWorking>::ElementResult as Try>::Residual>,
@@ -160,7 +153,6 @@ where
         };
 
         self.parse_end_document()?;
-//        document_data.end(vec!(top_element))
         DW::end(&document_data, vec!(top_element))
     }
 
@@ -201,7 +193,6 @@ where
 
                     let element_info = ElementInfo::new(xml_element.lineno, attributes, namespace);
                     let subelement = self.parse_element(name, element_info, depth + 1)?;
-// FIXME: should not need Ok().
                     element_working.start_subelement(subelement);
                 },
 

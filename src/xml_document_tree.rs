@@ -2,11 +2,9 @@
  * Parse XML text input and produce an XML tree
  */
 
-//use std::ops::{FromResidual, Try};
 use xml::name::OwnedName;
 
 use crate::parser::LineNumber;
-// FIXME: rename XmlDocument to XmlTreeDocument
 pub use crate::xml_document::{DirectElement, Element, ElementInfo, XmlDocument};
 pub use crate::xml_document_error::XmlDocumentError;
 use crate::xml_document_factory::{DocumentWorking, DocumentInfo, ElementWorking};
@@ -66,16 +64,16 @@ impl ElementWorking for XmlTreeElement
     }
 }
 
-pub struct XmlTreeDocument {
+pub struct XmlDocumentTree {
     document_info:  DocumentInfo,
 }
 
-impl DocumentWorking for XmlTreeDocument {
+impl DocumentWorking for XmlDocumentTree {
     type DocumentValue = XmlDocument;
     type DocumentResult = Result<Self::DocumentValue, XmlDocumentError>;
 
     fn start(document_info: DocumentInfo) -> Self {
-        XmlTreeDocument {
+        XmlDocumentTree {
             document_info:  document_info,
         }
     }

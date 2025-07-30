@@ -16,7 +16,7 @@ use xml::namespace::Namespace;
 use xml::reader::XmlEvent;
 
 use crate::parser::LineNumber;
-use crate::xml_tree_element::{XmlTreeDocument, XmlTreeElement};
+use crate::xml_document_tree::{XmlDocumentTree, XmlTreeElement};
 use crate::xml_document_error::XmlDocumentError;
 use crate::xml_document_factory::XmlDocumentFactory;
 use crate::xml_schema::XmlSchema;
@@ -31,7 +31,6 @@ use crate::walk_and_print::nl_indent;
  * document_info    Information about the document
  * elements         The oarsed document
  */
-//#[derive(Debug)]
 pub struct XmlDocument {
     pub document_info:  DocumentInfo,
     pub root:           Vec<Box<dyn Element>>,
@@ -63,7 +62,7 @@ impl<'a> XmlDocument {
         xml_schema: &'b XmlSchema<'b>,
     ) -> Result<XmlDocument, XmlDocumentError> {
         // Create the factory using the reader and XML definition
-        let xml_document = XmlDocumentFactory::<R, XmlTreeElement, XmlTreeDocument>::new(buf_reader, xml_schema)?;
+        let xml_document = XmlDocumentFactory::<R, XmlTreeElement, XmlDocumentTree>::new(buf_reader, xml_schema)?;
         Ok(xml_document)
     }
 
@@ -81,43 +80,6 @@ impl<'a> XmlDocument {
         Ok(result)
     }
 }
-
-/* lifetime parameters on method 'fmt' to not match trait declaration
-    fn fmt<'b, 'c>(&self, f: &'b mut fmt::Formatter<'_>) -> fmt::Result
-    where
-        'b: 'c,
-*/
-/* lifetime parameters on method 'fmt' to not match trait declaration
-    fn fmt<'b, 'c>(&self, f: &'b mut fmt::Formatter<'c>) -> fmt::Result
-    where
-        'b: 'c
-*/
-/* method not compatible with trait
-    fn fmt(&self, f: &'a mut fmt::Formatter<'a>) -> fmt::Result
-*/
-/* method not compatible with trait
-    fn fmt<'b, 'c>(&'a self, f: &'b mut fmt::Formatter<'c>) -> fmt::Result
-*/
-/* method not compatible with trait
-    fn fmt(&self, f: &'a mut fmt::Formatter<'a>) -> fmt::Result
-*/
-/* method not compatible with trait
-    fn fmt(&self, f: &'a mut fmt::Formatter<'_>) -> fmt::Result
-*/
-/* impl item signiture does not match trait item signature
-    fn fmt<'b, 'c>(&self, f: &'b mut fmt::Formatter<'b>) -> fmt::Result
-*/
-/* impl item signiture does not match trait item signature
-    fn fmt<'b>(&self, f: &'b mut fmt::Formatter<'b>) -> fmt::Result
-*/
-/* '_ is a reserved lifetime name
-    fn fmt<'b, 'c>(&self, f: &'b mut fmt::Formatter<'_>) -> fmt::Result
-    where
-        'b: '_
-*/
-/* lifetime may not live long enough
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result
-*/
 impl<'a> fmt::Display for XmlDocument {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result
     {
@@ -130,22 +92,6 @@ impl<'a> fmt::Debug for XmlDocument {
         print_walk(f, 0, self)
     }
 }
-
-/*
-impl<'a> PrintWalkable<'a, PrintAccumulator, PrintBaseLevel<'a>, PrintElemData, PrintWalkData, PrintWalkResult>
-for XmlDocument {
-}
-*/
-
-/*
-impl<'a> Walkable<'a, PrintAccumulator, PrintBaseLevel<'a>, PrintElemData, PrintWalkData, PrintWalkResult>
-for XmlDocument
-{
-    fn xml_document(&self) -> &XmlDocument {
-        self
-    }
-}
-*/
 
 #[derive(Clone, Debug)]
 pub struct ElementInfo {
@@ -193,12 +139,9 @@ pub trait Element: DynClone {
 dyn_clone::clone_trait_object!(Element);
 
 /* Check all Display impls to ensure status is passed back properly */
-// FIXME: why do I need two dyn Element? Maybe eliminate everything
-// with Sync or everything without Sync.
 impl fmt::Display for Box<dyn Element> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.display(f, 0)
-//        write!(f, "{}", *self)
     }
 }
 
@@ -305,7 +248,6 @@ impl<'a> Element for DirectElement {
         write!(f, ", ")?;
         vec_display::<XmlEvent>(f, depth, &self.after_element)?;
         write!(f, ",")?;
-//        vec_display::<Box<dyn Element>>(f, depth, &self.subelements())
         write!(f, "{}vec!(", nl_indent(depth + 1))
     }
 
@@ -384,7 +326,6 @@ impl XmlDisplay for DirectElement {
 
 fn owned_name_display(f: &mut fmt::Formatter<'_>, depth: usize, owned_name: &OwnedName) -> fmt::Result {
     write!(f, "{}OwnedName{{local_name: \"{}\".to_string(),", nl_indent(depth), owned_name.local_name)?;
-// FIXME: handle Option<> better
     write!(f, "{}namespace: {:?}, prefix: {:?}}},", nl_indent(depth + 1), owned_name.namespace, owned_name.prefix)
 }
 
