@@ -14,10 +14,7 @@ use xml::reader::XmlEvent;
 
 use crate::parser::{LineNumber, Parser};
 pub use crate::xml_document::{DocumentInfo, Element, ElementInfo};
-// Should be able to eleminate this
-pub use crate::xml_document::XmlDocument;
 pub use crate::xml_document_error::XmlDocumentError;
-use crate::xml_tree_element::{XmlTreeDocument};
 use crate::xml_schema::XmlSchema;
 
 /**
@@ -112,7 +109,8 @@ where
 impl<'a, R: Read + 'a, EW, DW> XmlDocumentFactory<'_, R, EW, DW>
 where
     EW: ElementWorking<ElementValue = Box<dyn Element>>,
-    DW: DocumentWorking<DocumentResult = Result<XmlDocument, XmlDocumentError>>,
+//    DW: DocumentWorking<DocumentResult = Result<XmlDocument, XmlDocumentError>>,
+    DW: DocumentWorking,
 {
 //    FIXME: should T be R?
     pub fn new<T: Read + 'a> (
@@ -139,13 +137,14 @@ where
         xml_document
     }
 
-    fn parse_document<T: Read + 'a>(&mut self) -> DW::DocumentResult
+//    fn parse_document<T: Read + 'a>(&mut self) -> DW::DocumentResult
+    fn parse_document<T: Read + 'a>(&mut self) -> <DW as DocumentWorking>::DocumentResult
     where
         <DW as DocumentWorking>::DocumentResult: FromResidual<<<EW as ElementWorking>::ElementResult as Try>::Residual>,
         <EW as ElementWorking>::ElementResult: FromResidual<Result<Infallible, XmlDocumentError>>,
     {
         let document_info = self.parse_start_document()?;
-        let document_data = XmlTreeDocument::start(document_info);
+        let document_data = DW::start(document_info);
 
         // Read the next XML event, which is expected to be the start of an element. We use a
         // lookahead so that we can be specific about an error if one occurred
@@ -161,7 +160,8 @@ where
         };
 
         self.parse_end_document()?;
-        document_data.end(vec!(top_element))
+//        document_data.end(vec!(top_element))
+        DW::end(&document_data, vec!(top_element))
     }
 
     /*
