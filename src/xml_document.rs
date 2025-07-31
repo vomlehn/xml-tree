@@ -16,10 +16,10 @@ use xml::namespace::Namespace;
 use xml::reader::XmlEvent;
 
 use crate::parser::LineNumber;
-use crate::xml_document_tree::{XmlDocumentTree, XmlTreeElement};
+use crate::xml_document_tree::XmlTreeFactory;
 use crate::xml_document_error::XmlDocumentError;
 use crate::xml_document_factory::XmlDocumentFactory;
-use crate::xml_schema::XmlSchema;
+//use crate::xml_schema::XmlSchema;
 use crate::walk_and_print::{print_walk, vec_display, XmlDisplay};
 
 // FIXME: where should this function go?
@@ -46,7 +46,7 @@ impl<'a> XmlDocument {
 
     pub fn new_from_path(
         path: &'a str,
-        xml_schema: &'a XmlSchema<'a>,
+//        xml_schema: &'a XmlSchema<'a>,
     ) -> Result<XmlDocument, XmlDocumentError>
     {
         let file = match File::open(path) {
@@ -54,15 +54,19 @@ impl<'a> XmlDocument {
             Ok(f) => f,
         };
         let reader = BufReader::new(file);
-        XmlDocument::new_from_reader(reader, xml_schema)
+        XmlDocument::new_from_reader(reader)
     }
 
     pub fn new_from_reader<'b, R: Read + 'b>(
         buf_reader: BufReader<R>,
-        xml_schema: &'b XmlSchema<'b>,
+//        xml_schema: &'b XmlSchema<'b>,
     ) -> Result<XmlDocument, XmlDocumentError> {
         // Create the factory using the reader and XML definition
-        let xml_document = XmlDocumentFactory::<R, XmlTreeElement, XmlDocumentTree>::new(buf_reader, xml_schema)?;
+        // let xml_document = XmlDocumentFactory::<R, XmlTreeElement, XmlDocumentTree>::new(buf_reader, xml_schema)?;
+        // Create the factory implementation and call xyz()
+        let factory = XmlTreeFactory;
+// FIXME: Change name of xyz.
+        let xml_document = factory.xyz(buf_reader)?;
         Ok(xml_document)
     }
 
