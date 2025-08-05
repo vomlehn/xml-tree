@@ -1,5 +1,5 @@
 /*
- * Takes XML input from a Reader and parses it. It uses the ElementWorking and
+ * Takes XML input from a Reader and parses it. It uses the LevelInfo and
  * DocumentWorking traits so that it can be used to do all sorts of things
  * while parsing.
  */
@@ -21,7 +21,8 @@ pub use crate::xml_document_error::XmlDocumentError;
  * Trait for XML document factories
  */
 pub trait XmlDocumentFactory {
-    type EW: ElementWorking<ElementValue = Box<dyn Element>>;
+    type LI: LevelInfo;
+    type AC: Accumulator<ElementValue = Box<dyn Element>>;
     type DW: DocumentWorking;
 
     fn xyz<'a, R: Read + 'a>(
@@ -29,31 +30,41 @@ pub trait XmlDocumentFactory {
         reader: R,
 //        xml_schema: &'a XmlSchema<'a>,
     ) -> <Self::DW as DocumentWorking>::DocumentResult
-    where
-        <Self::DW as DocumentWorking>::DocumentResult: FromResidual<<<Self::EW as ElementWorking>::ElementResult as Try>::Residual>,
-        <Self::EW as ElementWorking>::ElementResult: FromResidual<Result<Infallible, XmlDocumentError>>;
+    where ;
+/*
+        <Self::DW as DocumentWorking>::DocumentResult: FromResidual<<<Self::LI as LevelInfo>::ElementResult as Try>::Residual>,
+        <Self::LI as LevelInfo>::ElementResult: FromResidual<Result<Infallible, XmlDocumentError>>;
+*/
+/*
+        <Self::DW as DocumentWorking>::DocumentResult: FromResidual<<<Self::AC as Accumulator>::ElementResult as Try>::Residual>,
+        <Self::AC as Accumulator>::ElementResult: FromResidual<Result<Infallible, XmlDocumentError>>;
+*/
 }
 
-pub struct XmlDocumentFactoryImpl<R: Read, EW, DW>
+pub struct XmlDocumentFactoryImpl<R: Read, LI, AC, DW>
 where
-    EW: ElementWorking,
+    LI: LevelInfo,
+    AC: Accumulator,
     DW: DocumentWorking,
 {
     pub parser: Parser<R>,
+// FIXME: remove PhantomData items, if possible
 //    pub xml_schema: &'a XmlSchema<'a>,
-    pub marker1: PhantomData<EW>,
+    pub marker1: PhantomData<LI>,
+    pub marker3: PhantomData<AC>,
     pub marker2: PhantomData<DW>,
 }
 
-impl<R: Read, EW, DW> XmlDocumentFactoryImpl<R, EW, DW>
+impl<R: Read, LI, AC, DW> XmlDocumentFactoryImpl<R, LI, AC, DW>
 where
-    EW: ElementWorking<ElementValue = Box<dyn Element>>,
+    LI: LevelInfo,
+    AC: Accumulator<ElementValue = Box<dyn Element>>,
     DW: DocumentWorking,
 {
-    pub fn parse_document(&mut self) -> <DW as DocumentWorking>::DocumentResult
+    pub fn parse_document(&mut self, level_info: &LI) -> <DW as DocumentWorking>::DocumentResult
     where
-        <DW as DocumentWorking>::DocumentResult: FromResidual<<<EW as ElementWorking>::ElementResult as Try>::Residual>,
-        <EW as ElementWorking>::ElementResult: FromResidual<Result<Infallible, XmlDocumentError>>,
+        <DW as DocumentWorking>::DocumentResult: FromResidual<<<AC as Accumulator>::ElementResult as Try>::Residual>,
+        <AC as Accumulator>::ElementResult: FromResidual<Result<Infallible, XmlDocumentError>>,
     {
         let document_info = self.parse_start_document()?;
         let document_data = DW::start(document_info);
@@ -65,7 +76,7 @@ where
         let top_element = match xml_element.event {
             XmlEvent::StartElement{name, attributes, namespace} => {
                 let element_info = ElementInfo::new(xml_element.lineno, attributes, namespace);
-                self.parse_element(name, element_info, 0)?
+                self.parse_element(name, element_info, &level_info)?
             },
 
             _ => panic!("FIXME: Expected element, got {:?}", xml_element.event),
@@ -91,12 +102,13 @@ where
     /*
      * Parse an element. We have already seen the XmlStartElement as a lookahead.
      */
-    fn parse_element(&mut self, name: OwnedName, element_info: ElementInfo, depth: usize) -> EW::ElementResult
+    fn parse_element(&mut self, name: OwnedName, element_info: ElementInfo, parent_level_info: &LI) -> AC::ElementResult
     where
-        <EW as ElementWorking>::ElementResult: FromResidual<Result<Infallible, XmlDocumentError>>,
+        <AC as Accumulator>::ElementResult: FromResidual<Result<Infallible, XmlDocumentError>>,
     {
         self.parser.skip();
-        let mut element_working = EW::start(name, element_info);
+        let level_info = parent_level_info.next();
+        let mut accumulator = AC::new(name, element_info);
 
         // Now parse all subelements of this element until we get to the EndElement for this
         // element.
@@ -105,14 +117,14 @@ where
 
             match xml_element.event {
                 XmlEvent::StartElement{name, attributes, namespace} => {
-                    if element_working.in_element() {
+                    if accumulator.in_element() {
                         panic!("FIXME: element <{}> definition should be closed before defining <{}>",
-                            element_working.name(), element_working.open_subelement().unwrap().name());
+                            accumulator.name(), accumulator.open_subelement().unwrap().name());
                     }
 
                     let element_info = ElementInfo::new(xml_element.lineno, attributes, namespace);
-                    let subelement = self.parse_element(name, element_info, depth + 1)?;
-                    element_working.start_subelement(subelement);
+                    let subelement = self.parse_element(name, element_info, &level_info)?;
+                    accumulator.start_subelement(subelement);
                 },
 
                 XmlEvent::EndElement{name} => {
@@ -120,7 +132,7 @@ where
                     // If we are not in an element, this end element is for the element we are
                     // entered this function to parse
 
-                    match element_working.open_subelement() {
+                    match accumulator.open_subelement() {
                         None => {
                             break;
                         },
@@ -130,14 +142,14 @@ where
                                 panic!("FIXME: name of element <{}> at {} does not match name of closing element <{}> at {}", name, xml_element.lineno, subelement.name(), subelement.lineno());
                             }
 
-                            element_working.end_subelement();
+                            accumulator.end_subelement();
                         },
                     }
                 },
 
                 XmlEvent::EndDocument => {
-                    if element_working.in_element() {
-                        panic!("FIXME: element <{}> at {} is not closed", element_working.name(), element_working.lineno());
+                    if accumulator.in_element() {
+                        panic!("FIXME: element <{}> at {} is not closed", accumulator.name(), accumulator.lineno());
                     }
                 }
 
@@ -146,11 +158,11 @@ where
                     self.parser.skip();
                 },
 
-                _ => panic!("FIXME: got {:?} instead of closing element <{}> at {}", xml_element.event, element_working.name(), element_working.lineno()),
+                _ => panic!("FIXME: got {:?} instead of closing element <{}> at {}", xml_element.event, accumulator.name(), accumulator.lineno()),
             }
         }
 
-        element_working.end()
+        accumulator.end()
     }
 
     /*
@@ -176,9 +188,16 @@ where
 }
 
 /**
+ * Information passed to subelements
+ */
+pub trait LevelInfo {
+    fn next(&self) -> Self;
+}
+
+/**
  * Information about an element as we parse it
  */
-pub trait ElementWorking
+pub trait Accumulator
 {
     type ElementValue;
 
@@ -188,7 +207,7 @@ pub trait ElementWorking
     /**
      * Create a new struct for the currently parsed element
      */
-    fn start(name: OwnedName, element_info: ElementInfo) -> Self;
+    fn new(name: OwnedName, element_info: ElementInfo) -> Self;
 
     /**
      * Return the final result from processing an Element
@@ -245,7 +264,7 @@ pub trait DocumentWorking {
 /*
 // FIXME: new stuff
 pub trait XmlDocumentFactory {
-    type EW: ElementWorking<ElementValue = Box<dyn Element>>;
+    type LI: LevelInfo<ElementValue = Box<dyn Element>>;
     type DW: DocumentWorking;
 
     fn xyz<'a, R: Read + 'a>(
@@ -254,8 +273,8 @@ pub trait XmlDocumentFactory {
         xml_schema: &'a XmlSchema<'a>,
     ) -> <Self::DW as DocumentWorking>::DocumentResult
     where
-        <Self::DW as DocumentWorking>::DocumentResult: FromResidual<<<Self::EW as ElementWorking>::ElementResult as Try>::Residual>,
-        <Self::EW as ElementWorking>::ElementResult: FromResidual<Result<Infallible, XmlDocumentError>>;
+        <Self::DW as DocumentWorking>::DocumentResult: FromResidual<<<Self::LI as LevelInfo>::ElementResult as Try>::Residual>,
+        <Self::LI as LevelInfo>::ElementResult: FromResidual<Result<Infallible, XmlDocumentError>>;
 }
 */
 
@@ -263,26 +282,26 @@ pub trait XmlDocumentFactory {
 /*
  * Structure used to hold parsing information
  *
- * EW:
+ * LI:
  * DW:
  * parser:          Used to extract XmlElement objects from the input stream
  * xml_schema:  Definition of what the input is expected to look like
  */
-pub struct XmlDocumentFactory<'a, R: Read + 'a, EW, DW>
+pub struct XmlDocumentFactory<'a, R: Read + 'a, LI, DW>
 where
-    EW:  ElementWorking,
+    LI:  LevelInfo,
     DW:  DocumentWorking,
 {
     parser:         Parser<R>,
     pub xml_schema: &'a XmlSchema<'a>,
     /* FIXME: can I remove these */
-    marker1:        PhantomData<EW>,
+    marker1:        PhantomData<LI>,
     marker2:        PhantomData<DW>,
 }
 
-impl<'a, R: Read + 'a, EW, DW> XmlDocumentFactory<'_, R, EW, DW>
+impl<'a, R: Read + 'a, LI, DW> XmlDocumentFactory<'_, R, LI, DW>
 where
-    EW: ElementWorking<ElementValue = Box<dyn Element>>,
+    LI: LevelInfo<ElementValue = Box<dyn Element>>,
     DW: DocumentWorking,
 {
 //    FIXME: should T be R?
@@ -291,12 +310,12 @@ where
         xml_schema: &'a XmlSchema<'a>,
     ) -> DW::DocumentResult
         where
-            <DW as DocumentWorking>::DocumentResult: FromResidual<<<EW as ElementWorking>::ElementResult as Try>::Residual>,
-            <EW as ElementWorking>::ElementResult: FromResidual<Result<Infallible, XmlDocumentError>>,
+            <DW as DocumentWorking>::DocumentResult: FromResidual<<<LI as LevelInfo>::ElementResult as Try>::Residual>,
+            <LI as LevelInfo>::ElementResult: FromResidual<Result<Infallible, XmlDocumentError>>,
         {
         let parser = Parser::<T>::new(reader);
 
-        let mut xml_factory = XmlDocumentFactory::<T, EW, DW> {
+        let mut xml_factory = XmlDocumentFactory::<T, LI, DW> {
             parser:     parser,
             xml_schema: xml_schema,
             marker1:    PhantomData,
@@ -309,8 +328,8 @@ where
 
     fn parse_document<T: Read + 'a>(&mut self) -> <DW as DocumentWorking>::DocumentResult
     where
-        <DW as DocumentWorking>::DocumentResult: FromResidual<<<EW as ElementWorking>::ElementResult as Try>::Residual>,
-        <EW as ElementWorking>::ElementResult: FromResidual<Result<Infallible, XmlDocumentError>>,
+        <DW as DocumentWorking>::DocumentResult: FromResidual<<<LI as LevelInfo>::ElementResult as Try>::Residual>,
+        <LI as LevelInfo>::ElementResult: FromResidual<Result<Infallible, XmlDocumentError>>,
     {
         let document_info = self.parse_start_document()?;
         let document_data = DW::start(document_info);
@@ -348,12 +367,12 @@ where
     /*
      * Parse an element. We have already seen the XmlStartElement as a lookahead.
      */
-    fn parse_element(&mut self, name: OwnedName, element_info: ElementInfo, depth: usize) -> EW::ElementResult
+    fn parse_element(&mut self, name: OwnedName, element_info: ElementInfo, depth: usize) -> LI::ElementResult
     where
-        <EW as ElementWorking>::ElementResult: FromResidual<Result<Infallible, XmlDocumentError>>,
+        <LI as LevelInfo>::ElementResult: FromResidual<Result<Infallible, XmlDocumentError>>,
     {
         self.parser.skip();
-        let mut element_working = EW::start(name, element_info);
+        let mut level_info = LI::start(name, element_info);
 
         // Now parse all subelements of this element until we get to the EndElement for this
         // element.
@@ -362,14 +381,14 @@ where
 
             match xml_element.event {
                 XmlEvent::StartElement{name, attributes, namespace} => {
-                    if element_working.in_element() {
+                    if level_info.in_element() {
                         panic!("FIXME: element <{}> definition should be closed before defining <{}>",
-                            element_working.name(), element_working.open_subelement().unwrap().name());
+                            level_info.name(), level_info.open_subelement().unwrap().name());
                     }
 
                     let element_info = ElementInfo::new(xml_element.lineno, attributes, namespace);
                     let subelement = self.parse_element(name, element_info, depth + 1)?;
-                    element_working.start_subelement(subelement);
+                    level_info.start_subelement(subelement);
                 },
 
                 XmlEvent::EndElement{name} => {
@@ -377,7 +396,7 @@ where
                     // If we are not in an element, this end element is for the element we are
                     // entered this function to parse
 
-                    match element_working.open_subelement() {
+                    match level_info.open_subelement() {
                         None => {
                             break;
                         },
@@ -387,14 +406,14 @@ where
                                 panic!("FIXME: name of element <{}> at {} does not match name of closing element <{}> at {}", name, xml_element.lineno, subelement.name(), subelement.lineno());
                             }
 
-                            element_working.end_subelement();
+                            level_info.end_subelement();
                         },
                     }
                 },
 
                 XmlEvent::EndDocument => {
-                    if element_working.in_element() {
-                        panic!("FIXME: element <{}> at {} is not closed", element_working.name(), element_working.lineno());
+                    if level_info.in_element() {
+                        panic!("FIXME: element <{}> at {} is not closed", level_info.name(), level_info.lineno());
                     }
                 }
 
@@ -403,11 +422,11 @@ where
                     self.parser.skip();
                 },
 
-                _ => panic!("FIXME: got {:?} instead of closing element <{}> at {}", xml_element.event, element_working.name(), element_working.lineno()),
+                _ => panic!("FIXME: got {:?} instead of closing element <{}> at {}", xml_element.event, level_info.name(), level_info.lineno()),
             }
         }
 
-        element_working.end()
+        level_info.end()
     }
 
     /*
