@@ -6,7 +6,7 @@
 use std::fmt;
 //use std::ops::{FromResidual, Try};
 
-use crate::xml_document::{Element, XmlDocument};
+use crate::xml_document_factory::{Element, XmlDocument};
 use crate::walkable::{Accumulator/*, BaseLevel*/, ElemData/*, Walkable*/};
 use crate::walkable::walk;
 

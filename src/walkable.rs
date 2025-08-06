@@ -6,7 +6,7 @@
 //use std::cell::RefCell;
 use std::ops::{FromResidual, Try};
 
-use crate::xml_document::{Element, XmlDocument};
+use crate::xml_document_factory::{Element, XmlDocument};
 
 /**
  * Data for the Element being worked on by walk_down().

@@ -7,7 +7,7 @@ use std::fmt;
 // FIXME: implement some more iterators
 
 use crate::banner::write_banner_file;
-use crate::xml_document::XmlDocument;
+use crate::xml_document_factory::XmlDocument;
 use crate::walk_and_print::{nl_indent, print_walk, XmlDisplay};
 
 pub struct XmlSchema<'a> {

@@ -9,10 +9,8 @@ use std::ops::{FromResidual, Try};
 use xml::name::OwnedName;
 
 use crate::parser::LineNumber;
-pub use crate::xml_document::{DirectElement, Element, ElementInfo, XmlDocument};
 pub use crate::xml_document_error::XmlDocumentError;
-use crate::xml_document_factory::{Accumulator, DocumentWorking, DocumentInfo, LevelInfo, XmlDocumentFactory, XmlDocumentFactoryImpl};
-//use crate::xml_schema::XmlSchema;
+use crate::xml_document_factory::{Accumulator, DirectElement, DocumentWorking, DocumentInfo, Element, ElementInfo, LevelInfo, XmlDocument, XmlDocumentFactory, XmlDocumentFactoryImpl};
 use crate::parser::Parser;
 
 pub struct XmlTreeFactory;
@@ -67,18 +65,18 @@ type XmlTreeResult = Box<dyn Element>;
  */
 #[derive(Debug)]
 pub struct TreeLevelInfo {
+/*
     depth:              usize,
+*/
 }
 
 impl TreeLevelInfo {
     fn new() -> Box<TreeLevelInfo> {
         Box::new(TreeLevelInfo {
+/*
             depth:              0,
+*/
         })
-    }
-
-    fn depth(&self) -> usize {
-        self.depth
     }
 }
 
@@ -91,7 +89,9 @@ impl LevelInfo for TreeLevelInfo
 
     fn next(&self) -> Self {
         TreeLevelInfo {
+/*
             depth:              self.depth + 1,
+*/
         }
     }
 }

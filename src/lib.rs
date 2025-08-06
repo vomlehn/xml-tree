@@ -16,7 +16,7 @@ mod xsd_schema;
 
 pub use crate::banner::set_banner_file_name;
 pub use crate::walkable::{Accumulator, ElemData, WalkData/*, Walkable*/};
-pub use crate::xml_document::{Element, XmlDocument};
+pub use crate::xml_document_factory::{Element, XmlDocument};
 pub use crate::xml_document_error::XmlDocumentError;
 pub use crate::xml_document_factory::XmlDocumentFactory;
 pub use crate::xml_document_tree::XmlDocumentTree;

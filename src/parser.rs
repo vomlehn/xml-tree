@@ -55,6 +55,7 @@ impl XmlElement for XmlDirectElement {
     }
 }
 
+/*
 /**
  * List of XmlElements that can be shared to reduce the XML tree size
  * subelements: This is the list
@@ -88,6 +89,7 @@ impl XmlElement for XmlIndirectElement {
         Ok(())
     }
 }
+*/
 
 /**
  * XML Parser

@@ -11,10 +11,9 @@ use xml::common::XmlVersion;
 use xml::name::OwnedName;
 use xml::namespace::Namespace;
 
-use crate::xml_document::DirectElement;
-use crate::xml_document_factory::{DocumentInfo, ElementInfo};
+use crate::xml_document_factory::{DirectElement, DocumentInfo, ElementInfo};
+use crate::xml_document_factory::XmlDocument;
 use crate::xml_schema::XmlSchema;
-use crate::XmlDocument;
 
 lazy_static! {
     pub static ref XSD_SCHEMA: XmlSchema<'static> = XmlSchema::new(
