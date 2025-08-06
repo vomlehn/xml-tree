@@ -18,10 +18,10 @@ pub fn print_walk(f: &mut fmt::Formatter<'_>, depth: usize, xml_doc: &XmlDocumen
     indent_str = nl_indent(depth + 1);
     let doc_info = &xml_doc.document_info;
     write!(f, "{}DocumentInfo::new(", indent_str)?;
-    write!(f, "XmlVersion::{}, ", /*doc_info.version*/ "Version10")?;
+    write!(f, "XmlVersion::Version10, ")?;
     write!(f, "\"{}\".to_string(), ", doc_info.encoding)?;
     write!(f, "{}", if doc_info.standalone.is_none() { "None" }
-        else {if doc_info.standalone.unwrap() {"true"} else {"false"}})?;
+        else if doc_info.standalone.unwrap() {"true"} else {"false"})?;
     write!(f, "),")?;
 
     let mut bl = PrintBaseLevel::new(f);

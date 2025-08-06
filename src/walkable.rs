@@ -78,7 +78,7 @@ where
     let mut wd_vec = Vec::<WD>::new();
 
     for elem in (*elements)[0].subelements() {
-        let wd = walk_down::<AC, BL, ED, WD, WR>(bl, &elem.subelements(), &next_ed)?;
+        let wd = walk_down::<AC, BL, ED, WD, WR>(bl, elem.subelements(), &next_ed)?;
         wd_vec.push(wd);
     }
 

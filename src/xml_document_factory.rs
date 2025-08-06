@@ -77,7 +77,7 @@ where
         let top_element = match xml_element.event {
             XmlEvent::StartElement{name, attributes, namespace} => {
                 let element_info = ElementInfo::new(xml_element.lineno, attributes, namespace);
-                self.parse_element(name, element_info, &level_info)?
+                self.parse_element(name, element_info, level_info)?
             },
 
             _ => panic!("FIXME: Expected element, got {:?}", xml_element.event),
@@ -303,10 +303,10 @@ pub trait Element: DynClone {
     fn display(&self, f: &mut fmt::Formatter<'_>, depth: usize) -> fmt::Result;
     fn debug(&self, f: &mut fmt::Formatter<'_>, depth: usize) -> fmt::Result;
     fn get(&self, name: &str) -> Option<&Box<dyn Element>>;
-    fn name<'b>(&'b self) -> &'b str;
+    fn name(&self) -> &str;
     fn lineno(&self) -> LineNumber;
-    fn subelements<'b>(&'b self) -> &'b Vec<Box<dyn Element>>;
-    fn subelements_mut<'b>(&'b mut self) -> &'b mut Vec<Box<dyn Element>>;
+    fn subelements(&self) -> &Vec<Box<dyn Element>>;
+    fn subelements_mut(&mut self) -> &mut Vec<Box<dyn Element>>;
 }
 
 dyn_clone::clone_trait_object!(Element);
@@ -371,7 +371,7 @@ impl<'a> XmlDocument {
     }
 
     fn _display_piece(&self, f: &mut fmt::Formatter<'_>, pieces: &Vec<XmlEvent>) -> fmt::Result {
-        let result = for piece in pieces {
+        for piece in pieces {
             match piece {
                 XmlEvent::Comment(cmnt) => write!(f, "<!-- {} -->", cmnt)?,
                 XmlEvent::Whitespace(ws) => write!(f, "{}", ws)?,
@@ -381,7 +381,7 @@ impl<'a> XmlDocument {
             }
         };
 
-        Ok(result)
+        Ok(())
     }
 }
 impl<'a> fmt::Display for XmlDocument {
@@ -547,7 +547,7 @@ for x in self.subelements() {
      * Return the element name
      */
     // FIXME: maybe remove this from Element
-    fn name<'aaa>(&'aaa self) -> &'aaa str {
+    fn name(&self) -> &str {
         &self.name.local_name
     }
 

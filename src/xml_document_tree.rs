@@ -171,7 +171,7 @@ impl DocumentWorking for XmlDocumentTree {
 
     fn start(document_info: DocumentInfo) -> Self {
         XmlDocumentTree {
-            document_info:  document_info,
+            document_info,
         }
     }
 
