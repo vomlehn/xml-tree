@@ -26,10 +26,10 @@ impl<'a> XmlSchema<'a> {
     pub fn new(const_name: &'a str, schema_type: &'a str, schema_name: &'a str, xml_document: XmlDocument) -> XmlSchema<'a> {
         XmlSchema {
             inner:  XmlSchemaInner {
-                const_name:     const_name,
-                schema_type:    schema_type,
-                schema_name:    schema_name,
-                xml_document:   xml_document,
+                const_name,
+                schema_type,
+                schema_name,
+                xml_document,
             }
         }
     }
@@ -47,14 +47,7 @@ pub struct XmlSchemaPrint {
 impl<'a> fmt::Display for XmlSchema<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.inner)?;
-        write!(f, "schema_name: {}\n", self.inner.schema_name)?;
-//        write!(f, "direct element {}\n", self.name())?;
-/*
-        write!(f, "subelements:\n")?;
-        for element in &*self.subelements() {
-            write!(f, "{:?}\n", element)?;
-        }
-*/
+        writeln!(f, "schema_name: {}", self.inner.schema_name)?;
         Ok(())
     }
 }
@@ -98,8 +91,8 @@ impl fmt::Display for XmlSchemaInner<'_> {
 
 impl fmt::Debug for XmlSchemaInner<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "inner \"{}\" (\"{}\")\n", self.const_name, self.schema_name)?;
-        write!(f, "xml_document {:?}\n", self.xml_document)
+        writeln!(f, "inner \"{}\" (\"{}\")", self.const_name, self.schema_name)?;
+        writeln!(f, "xml_document {:?}", self.xml_document)
     }
 }
 
@@ -143,7 +136,7 @@ fn static_xml_schema_display(f: &mut fmt::Formatter, depth: usize, const_name: &
     write!(f, "{}pub static ref {const_name}: {schema_type}<'static> = {schema_type}::new(", indent_str)?;
 
     let indent_str = nl_indent(depth + 1);
-    for name in vec!(const_name, schema_type, schema_name) {
+    for name in [const_name, schema_type, schema_name] {
         write!(f, "{}\"{}\",", indent_str, name)?;
     }
 

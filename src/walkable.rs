@@ -49,18 +49,6 @@ pub trait Accumulator<'a, BL, ED, WD, WR> {
  * WalkData
  * WalkResult
  */
-/*
-pub trait Walkable<'a, AC, BL, ED, WD, WR>
-where
-    AC: Accumulator<'a, BL, ED, WD, WR>,
-    BL: 'a + BaseLevel,
-    ED: ElemData<BL, ED>,
-    WR: Try<Output = WD>,
-    WR: FromResidual,
-{
-    fn xml_document(&self) -> &XmlDocument;
-*/
-
 pub fn walk<'a, AC, BL, ED, WD, WR>(bl: &mut BL, xml_doc: &XmlDocument, ed: &ED) -> WR
 where
     AC: Accumulator<'a, BL, ED, WD, WR>,
@@ -82,7 +70,11 @@ where
     let mut acc = AC::new(bl, &(*elements)[0], ed);
 
     // Process subelements and collect WalkData results in a vector
+//    let next_ed = ed.next_level(&acc, &Box<(*elements)[0]>);
+//
+//    let next_ed = ed.next_level(&acc, &(*elements)[0]);
     let next_ed = ed.next_level(&acc, &(*elements)[0]);
+
     let mut wd_vec = Vec::<WD>::new();
 
     for elem in (*elements)[0].subelements() {

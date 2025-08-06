@@ -251,7 +251,7 @@ fn node(name: &str, ei: &ElementInfo, subelements: Vec<dyn Element>) -> Box<dyn 
 
 pub trait ElemData<ED>
 {
-    fn next_level(&self, element: &Box<dyn Element>) -> ED;
+    fn next_level(&self, element: &dyn Element) -> ED;
 }
 
 /**

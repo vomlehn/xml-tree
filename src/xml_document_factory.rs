@@ -278,7 +278,7 @@ impl ElementInfo {
         _namespace: Namespace,
     ) -> ElementInfo {
         ElementInfo {
-            lineno: lineno,
+            lineno,
 /*
             attributes: attributes,
             namespace: namespace,
@@ -339,8 +339,8 @@ pub struct XmlDocument {
 impl<'a> XmlDocument {
     pub fn new(document_info: DocumentInfo, root: Vec<Box<dyn Element>>) -> XmlDocument {
         XmlDocument {
-            document_info:  document_info,
-            root:           root,
+            document_info,
+            root,
         }
     }
 
@@ -410,9 +410,9 @@ pub struct DocumentInfo {
 impl DocumentInfo {
     pub fn new(version: XmlVersion, encoding: String, standalone: Option<bool>) -> DocumentInfo {
         DocumentInfo {
-            version: version,
-            encoding: encoding,
-            standalone: standalone,
+            version,
+            encoding,
+            standalone,
         }
     }
 }
@@ -434,12 +434,12 @@ impl<'a> DirectElement {
         after_element: Vec::<XmlEvent>,
         subelements: Vec<Box<dyn Element>>) -> DirectElement {
         DirectElement {
-            name: name,
-            element_info: element_info,
-            subelements: subelements,
-            before_element: before_element,
-            content: content,
-            after_element: after_element,
+            name,
+            element_info,
+            subelements,
+            before_element,
+            content,
+            after_element,
         }
     }
 

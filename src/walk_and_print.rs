@@ -2,9 +2,7 @@
  * Basic structure for recursive printing
  */
 
-//use std::cell::RefCell;
 use std::fmt;
-//use std::ops::{FromResidual, Try};
 
 use crate::xml_document_factory::{Element, XmlDocument};
 use crate::walkable::{Accumulator/*, BaseLevel*/, ElemData/*, Walkable*/};
@@ -22,8 +20,8 @@ pub fn print_walk(f: &mut fmt::Formatter<'_>, depth: usize, xml_doc: &XmlDocumen
     write!(f, "{}DocumentInfo::new(", indent_str)?;
     write!(f, "XmlVersion::{}, ", /*doc_info.version*/ "Version10")?;
     write!(f, "\"{}\".to_string(), ", doc_info.encoding)?;
-    write!(f, "{}", if doc_info.standalone.is_none() { "None" } else
-        {if doc_info.standalone.unwrap() {"true"} else {"false"}})?;
+    write!(f, "{}", if doc_info.standalone.is_none() { "None" }
+        else {if doc_info.standalone.unwrap() {"true"} else {"false"}})?;
     write!(f, "),")?;
 
     let mut bl = PrintBaseLevel::new(f);
@@ -82,7 +80,7 @@ pub struct PrintBaseLevel<'a, 'b> {
 impl<'a, 'b> PrintBaseLevel<'a, 'b> {
     pub fn new(f: &'a mut fmt::Formatter<'b>) -> Self {
         PrintBaseLevel {
-            f:  f,
+            f,
         }
     }
 }
@@ -101,13 +99,13 @@ pub struct PrintElemData {
 impl PrintElemData {
     pub fn new(depth: usize) -> PrintElemData {
         PrintElemData {
-            depth:  depth,
+            depth,
         }
     }
 }
 
 impl ElemData<PrintAccumulator, PrintElemData> for PrintElemData {
-    fn next_level(&self, acc: &PrintAccumulator,_element: &Box<dyn Element>) -> PrintElemData {
+    fn next_level(&self, acc: &PrintAccumulator, _element: &Box<dyn Element>) -> PrintElemData {
         PrintElemData::new(acc.depth + 1)
     }
 }
@@ -164,7 +162,7 @@ pub fn vec_display<T>(f: &mut fmt::Formatter, depth: usize, vec: &Vec<T>) -> fmt
 where
     T:  XmlDisplay
 {
-    if vec.len() == 0 {
+    if vec.is_empty() {
         write!(f, "vec!()")?;
     } else {
         write!(f, "{}vec!(", nl_indent(depth + 1))?;

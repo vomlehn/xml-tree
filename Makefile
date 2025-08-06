@@ -35,6 +35,10 @@ test:
 	clear
 	cargo test --jobs=1 $(TEST) -- --nocapture $(TEE)
 
+.PHONY: clippy
+clippy:
+	cargo clippy
+
 .PHONY: clean
 clean:
 	cargo clean

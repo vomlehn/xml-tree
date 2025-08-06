@@ -116,7 +116,7 @@ impl Accumulator for TreeAccumulator
         let element = Box::new(DirectElement::new(name, element_info, vec!(), vec!(), vec!(), vec!()));
 
         TreeAccumulator {
-            element:            element,
+            element,
             open_subelement:    None,
         }
     }

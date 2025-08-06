@@ -42,8 +42,8 @@ pub struct XmlDirectElement {
 impl XmlDirectElement {
     fn new(lineno: LineNumber, event: XmlEvent) -> XmlDirectElement {
         XmlDirectElement {
-            lineno: lineno,
-            event: event,
+            lineno,
+            event,
         }
     }
 }
@@ -112,9 +112,9 @@ impl<R: Read> Parser<R> {
         let event_reader = EventReader::new(line_reader);
 
         Parser {
-            lineno_ref: lineno_ref,
+            lineno_ref,
             pending: None,
-            event_reader: event_reader,
+            event_reader,
         }
     }
 
@@ -129,13 +129,15 @@ impl<R: Read> Parser<R> {
      * Err(XmlDocumentError)
      */
     pub fn next(&mut self) -> Result<XmlDirectElement, XmlDocumentError> {
-        let result = self.lookahead();
+        let result = self.lookahead()?;
+/*
         if let Err(e) = result {
             return Err(e);
         }
+*/
 
         self.skip();
-        result
+        Ok(result)
     }
 
     /*
@@ -218,7 +220,7 @@ pub struct LinenoReader<R: Read> {
 impl<R: Read> LinenoReader<R> {
     pub fn new(inner: R) -> Self {
         LinenoReader {
-            inner: inner,
+            inner,
             lineno: Rc::new(RefCell::new(1)),
         }
     }
