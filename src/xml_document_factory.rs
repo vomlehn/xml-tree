@@ -28,9 +28,81 @@ pub use crate::xml_document_error::XmlDocumentError;
 // FIXME: remove this
 use crate::xml_document_tree::XmlTreeFactory;
 
+/*
+ * Parsed XML document
+ *
+ * document_info    Information about the document
+ * elements         The parsed document
+ */
+pub struct XmlDocument {
+    pub document_info:  DocumentInfo,
+    pub root:           Vec<Box<dyn Element>>,
+}
+
+impl<'a> XmlDocument {
+    pub fn new(document_info: DocumentInfo, root: Vec<Box<dyn Element>>) -> XmlDocument {
+        XmlDocument {
+            document_info,
+            root,
+        }
+    }
+
+    pub fn new_from_path(
+        path: &'a str,
+//        xml_schema: &'a XmlSchema<'a>,
+    ) -> Result<XmlDocument, XmlDocumentError>
+    {
+        let file = match File::open(path) {
+            Err(e) => return Err(XmlDocumentError::Error(Arc::new(e))),
+            Ok(f) => f,
+        };
+        let reader = BufReader::new(file);
+        XmlDocument::new_from_reader(reader)
+    }
+
+    pub fn new_from_reader<'b, R: Read + 'b>(
+        buf_reader: BufReader<R>,
+//        xml_schema: &'b XmlSchema<'b>,
+    ) -> Result<XmlDocument, XmlDocumentError> {
+        // Create the factory using the reader and XML definition
+        // Create the factory implementation and call xyz()
+        let factory = XmlTreeFactory;
+// FIXME: Change name of xyz.
+        let xml_document = factory.xyz(buf_reader)?;
+        Ok(xml_document)
+    }
+
+    fn _display_piece(&self, f: &mut fmt::Formatter<'_>, pieces: &Vec<XmlEvent>) -> fmt::Result {
+        for piece in pieces {
+            match piece {
+                XmlEvent::Comment(cmnt) => write!(f, "<!-- {} -->", cmnt)?,
+                XmlEvent::Whitespace(ws) => write!(f, "{}", ws)?,
+                XmlEvent::Characters(characters) => write!(f, "{}", characters)?,
+                XmlEvent::CData(cdata) => write!(f, "{}", cdata)?,
+                _ => return Err(fmt::Error),
+            }
+        };
+
+        Ok(())
+    }
+}
+
+impl fmt::Display for XmlDocument {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result
+    {
+        print_walk(f, 0, self)
+    }
+}
+
+impl fmt::Debug for XmlDocument {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        print_walk(f, 0, self)
+    }
+}
 
 /**
- * Trait for XML document factories
+ * Top-level trait for parsing an XML document. The document is
+ * provided via a reader built on the Read attribute.
  */
 pub trait XmlDocumentFactory {
     type LI: LevelInfo;
@@ -188,80 +260,6 @@ where
     }
 }
 
-/**
- * Information passed to subelements
- */
-pub trait LevelInfo {
-    fn next(&self) -> Self;
-}
-
-/**
- * Information about an element as we parse it
- */
-pub trait Accumulator
-{
-    type ElementValue;
-
-    // Return value for element processing
-    type ElementResult: Try<Output = Self::ElementValue> + FromResidual<Result<Infallible, XmlDocumentError>>;
-
-    /**
-     * Create a new struct for the currently parsed element
-     */
-    fn new(name: OwnedName, element_info: ElementInfo) -> Self;
-
-    /**
-     * Return the final result from processing an Element
-     */
-    fn end(&self) -> Self::ElementResult;
-
-    /**
-     * Start processing a subelement
-     */
-    fn start_subelement(&mut self, subelement: Self::ElementValue);
-
-    /**
-     * Finish processing a subelement
-     */
-    fn end_subelement(&mut self);
-
-    /**
-     * Indicate whether we are in the middle of processing a subelement.
-     */
-    fn in_element(&self) -> bool;
-
-    /**
-     * Returns the name of the element we are working on
-     */
-    fn name(&self) -> &str;
-
-    /**
-     * Returns the line number of the start element we are working on
-     */
-    fn lineno(&self) -> LineNumber;
-
-    /**
-     * Get the subelement we have processed
-     */
-    fn open_subelement(&self) -> Option<Self::ElementValue>;
-}
-
-pub trait DocumentWorking {
-    type DocumentValue;
-
-    type DocumentResult: Try<Output = Self::DocumentValue> + FromResidual<Result<Infallible, XmlDocumentError>>;
-
-    /**
-     * Create a new struct for the currently parsed document
-     */
-    fn start(document_info: DocumentInfo) -> Self;
-
-    /**
-     * Return the final result from processing an Element
-     */
-    fn end(&self, top_element: Vec<Box<dyn Element>>) -> Self::DocumentResult;
-}
-
 #[derive(Clone, Debug)]
 pub struct ElementInfo {
     pub lineno: LineNumber,
@@ -284,116 +282,6 @@ impl ElementInfo {
             namespace: namespace,
 */
         }
-    }
-}
-
-/*
- * trait making DirectElement and IndirectElement work well together
- * name:            Function that returns the name of the element
- * get:             Search for an element by name. FIXME: This is probably for
- *                  future expansion.
- * name:            Returns the name for the element. FIXME: This really only
- *                  makes sense for DirectElements and should probably be removed
- * subelements:     Returns a reference to a vector of Elements. These are
- *                  sub-elements for DirectElements and a linear set of elements
- *                  at the same depth as the parent element for IndirectElements.
- * subelements_mut: Like subelements but returns a mutable value
- */
-pub trait Element: DynClone {
-    fn display(&self, f: &mut fmt::Formatter<'_>, depth: usize) -> fmt::Result;
-    fn debug(&self, f: &mut fmt::Formatter<'_>, depth: usize) -> fmt::Result;
-    fn get(&self, name: &str) -> Option<&dyn Element>;
-    fn name(&self) -> &str;
-    fn lineno(&self) -> LineNumber;
-    fn subelements(&self) -> &Vec<Box<dyn Element>>;
-    fn subelements_mut(&mut self) -> &mut Vec<Box<dyn Element>>;
-}
-
-dyn_clone::clone_trait_object!(Element);
-
-/* Check all Display impls to ensure status is passed back properly */
-impl fmt::Display for Box<dyn Element> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.display(f, 0)
-    }
-}
-
-impl fmt::Debug for Box<dyn Element> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-// FIXME: do better
-        self.display(f, 0)
-    }
-}
-
-/*
- * Parsed XML document
- *
- * document_info    Information about the document
- * elements         The oarsed document
- */
-pub struct XmlDocument {
-    pub document_info:  DocumentInfo,
-    pub root:           Vec<Box<dyn Element>>,
-}
-
-impl<'a> XmlDocument {
-    pub fn new(document_info: DocumentInfo, root: Vec<Box<dyn Element>>) -> XmlDocument {
-        XmlDocument {
-            document_info,
-            root,
-        }
-    }
-
-    pub fn new_from_path(
-        path: &'a str,
-//        xml_schema: &'a XmlSchema<'a>,
-    ) -> Result<XmlDocument, XmlDocumentError>
-    {
-        let file = match File::open(path) {
-            Err(e) => return Err(XmlDocumentError::Error(Arc::new(e))),
-            Ok(f) => f,
-        };
-        let reader = BufReader::new(file);
-        XmlDocument::new_from_reader(reader)
-    }
-
-    pub fn new_from_reader<'b, R: Read + 'b>(
-        buf_reader: BufReader<R>,
-//        xml_schema: &'b XmlSchema<'b>,
-    ) -> Result<XmlDocument, XmlDocumentError> {
-        // Create the factory using the reader and XML definition
-        // let xml_document = XmlDocumentFactory::<R, XmlTreeElement, XmlDocumentTree>::new(buf_reader, xml_schema)?;
-        // Create the factory implementation and call xyz()
-        let factory = XmlTreeFactory;
-// FIXME: Change name of xyz.
-        let xml_document = factory.xyz(buf_reader)?;
-        Ok(xml_document)
-    }
-
-    fn _display_piece(&self, f: &mut fmt::Formatter<'_>, pieces: &Vec<XmlEvent>) -> fmt::Result {
-        for piece in pieces {
-            match piece {
-                XmlEvent::Comment(cmnt) => write!(f, "<!-- {} -->", cmnt)?,
-                XmlEvent::Whitespace(ws) => write!(f, "{}", ws)?,
-                XmlEvent::Characters(characters) => write!(f, "{}", characters)?,
-                XmlEvent::CData(cdata) => write!(f, "{}", cdata)?,
-                _ => return Err(fmt::Error),
-            }
-        };
-
-        Ok(())
-    }
-}
-impl fmt::Display for XmlDocument {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result
-    {
-        print_walk(f, 0, self)
-    }
-}
-
-impl fmt::Debug for XmlDocument {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        print_walk(f, 0, self)
     }
 }
 
@@ -606,4 +494,121 @@ fn owned_name_display(f: &mut fmt::Formatter<'_>, depth: usize, owned_name: &Own
 fn element_info_display(f: &mut fmt::Formatter<'_>, depth: usize, element_info: &ElementInfo) -> fmt::Result {
     write!(f, "{}ElementInfo::new({}, vec!(),", nl_indent(depth), element_info.lineno)?;
     write!(f, "{}Namespace(BTreeMap::<String, String>::new())),", nl_indent(depth + 1))
+}
+
+/**
+ * Information passed to subelements at each level. It may be used to
+ * provide recursive information to guide the parse.
+ */
+pub trait LevelInfo {
+    fn next(&self) -> Self;
+}
+
+/**
+ * This trait is used to create an encapsulation of information from the
+ * parse of the XML info input
+ */
+pub trait DocumentWorking {
+    type DocumentValue;
+
+    type DocumentResult: Try<Output = Self::DocumentValue> + FromResidual<Result<Infallible, XmlDocumentError>>;
+
+    /**
+     * Create a new struct for the currently parsed document
+     */
+    fn start(document_info: DocumentInfo) -> Self;
+
+    /**
+     * Return the final result from processing an Element
+     */
+    fn end(&self, top_element: Vec<Box<dyn Element>>) -> Self::DocumentResult;
+}
+
+/**
+ * Information about an element as we parse it
+ */
+pub trait Accumulator
+{
+    type ElementValue;
+
+    // Return value for element processing
+    type ElementResult: Try<Output = Self::ElementValue> + FromResidual<Result<Infallible, XmlDocumentError>>;
+
+    /**
+     * Create a new struct for the currently parsed element
+     */
+    fn new(name: OwnedName, element_info: ElementInfo) -> Self;
+
+    /**
+     * Return the final result from processing an Element
+     */
+    fn end(&self) -> Self::ElementResult;
+
+    /**
+     * Start processing a subelement
+     */
+    fn start_subelement(&mut self, subelement: Self::ElementValue);
+
+    /**
+     * Finish processing a subelement
+     */
+    fn end_subelement(&mut self);
+
+    /**
+     * Indicate whether we are in the middle of processing a subelement.
+     */
+    fn in_element(&self) -> bool;
+
+    /**
+     * Returns the name of the element we are working on
+     */
+    fn name(&self) -> &str;
+
+    /**
+     * Returns the line number of the start element we are working on
+     */
+    fn lineno(&self) -> LineNumber;
+
+    /**
+     * Get the subelement we have processed
+     */
+    fn open_subelement(&self) -> Option<Self::ElementValue>;
+}
+
+/*
+ * trait making DirectElement and IndirectElement work well together
+ * name:            Function that returns the name of the element
+ * get:             Search for an element by name. FIXME: This is probably for
+ *                  future expansion.
+ * name:            Returns the name for the element. FIXME: This really only
+ *                  makes sense for DirectElements and should probably be removed
+ * subelements:     Returns a reference to a vector of Elements. These are
+ *                  sub-elements for DirectElements and a linear set of elements
+ *                  at the same depth as the parent element for IndirectElements.
+ * subelements_mut: Like subelements but returns a mutable value
+ */
+pub trait Element: DynClone {
+    fn display(&self, f: &mut fmt::Formatter<'_>, depth: usize) -> fmt::Result;
+    fn debug(&self, f: &mut fmt::Formatter<'_>, depth: usize) -> fmt::Result;
+    fn get(&self, name: &str) -> Option<&dyn Element>;
+    fn name(&self) -> &str;
+    fn lineno(&self) -> LineNumber;
+    fn subelements(&self) -> &Vec<Box<dyn Element>>;
+    fn subelements_mut(&mut self) -> &mut Vec<Box<dyn Element>>;
+}
+
+dyn_clone::clone_trait_object!(Element);
+
+/* Check all Display impls to ensure status is passed back properly */
+impl fmt::Display for Box<dyn Element> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.display(f, 0)
+    }
+}
+
+impl fmt::Debug for Box<dyn Element> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+// FIXME: do better
+        self.display(f, 0)
+    }
 }

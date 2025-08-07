@@ -96,6 +96,25 @@ impl LevelInfo for TreeLevelInfo
     }
 }
 
+pub struct XmlDocumentTree {
+    document_info:  DocumentInfo,
+}
+
+impl DocumentWorking for XmlDocumentTree {
+    type DocumentValue = XmlDocument;
+    type DocumentResult = Result<Self::DocumentValue, XmlDocumentError>;
+
+    fn start(document_info: DocumentInfo) -> Self {
+        XmlDocumentTree {
+            document_info,
+        }
+    }
+
+    fn end(&self, top_element: Vec<Box<dyn Element>>) -> Self::DocumentResult {
+        Ok(XmlDocument::new(self.document_info.clone(), top_element))
+    }
+}
+
 /**
  * Information for one element in an XML tree
  * element:         A Boxed value for the Element that we're working on in parse_element().
@@ -158,24 +177,5 @@ impl Accumulator for TreeAccumulator
 
     fn lineno(&self) -> LineNumber {
         self.element.lineno()
-    }
-}
-
-pub struct XmlDocumentTree {
-    document_info:  DocumentInfo,
-}
-
-impl DocumentWorking for XmlDocumentTree {
-    type DocumentValue = XmlDocument;
-    type DocumentResult = Result<Self::DocumentValue, XmlDocumentError>;
-
-    fn start(document_info: DocumentInfo) -> Self {
-        XmlDocumentTree {
-            document_info,
-        }
-    }
-
-    fn end(&self, top_element: Vec<Box<dyn Element>>) -> Self::DocumentResult {
-        Ok(XmlDocument::new(self.document_info.clone(), top_element))
     }
 }
