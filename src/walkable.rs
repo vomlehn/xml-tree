@@ -13,7 +13,7 @@ use crate::xml_document_factory::{Element, XmlDocument};
  */
 pub trait ElemData<AC, ED>
 {
-    fn next_level(&self, acc: &AC, element: &Box<dyn Element>) -> ED;
+    fn next_level(&self, acc: &AC, element: &dyn Element) -> ED;
 }
 
 /**
@@ -33,7 +33,7 @@ pub trait BaseLevel {}
  * Data stored for the peers of the Element a given invocation of walk_down()
  */
 pub trait Accumulator<'a, BL, ED, WD, WR> {
-    fn new(bl: &mut BL, e: &Box<dyn Element>, ed: &ED) -> Self
+    fn new(bl: &mut BL, e: &dyn Element, ed: &ED) -> Self
     where
         Self: Sized;
     fn add(&mut self, wd: &WD, ed: &ED) -> WR;
@@ -67,13 +67,11 @@ where
     WR: Try<Output = WD>,
     WR: FromResidual,
 {
-    let mut acc = AC::new(bl, &(*elements)[0], ed);
+    let mut acc = AC::new(bl, &*(elements[0]), ed);
 
     // Process subelements and collect WalkData results in a vector
-//    let next_ed = ed.next_level(&acc, &Box<(*elements)[0]>);
-//
 //    let next_ed = ed.next_level(&acc, &(*elements)[0]);
-    let next_ed = ed.next_level(&acc, &(*elements)[0]);
+    let next_ed = ed.next_level(&acc, &*(elements)[0]);
 
     let mut wd_vec = Vec::<WD>::new();
 

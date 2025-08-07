@@ -269,7 +269,7 @@ pub trait BaseLevel {}
  * Data stored for the peers of the Element a given invocation of walk_down()
  */
 pub trait Accumulator<'a, BL, ED, WD, WR> {
-    fn new(bl: &mut BL, e: &Box<dyn Element>, ed: &ED) -> ED
+    fn new(bl: &mut BL, e: &dyn Element, ed: &ED) -> ED
     where
         Self: Sized;
     fn add(&mut self, wd: &WD) -> WR;

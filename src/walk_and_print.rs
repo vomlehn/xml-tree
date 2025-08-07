@@ -48,7 +48,7 @@ pub struct PrintAccumulator {
 
 impl<'a> Accumulator<'a, PrintBaseLevel<'_, '_>, PrintElemData, PrintWalkData, PrintWalkResult>
 for PrintAccumulator {
-    fn new(bl: &mut PrintBaseLevel<'_, '_>, e: &Box<dyn Element>, ed: &PrintElemData) -> PrintAccumulator {
+    fn new(bl: &mut PrintBaseLevel<'_, '_>, e: &dyn Element, ed: &PrintElemData) -> PrintAccumulator {
         let depth = ed.depth;
         e.display(bl.f, depth + 1)
             .expect("Unable to write Element");
@@ -105,7 +105,7 @@ impl PrintElemData {
 }
 
 impl ElemData<PrintAccumulator, PrintElemData> for PrintElemData {
-    fn next_level(&self, acc: &PrintAccumulator, _element: &Box<dyn Element>) -> PrintElemData {
+    fn next_level(&self, acc: &PrintAccumulator, _element: &dyn Element) -> PrintElemData {
         PrintElemData::new(acc.depth + 1)
     }
 }

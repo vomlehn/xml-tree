@@ -302,7 +302,7 @@ impl ElementInfo {
 pub trait Element: DynClone {
     fn display(&self, f: &mut fmt::Formatter<'_>, depth: usize) -> fmt::Result;
     fn debug(&self, f: &mut fmt::Formatter<'_>, depth: usize) -> fmt::Result;
-    fn get(&self, name: &str) -> Option<&Box<dyn Element>>;
+    fn get(&self, name: &str) -> Option<&dyn Element>;
     fn name(&self) -> &str;
     fn lineno(&self) -> LineNumber;
     fn subelements(&self) -> &Vec<Box<dyn Element>>;
@@ -318,7 +318,7 @@ impl fmt::Display for Box<dyn Element> {
     }
 }
 
-impl<'a> fmt::Debug for Box<dyn Element> {
+impl fmt::Debug for Box<dyn Element> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 // FIXME: do better
         self.display(f, 0)
@@ -384,14 +384,14 @@ impl<'a> XmlDocument {
         Ok(())
     }
 }
-impl<'a> fmt::Display for XmlDocument {
+impl fmt::Display for XmlDocument {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result
     {
         print_walk(f, 0, self)
     }
 }
 
-impl<'a> fmt::Debug for XmlDocument {
+impl fmt::Debug for XmlDocument {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         print_walk(f, 0, self)
     }
@@ -427,7 +427,7 @@ pub struct DirectElement {
     pub subelements: Vec<Box<dyn Element>>,
 }
 
-impl<'a> DirectElement {
+impl DirectElement {
     pub fn new(name: OwnedName, element_info: ElementInfo,
         before_element: Vec::<XmlEvent>,
         content: Vec::<XmlEvent>,
@@ -479,19 +479,19 @@ impl Default for DirectElement {
     }
 }
 
-impl<'a> fmt::Display for DirectElement {
+impl fmt::Display for DirectElement {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.display(f, 0)
     }
 }
 
-impl<'a> fmt::Debug for DirectElement {
+impl fmt::Debug for DirectElement {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.debug(f, 0)
     }
 }
 
-impl<'a> Element for DirectElement {
+impl Element for DirectElement {
     fn display(&self, f: &mut fmt::Formatter<'_>, depth: usize) -> fmt::Result {
 
         write!(f, "{}vec!(Box::new(DirectElement::new(", nl_indent(depth))
@@ -529,7 +529,7 @@ impl<'a> Element for DirectElement {
     /**
      * Find a subelement (one level deeper) with the given name
      */
-    fn get(&self, name: &str) -> Option<&Box<dyn Element>> {
+    fn get(&self, name: &str) -> Option<&dyn Element> {
 println!("get: looking for {} in {}", name, self.name());
 println!("...");
 for x in self.subelements() {
@@ -541,6 +541,7 @@ for x in self.subelements() {
                 println!("get: is {} == {}", x.name(), name);
                 x.name() == name
             })
+            .map(|v| &**v)
     }
 
     /*
