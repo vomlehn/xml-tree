@@ -4,19 +4,18 @@
 
 use std::fmt;
 
-// FIXME: delete xml_document_tree::Element
-use crate::xml_document_tree::XmlDocumentTree;
-use crate::xml_document_tree::XmlTreeFactory;
+// FIXME: delete xml_tree::Element
+use crate::xml_tree::XmlTree;
 use crate::xml_document_factory::Element;
 use crate::walkable::{Accumulator/*, BaseLevel*/, ElemData/*, Walkable*/};
 use crate::walkable::walk;
 
 const INDENT: &str = "    ";
 
-pub fn print_walk(f: &mut fmt::Formatter<'_>, depth: usize, xml_doc: &XmlTreeFactory) -> fmt::Result
+pub fn print_walk(f: &mut fmt::Formatter<'_>, depth: usize, xml_doc: &XmlTree) -> fmt::Result
 {
     let mut indent_str = nl_indent(depth);
-    write!(f, "{}XmlDocument::new(", indent_str)?;
+    write!(f, "{}XmlTree::new(", indent_str)?;
 
     indent_str = nl_indent(depth + 1);
     let doc_info = &xml_doc.document_info;
@@ -138,7 +137,7 @@ mod print_tests {
     use xml::reader::XmlEvent;
 */
 
-    use crate::xml_document::{create_test_doc, Element, XmlDocument};
+    use crate::xml_document::{create_test_doc, Element, XmlTree};
     use crate::xml_document_factory::{DocumentInfo, ElementInfo};
 
     use super::WalkAndPrint;

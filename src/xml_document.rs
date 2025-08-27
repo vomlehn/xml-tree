@@ -1,6 +1,6 @@
 /*
  * Take an XML Definition tree and an input source, then use them to
- * generate an XmlDocument
+ * generate an XmlTree
  */
 
 use std::fmt;
@@ -75,7 +75,7 @@ mod tests {
             let cursor = Cursor::new(input);
             let buf_reader = BufReader::new(cursor);
 
-            match XmlDocument::new_from_reader(buf_reader, &TEST_XML_DESC_TREE) {
+            match XmlTree::new_from_reader(buf_reader, &TEST_XML_DESC_TREE) {
                 Err(e) => println!("Failed: {}", e),
                 Ok(xml_document) => {
                     println!("-----------------------------");
@@ -117,7 +117,7 @@ mod tests {
             let cursor = Cursor::new(input);
             let buf_reader = BufReader::new(cursor);
 
-            match XmlDocument::new_from_reader(buf_reader, &TEST_MATH) {
+            match XmlTree::new_from_reader(buf_reader, &TEST_MATH) {
                 Err(e) => println!("Failed: {}", e),
                 Ok(xml_document) => {
                     println!("-----------------------------");
@@ -135,7 +135,7 @@ mod tests {
             println!("XML Definition: {}", *XSD_SCHEMA);
             println!();
 
-            match XmlDocument::new_from_path("schema/SpaceSystem-patched.xsd",
+            match XmlTree::new_from_path("schema/SpaceSystem-patched.xsd",
                 &XSD_SCHEMA) {
                 Err(e) => println!("Failed: {}", e),
                 Ok(xml_document) => println!("XML Document: {}", xml_document),
@@ -168,7 +168,7 @@ mod tests {
             let cursor = Cursor::new(input);
             let buf_reader = BufReader::new(cursor);
 
-            let xml_document = match XmlDocument::new_from_reader(buf_reader,
+            let xml_document = match XmlTree::new_from_reader(buf_reader,
                 &TEST_XML_DESC_TREE) {
                 Err(e) => {
                     println!("Failed: {}", e);
@@ -197,10 +197,10 @@ mod tests {
 */
 
 /**
- * Manually create an XmlDocument.
+ * Manually create an XmlTree.
  */
  // FIXME: This should be moved to a common area
-pub fn create_test_doc() -> XmlDocument {
+pub fn create_test_doc() -> XmlTree {
     let ns: Namespace = Namespace(BTreeMap::<String, String>::new());
 
     let ei: ElementInfo = ElementInfo {
@@ -209,7 +209,7 @@ pub fn create_test_doc() -> XmlDocument {
         namespace: ns,
     };
 
-    XmlDocument {
+    XmlTree {
         root:           branch("n1", &ei, vec![
                             leaf("n2", &ei),
                             branch("n3", &ei, vec![

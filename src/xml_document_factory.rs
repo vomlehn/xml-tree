@@ -271,7 +271,7 @@ pub trait XmlDocumentFactory {
     /**
      * Return a success value from parsing one level of the document
      */
-// FIXME: Rename DocumentInfo to XmlDocumentInfo
+// FIXME: Rename DocumentInfo to XmlTreeInfo
     fn ok(document_info: DocumentInfo, top_element: <<Self as XmlDocumentFactory>::AC as Accumulator>::Value) -> Self::RES;
 */
 }

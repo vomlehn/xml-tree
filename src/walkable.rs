@@ -6,9 +6,8 @@
 //use std::cell::RefCell;
 use std::ops::{FromResidual, Try};
 
-// FIXME: delete xml_document_tree::Element
-use crate::xml_document_tree::XmlDocumentTree;
-use crate::xml_document_tree::XmlTreeFactory;
+// FIXME: delete xml_tree::Element
+use crate::xml_tree::XmlTree;
 use crate::xml_document_factory::Element;
 
 /**
@@ -44,7 +43,7 @@ pub trait Accumulator<'a, BL, ED, WD, WR> {
 }
 
 /**
- * This is the core code for walking an XmlDocument. Use it to implement
+ * This is the core code for walking an XmlTree. Use it to implement
  * a struct. The structs that need to be implemented are:
  * Accumulator
  * BaseLevel
@@ -52,7 +51,7 @@ pub trait Accumulator<'a, BL, ED, WD, WR> {
  * WalkData
  * WalkResult
  */
-pub fn walk<'a, AC, BL, ED, WD, WR>(bl: &mut BL, xml_doc: &XmlTreeFactory, ed: &ED) -> WR
+pub fn walk<'a, AC, BL, ED, WD, WR>(bl: &mut BL, xml_doc: &XmlTree, ed: &ED) -> WR
 where
     AC: Accumulator<'a, BL, ED, WD, WR>,
     ED: ElemData<AC, ED>,
@@ -108,7 +107,7 @@ mod test_tests {
     use xml::reader::XmlEvent;
 */
 
-    use crate::xml_document::{create_test_doc, DirectElement, Element, XmlDocument};
+    use crate::xml_document::{create_test_doc, DirectElement, Element, XmlTree};
     use crate::xml_document_factory::{DocumentInfo, ElementInfo};
     use crate::walkable::{Accumulator, BaseLevel, ElemData, WalkData, Walkable};
 
@@ -200,12 +199,12 @@ mod test_tests {
     }
 
     pub struct TestWalkable<'a> {
-        xml_doc:    &'a XmlDocument,
+        xml_doc:    &'a XmlTree,
         base:       RefCell<TestBaseLevel>,
     }
 
     impl<'a> TestWalkable<'a> {
-        pub fn new(xml_doc: &'a XmlDocument, base: TestBaseLevel) -> TestWalkable<'a> {
+        pub fn new(xml_doc: &'a XmlTree, base: TestBaseLevel) -> TestWalkable<'a> {
             TestWalkable{
                 xml_doc:    xml_doc,
                 base:       RefCell::new(base),
@@ -214,7 +213,7 @@ mod test_tests {
     }
 
     impl<'a> Walkable<'_, TestAccumulator, TestBaseLevel, TestElemData, TestWalkData, TestWalkResult> for TestWalkable<'_> {
-        fn xml_document(&self) -> &XmlDocument {
+        fn xml_document(&self) -> &XmlTree {
             self.xml_doc
         }
         /*
@@ -258,10 +257,10 @@ mod test_tests {
 
 /* FIXME: remove this
     /**
-     * Manually create an XmlDocument.
+     * Manually create an XmlTree.
      */
      // FIXME: This should be moved to a common area
-    fn create_test_doc() -> XmlDocument {
+    fn create_test_doc() -> XmlTree {
         let ns: Namespace = Namespace(BTreeMap::<String, String>::new());
 
         let ei: ElementInfo = ElementInfo {
@@ -270,7 +269,7 @@ mod test_tests {
             namespace: ns,
         };
 
-        XmlDocument {
+        XmlTree {
             root:           branch("n1", &ei, vec![
                                 leaf("n2", &ei),
                                 branch("n3", &ei, vec![

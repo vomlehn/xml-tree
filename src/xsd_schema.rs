@@ -12,8 +12,7 @@ use xml::name::OwnedName;
 use xml::namespace::Namespace;
 
 use crate::xml_document_factory::{DirectElement, DocumentInfo, ElementInfo};
-use crate::xml_document_tree::XmlDocumentTree;
-use crate::xml_document_tree::XmlTreeFactory;
+use crate::xml_tree::XmlTree;
 use crate::xml_schema::XmlSchema;
 
 lazy_static! {
@@ -21,7 +20,7 @@ lazy_static! {
         "XSD_SCHEMA",
         "XmlSchema",
         "XsdSchema",
-        XmlTreeFactory::new(
+        XmlTree::new(
             DocumentInfo::new(XmlVersion::Version10, "encoding".to_string(), None),
             Box::new(DirectElement::new(
                 OwnedName{local_name: "XsdSchema".to_string(),

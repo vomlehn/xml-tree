@@ -7,8 +7,7 @@ use std::fmt;
 // FIXME: implement some more iterators
 
 use crate::banner::write_banner_file;
-use crate::xml_document_tree::XmlDocumentTree;
-use crate::xml_document_tree::XmlTreeFactory;
+use crate::xml_tree::XmlTree;
 use crate::walk_and_print::{nl_indent, print_walk, XmlDisplay};
 
 pub struct XmlSchema<'a> {
@@ -24,7 +23,7 @@ impl<'a> XmlSchema<'a> {
         println!("{}", self.inner);
     }
 
-    pub fn new(const_name: &'a str, schema_type: &'a str, schema_name: &'a str, xml_document: XmlTreeFactory) -> XmlSchema<'a> {
+    pub fn new(const_name: &'a str, schema_type: &'a str, schema_name: &'a str, xml_document: XmlTree) -> XmlSchema<'a> {
         XmlSchema {
             inner:  XmlSchemaInner {
                 const_name,
@@ -64,7 +63,7 @@ pub struct XmlSchemaInner<'a> {
     pub const_name:     &'a str,
     pub schema_type:    &'a str,
     pub schema_name:    &'a str,
-    pub xml_document:   XmlTreeFactory,
+    pub xml_document:   XmlTree,
 }
 
 impl<'a> XmlSchemaInner<'a> {
@@ -117,7 +116,7 @@ fn front_matter_display(f: &mut fmt::Formatter, depth: usize) -> fmt::Result {
         "use crate::xml_document::DirectElement;", 
         "use crate::xml_document_factory::{DocumentInfo, ElementInfo};",
         "use crate::xml_schema::XmlSchema;", 
-        "use crate::XmlDocument;",
+        "use crate::XmlTree;",
         "", 
     );
 
