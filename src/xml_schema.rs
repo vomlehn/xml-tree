@@ -7,7 +7,8 @@ use std::fmt;
 // FIXME: implement some more iterators
 
 use crate::banner::write_banner_file;
-use crate::xml_document_factory::XmlDocument;
+use crate::xml_document_tree::XmlDocumentTree;
+use crate::xml_document_tree::XmlTreeFactory;
 use crate::walk_and_print::{nl_indent, print_walk, XmlDisplay};
 
 pub struct XmlSchema<'a> {
@@ -23,7 +24,7 @@ impl<'a> XmlSchema<'a> {
         println!("{}", self.inner);
     }
 
-    pub fn new(const_name: &'a str, schema_type: &'a str, schema_name: &'a str, xml_document: XmlDocument) -> XmlSchema<'a> {
+    pub fn new(const_name: &'a str, schema_type: &'a str, schema_name: &'a str, xml_document: XmlTreeFactory) -> XmlSchema<'a> {
         XmlSchema {
             inner:  XmlSchemaInner {
                 const_name,
@@ -63,7 +64,7 @@ pub struct XmlSchemaInner<'a> {
     pub const_name:     &'a str,
     pub schema_type:    &'a str,
     pub schema_name:    &'a str,
-    pub xml_document:   XmlDocument,
+    pub xml_document:   XmlTreeFactory,
 }
 
 impl<'a> XmlSchemaInner<'a> {

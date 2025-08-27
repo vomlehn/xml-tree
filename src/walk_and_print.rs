@@ -4,13 +4,16 @@
 
 use std::fmt;
 
-use crate::xml_document_factory::{Element, XmlDocument};
+// FIXME: delete xml_document_tree::Element
+use crate::xml_document_tree::XmlDocumentTree;
+use crate::xml_document_tree::XmlTreeFactory;
+use crate::xml_document_factory::Element;
 use crate::walkable::{Accumulator/*, BaseLevel*/, ElemData/*, Walkable*/};
 use crate::walkable::walk;
 
 const INDENT: &str = "    ";
 
-pub fn print_walk(f: &mut fmt::Formatter<'_>, depth: usize, xml_doc: &XmlDocument) -> fmt::Result
+pub fn print_walk(f: &mut fmt::Formatter<'_>, depth: usize, xml_doc: &XmlTreeFactory) -> fmt::Result
 {
     let mut indent_str = nl_indent(depth);
     write!(f, "{}XmlDocument::new(", indent_str)?;

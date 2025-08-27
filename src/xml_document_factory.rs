@@ -10,9 +10,9 @@ use std::convert::Infallible;
 use std::fmt;
 use std::fs::File;
 use std::io::{BufReader, Read};
-use std::marker::PhantomData;
+//use std::marker::PhantomData;
 use std::ops::{FromResidual, Try};
-use std::sync::Arc;
+//use std::sync::Arc;
 use xml::attribute::OwnedAttribute;
 use xml::common::XmlVersion;
 use xml::name::OwnedName;
@@ -20,56 +20,60 @@ use xml::namespace::Namespace;
 use xml::reader::XmlEvent;
 
 use crate::parser::{LineNumber, Parser};
-use crate::walk_and_print::print_walk;
+//use crate::walk_and_print::print_walk;
 use crate::walk_and_print::nl_indent;
 use crate::walk_and_print::vec_display;
 use crate::walk_and_print::XmlDisplay;
 pub use crate::xml_document_error::XmlDocumentError;
-// FIXME: remove this
-use crate::xml_document_tree::XmlTreeFactory;
 
-/*
- * Parsed XML document
- *
- * document_info    Information about the document
- * elements         The parsed document
+/**
+ * XmlDocumentFactory - Parses an entire XML document
+ * LI   Information passed top down during the parse which is specific to each
+ *      level. This could be nothing, something simple like a depth of the tree
+ *      being parsed, or a reference to one level of the tree being parsed.
+ * AC   Holds information internal processing of a level. It could, for example,
+ *      a Vec() that accumulates the subelements of the element at a particular
+ *      level
  */
-pub struct XmlDocument {
-    pub document_info:  DocumentInfo,
-    pub root:           Vec<Box<dyn Element>>,
-}
+pub trait XmlDocumentFactory {
+    type LI: LevelInfo;
+    // This doesn't seem right, should just be Accumulator
+    type AC: Accumulator<Value = Box<dyn Element>>;
 
-impl<'a> XmlDocument {
-    pub fn new(document_info: DocumentInfo, root: Vec<Box<dyn Element>>) -> XmlDocument {
-        XmlDocument {
-            document_info,
-            root,
-        }
-    }
-
-    pub fn new_from_path(
-        path: &'a str,
-//        xml_schema: &'a XmlSchema<'a>,
-    ) -> Result<XmlDocument, XmlDocumentError>
+    // FIXME: rename to something like parse_from_path
+    fn parse_path<'b>(path:       &'b str,
+        level_info: &Self::LI,
+    ) -> Result<(DocumentInfo, Box<dyn Element>), XmlDocumentError>
     {
         let file = match File::open(path) {
-            Err(e) => return Err(XmlDocumentError::Error(Arc::new(e))),
+//            Err(e) => return Err(XmlDocumentError::Error(Arc::new(e))),
+            Err(e) => {
+/*
+                // The 'end' method on a dummy accumulator can be used to construct the correct
+                // error type.  This is a common pattern to leverage trait methods for generic
+                // error handling.
+                let mut dummy_acc = Self::accumulator_new(OwnedName::default(), ElementInfo::new(0, vec![], Namespace::new()));
+                return dummy_acc.end().map_err(|_| XmlDocumentError::Error(Arc::new(e)));
+*/
+                panic!("FIXME: unable to open {}: {}", path, e);
+            },
             Ok(f) => f,
         };
         let reader = BufReader::new(file);
-        XmlDocument::new_from_reader(reader)
+        Self::parse::<File>(reader, level_info)
     }
 
-    pub fn new_from_reader<'b, R: Read + 'b>(
-        buf_reader: BufReader<R>,
-//        xml_schema: &'b XmlSchema<'b>,
-    ) -> Result<XmlDocument, XmlDocumentError> {
+    // FIXME: rename to something like parse_from_reader
+    fn parse<R>(buf_reader: BufReader<R>,
+        level_info: &Self::LI,
+    ) -> Result<(DocumentInfo, Box<dyn Element>), XmlDocumentError>
+    where
+        R:  Read,
+    {
         // Create the factory using the reader and XML definition
-        // Create the factory implementation and call xyz()
-        let factory = XmlTreeFactory;
+        // Create the factory implementation and call yz()
 // FIXME: Change name of xyz.
-        let xml_document = factory.xyz(buf_reader)?;
-        Ok(xml_document)
+        Self::xyz(buf_reader, level_info)
     }
 
     fn _display_piece(&self, f: &mut fmt::Formatter<'_>, pieces: &Vec<XmlEvent>) -> fmt::Result {
@@ -85,85 +89,71 @@ impl<'a> XmlDocument {
 
         Ok(())
     }
-}
 
-impl fmt::Display for XmlDocument {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result
-    {
-        print_walk(f, 0, self)
-    }
-}
+    /**
+     * Top-level trait for parsing an XML document. The document is
+     * provided via a reader built on the Read attribute.
+     */
 
-impl fmt::Debug for XmlDocument {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        print_walk(f, 0, self)
-    }
-}
-
-/**
- * Top-level trait for parsing an XML document. The document is
- * provided via a reader built on the Read attribute.
- */
-pub trait XmlDocumentFactory {
-    type LI: LevelInfo;
-    type AC: Accumulator<ElementValue = Box<dyn Element>>;
-    type DW: DocumentWorking;
-
-    fn xyz<'a, R: Read + 'a>(
-        &self,
-        reader: R,
-    ) -> <Self::DW as DocumentWorking>::DocumentResult
-    where ;
-}
-
-pub struct XmlDocumentFactoryImpl<R: Read, LI, AC, DW>
-where
-    LI: LevelInfo,
-    AC: Accumulator,
-    DW: DocumentWorking,
-{
-    pub parser: Parser<R>,
-    pub marker1: PhantomData<LI>,
-    pub marker3: PhantomData<AC>,
-    pub marker2: PhantomData<DW>,
-}
-
-impl<R: Read, LI, AC, DW> XmlDocumentFactoryImpl<R, LI, AC, DW>
-where
-    LI: LevelInfo,
-    AC: Accumulator<ElementValue = Box<dyn Element>>,
-    DW: DocumentWorking,
-{
-    pub fn parse_document(&mut self, level_info: &LI) -> <DW as DocumentWorking>::DocumentResult
+// FIXME: rename this
+//    fn xyz<'a, R: Read + 'a>(
+    fn xyz<R>(
+        reader:     BufReader<R>,
+        level_info: &Self::LI
+    ) -> Result<(DocumentInfo, Box<dyn Element>), XmlDocumentError>
     where
-        <DW as DocumentWorking>::DocumentResult: FromResidual<<<AC as Accumulator>::ElementResult as Try>::Residual>,
-        <AC as Accumulator>::ElementResult: FromResidual<Result<Infallible, XmlDocumentError>>,
+        R:  Read,
     {
-        let document_info = self.parse_start_document()?;
-        let document_data = DW::start(document_info);
+        let mut parser = Parser::new(reader);
+        Self::parse_document(&mut parser, &level_info)
+    }
+
+    fn parse_document<R>(parser: &mut Parser<R>, level_info: &Self::LI) ->
+        Result<(DocumentInfo, Box<dyn Element>), XmlDocumentError>
+    where
+        R:  Read,
+    {
+        let document_info = match Self::parse_start_document(parser) {
+            Err(e) => return Err(e),
+            Ok(doc_info) => doc_info,
+        };
 
         // Read the next XML event, which is expected to be the start of an element. We use a
         // lookahead so that we can be specific about an error if one occurred
-        let xml_element = self.parser.lookahead()?;
+        let xml_element = match parser.lookahead() {
+            Err(e) => return Err(e),
+            Ok(xml_elem) => xml_elem,
+        };
 
         let top_element = match xml_element.event {
             XmlEvent::StartElement{name, attributes, namespace} => {
                 let element_info = ElementInfo::new(xml_element.lineno, attributes, namespace);
-                self.parse_element(name, element_info, level_info)?
+                match Self::parse_element(parser, name, element_info, level_info) {
+                    Err(e) => return Err(e),
+                    Ok(top_elem) => top_elem,
+                }
             },
 
             _ => panic!("FIXME: Expected element, got {:?}", xml_element.event),
         };
 
-        self.parse_end_document()?;
-        DW::end(&document_data, vec!(top_element))
+        match Self::parse_end_document(parser) {
+            Err(e) => return Err(e),
+            Ok(_) => {}
+        }
+
+        Ok((document_info, top_element))
     }
 
     /*
      * Parse a StartDocument. Nothing can preceed this
      */
-    fn parse_start_document(&mut self) -> Result<DocumentInfo, XmlDocumentError> {
-        let xml_element = self.parser.next()?;
+    fn parse_start_document<R>(parser: &mut Parser<R>) ->
+        Result<DocumentInfo, XmlDocumentError>
+    where
+        R:  Read,
+    {
+        let xml_element = parser.next()?;
 
         if let XmlEvent::StartDocument{version, encoding, standalone} = xml_element.event {
             Ok(DocumentInfo::new(version, encoding, standalone))
@@ -175,18 +165,21 @@ where
     /*
      * Parse an element. We have already seen the XmlStartElement as a lookahead.
      */
-    fn parse_element(&mut self, name: OwnedName, element_info: ElementInfo, parent_level_info: &LI) -> AC::ElementResult
+    fn parse_element<R>(parser: &mut Parser<R>, name: OwnedName, element_info: ElementInfo, parent_level_info: &Self::LI) ->
+//        <<Self as XmlDocumentFactory>::AC as Accumulator>::Result
+        Result<<<Self as XmlDocumentFactory>::AC as Accumulator>::Value, XmlDocumentError>
     where
-        <AC as Accumulator>::ElementResult: FromResidual<Result<Infallible, XmlDocumentError>>,
+        R:  Read,
+        <Self::AC as Accumulator>::Result: FromResidual<Result<Infallible, XmlDocumentError>>,
     {
-        self.parser.skip();
+        parser.skip();
         let level_info = parent_level_info.next();
-        let mut accumulator = AC::new(name, element_info);
+        let mut accumulator = Self::accumulator_new(name, element_info);
 
         // Now parse all subelements of this element until we get to the EndElement for this
         // element.
         loop {
-            let xml_element = self.parser.lookahead()?;
+            let xml_element = parser.lookahead()?;
 
             match xml_element.event {
                 XmlEvent::StartElement{name, attributes, namespace} => {
@@ -196,7 +189,7 @@ where
                     }
 
                     let element_info = ElementInfo::new(xml_element.lineno, attributes, namespace);
-                    let subelement = self.parse_element(name, element_info, &level_info)?;
+                    let subelement: <<Self as XmlDocumentFactory>::AC as Accumulator>::Value = Self::parse_element(parser, name, element_info, &level_info)?;
                     accumulator.start_subelement(subelement);
                 },
 
@@ -210,7 +203,7 @@ where
                             break;
                         },
                         Some(subelement) => {
-                            self.parser.skip();
+                            parser.skip();
                             if name.local_name != subelement.name() {
                                 panic!("FIXME: name of element <{}> at {} does not match name of closing element <{}> at {}", name, xml_element.lineno, subelement.name(), subelement.lineno());
                             }
@@ -228,7 +221,7 @@ where
 
                 XmlEvent::Whitespace(_) |
                     XmlEvent::Characters(_) => {
-                    self.parser.skip();
+                    parser.skip();
                 },
 
                 _ => panic!("FIXME: got {:?} instead of closing element <{}> at {}", xml_element.event, accumulator.name(), accumulator.lineno()),
@@ -241,11 +234,15 @@ where
     /*
      * We expect EndDocument, parsed as a lookahead
      */
-    fn parse_end_document(&mut self) -> Result<(), XmlDocumentError> {
-        self.parser.skip();
+    // FIXME: return Ok() in some form
+    fn parse_end_document<R>(parser: &mut Parser<R>) -> Result<(), XmlDocumentError>
+    where
+        R:  Read,
+    {
+        parser.skip();
 
         loop {
-            let xml_element = self.parser.next()?;
+            let xml_element = parser.next()?;
             match xml_element.event {
                 XmlEvent::Whitespace(_) |
                     XmlEvent::Characters(_) => {},
@@ -258,6 +255,25 @@ where
 
         Ok(())
     }
+
+    /**
+     * Allocate a new Accumulator
+     */
+    fn accumulator_new(name: OwnedName, element_info: ElementInfo) ->
+        Box<dyn Accumulator<Value = <<Self as XmlDocumentFactory>::AC as Accumulator>::Value, Result = <<Self as XmlDocumentFactory>::AC as Accumulator>::Result>>;
+
+/*
+    /**
+     * Return an error value from parsing one level of the document
+     */
+    fn err(e: XmlDocumentError) -> Self::RES;
+
+    /**
+     * Return a success value from parsing one level of the document
+     */
+// FIXME: Rename DocumentInfo to XmlDocumentInfo
+    fn ok(document_info: DocumentInfo, top_element: <<Self as XmlDocumentFactory>::AC as Accumulator>::Value) -> Self::RES;
+*/
 }
 
 #[derive(Clone, Debug)]
@@ -505,49 +521,25 @@ pub trait LevelInfo {
 }
 
 /**
- * This trait is used to create an encapsulation of information from the
- * parse of the XML info input
- */
-pub trait DocumentWorking {
-    type DocumentValue;
-
-    type DocumentResult: Try<Output = Self::DocumentValue> + FromResidual<Result<Infallible, XmlDocumentError>>;
-
-    /**
-     * Create a new struct for the currently parsed document
-     */
-    fn start(document_info: DocumentInfo) -> Self;
-
-    /**
-     * Return the final result from processing an Element
-     */
-    fn end(&self, top_element: Vec<Box<dyn Element>>) -> Self::DocumentResult;
-}
-
-/**
  * Information about an element as we parse it
  */
 pub trait Accumulator
 {
-    type ElementValue;
-
+//    type Value = Box<dyn Element>;
+    type Value;
     // Return value for element processing
-    type ElementResult: Try<Output = Self::ElementValue> + FromResidual<Result<Infallible, XmlDocumentError>>;
-
-    /**
-     * Create a new struct for the currently parsed element
-     */
-    fn new(name: OwnedName, element_info: ElementInfo) -> Self;
+    type Result: Try<Output = Self::Value> + FromResidual<Result<Infallible, XmlDocumentError>>;
+    //type Result;
 
     /**
      * Return the final result from processing an Element
      */
-    fn end(&self) -> Self::ElementResult;
+    fn end(&self) -> Result<Self::Value, XmlDocumentError>;
 
     /**
      * Start processing a subelement
      */
-    fn start_subelement(&mut self, subelement: Self::ElementValue);
+    fn start_subelement(&mut self, subelement: Self::Value);
 
     /**
      * Finish processing a subelement
@@ -572,7 +564,7 @@ pub trait Accumulator
     /**
      * Get the subelement we have processed
      */
-    fn open_subelement(&self) -> Option<Self::ElementValue>;
+    fn open_subelement(&self) -> Option<Self::Value>;
 }
 
 /*

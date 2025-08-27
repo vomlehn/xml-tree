@@ -6,7 +6,10 @@
 //use std::cell::RefCell;
 use std::ops::{FromResidual, Try};
 
-use crate::xml_document_factory::{Element, XmlDocument};
+// FIXME: delete xml_document_tree::Element
+use crate::xml_document_tree::XmlDocumentTree;
+use crate::xml_document_tree::XmlTreeFactory;
+use crate::xml_document_factory::Element;
 
 /**
  * Data for the Element being worked on by walk_down().
@@ -49,14 +52,15 @@ pub trait Accumulator<'a, BL, ED, WD, WR> {
  * WalkData
  * WalkResult
  */
-pub fn walk<'a, AC, BL, ED, WD, WR>(bl: &mut BL, xml_doc: &XmlDocument, ed: &ED) -> WR
+pub fn walk<'a, AC, BL, ED, WD, WR>(bl: &mut BL, xml_doc: &XmlTreeFactory, ed: &ED) -> WR
 where
     AC: Accumulator<'a, BL, ED, WD, WR>,
     ED: ElemData<AC, ED>,
     WR: Try<Output = WD>,
     WR: FromResidual,
 {
-    walk_down::<AC, BL, ED, WD, WR>(bl, &xml_doc.root, ed)
+    // Seems inelegant
+    walk_down::<AC, BL, ED, WD, WR>(bl, &vec!(xml_doc.root.clone()), ed)
 }
 
 // FIXME: this assumes the root has only one element
