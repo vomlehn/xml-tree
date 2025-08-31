@@ -173,8 +173,9 @@ pub trait XmlDocumentFactory {
         <Self::AC as Accumulator>::Result: FromResidual<Result<Infallible, XmlDocumentError>>,
     {
         parser.skip();
+
+        let mut accumulator = parent_level_info.accumulator(name, element_info);
         let level_info = parent_level_info.next();
-        let mut accumulator = Self::accumulator_new(name, element_info);
 
         // Now parse all subelements of this element until we get to the EndElement for this
         // element.
@@ -256,11 +257,14 @@ pub trait XmlDocumentFactory {
         Ok(())
     }
 
+/*
     /**
      * Allocate a new Accumulator
      */
     fn accumulator_new(name: OwnedName, element_info: ElementInfo) ->
         Box<dyn Accumulator<Value = <<Self as XmlDocumentFactory>::AC as Accumulator>::Value, Result = <<Self as XmlDocumentFactory>::AC as Accumulator>::Result>>;
+
+*/
 
 /*
     /**
@@ -517,16 +521,31 @@ fn element_info_display(f: &mut fmt::Formatter<'_>, depth: usize, element_info: 
  * provide recursive information to guide the parse.
  */
 pub trait LevelInfo {
+    type Factory: XmlDocumentFactory<LI = Self>;
     fn next(&self) -> Self;
+    fn accumulator(&self, name: OwnedName, element_info: ElementInfo) ->
+        Box<dyn Accumulator<
+            Value = <<Self::Factory as XmlDocumentFactory>::AC as Accumulator>::Value,
+            Result = <<Self::Factory as XmlDocumentFactory>::AC as Accumulator>::Result>>;
 }
+
+/*
+pub trait LevelInfo {
+    fn next(&self) -> Self;
+    fn accumulator(&self, name: OwnedName, element_info: ElementInfo) ->
+        Box<dyn Accumulator<Value = <Self as LevelInfo>::AC::Value, Result = <Self as LevelInfo>::AC::Result>>;
+
+//        Box<dyn Accumulator<Value = Accumulator::Value, Result = Accumulator::Result>>;
+}
+*/
 
 /**
  * Information about an element as we parse it
  */
 pub trait Accumulator
 {
-//    type Value = Box<dyn Element>;
     type Value;
+//    type Value;
     // Return value for element processing
     type Result: Try<Output = Self::Value> + FromResidual<Result<Infallible, XmlDocumentError>>;
     //type Result;

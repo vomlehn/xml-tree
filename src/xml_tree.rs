@@ -30,11 +30,13 @@ impl XmlDocumentFactory for XmlTree
     type LI = TreeLevelInfo;
     type AC = TreeAccumulator;
 
+/*
     fn accumulator_new(name: OwnedName, element_info: ElementInfo) ->
         Box<dyn Accumulator<Value = <<Self as XmlDocumentFactory>::AC as Accumulator>::Value, Result = <<Self as XmlDocumentFactory>::AC as Accumulator>::Result>>
     {
         Box::new(Self::AC::new(name, element_info))
     }
+*/
 }
 
 impl fmt::Display for XmlTree {
@@ -72,29 +74,27 @@ type XmlTreeResult = Box<dyn Element>;
  */
 #[derive(Debug)]
 pub struct TreeLevelInfo {
-/*
-    depth:              usize,
-*/
 }
 
 impl TreeLevelInfo {
-    pub fn new() -> Box<TreeLevelInfo> {
-        Box::new(TreeLevelInfo {
-/*
-            depth:              0,
-*/
-        })
+    pub fn new() -> TreeLevelInfo {
+        TreeLevelInfo {
+        }
     }
 }
 
 impl LevelInfo for TreeLevelInfo
 {
+    type Factory = XmlTree;
+
     fn next(&self) -> Self {
         TreeLevelInfo {
-/*
-            depth:              self.depth + 1,
-*/
         }
+    }
+
+    fn accumulator(&self, name: OwnedName, element_info: ElementInfo) ->
+        Box<dyn crate::xml_document_factory::Accumulator<Result = Result<Box<dyn Element + 'static>, XmlDocumentError>, Value = Box<dyn Element + 'static>> + 'static> {
+        Box::new(TreeAccumulator::new(name, element_info))
     }
 }
 
@@ -110,7 +110,7 @@ pub struct TreeAccumulator {
 }
 
 impl TreeAccumulator {
-    fn new(name: OwnedName, element_info: ElementInfo) -> Self {
+    pub fn new(name: OwnedName, element_info: ElementInfo) -> Self {
         let element = Box::new(DirectElement::new(name, element_info, vec!(), vec!(), vec!(), vec!()));
 
         TreeAccumulator {
