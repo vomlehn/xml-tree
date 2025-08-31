@@ -77,9 +77,9 @@ pub struct TreeLevelInfo {
 }
 
 impl TreeLevelInfo {
-    pub fn new() -> TreeLevelInfo {
-        TreeLevelInfo {
-        }
+    pub fn new() -> Box<TreeLevelInfo> {
+        Box::new(TreeLevelInfo {
+        })
     }
 }
 
