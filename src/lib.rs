@@ -13,6 +13,7 @@ mod walk_and_print;
 mod xml_document_factory;
 mod xml_echo;
 mod xml_tree;
+mod xml_xsd;
 mod xsd_schema;
 
 pub use crate::banner::set_banner_file_name;
@@ -23,4 +24,5 @@ pub use crate::xml_document_factory::XmlDocumentFactory;
 pub use crate::xml_echo::{EchoAccumulator, XmlEcho, EchoLevelInfo};
 pub use crate::xml_schema::XmlSchema;
 pub use crate::xml_tree::{TreeAccumulator, XmlTree, TreeLevelInfo};
+pub use crate::xml_xsd::{XsdAccumulator, XmlXsd, XsdLevelInfo};
 pub use crate::xsd_schema::XSD_SCHEMA;
