@@ -48,13 +48,6 @@ pub trait XmlDocumentFactory {
         let file = match File::open(path) {
 //            Err(e) => return Err(XmlDocumentError::Error(Arc::new(e))),
             Err(e) => {
-/*
-                // The 'end' method on a dummy accumulator can be used to construct the correct
-                // error type.  This is a common pattern to leverage trait methods for generic
-                // error handling.
-                let mut dummy_acc = Self::accumulator_new(OwnedName::default(), ElementInfo::new(0, vec![], Namespace::new()));
-                return dummy_acc.end().map_err(|_| XmlDocumentError::Error(Arc::new(e)));
-*/
                 panic!("FIXME: unable to open {}: {}", path, e);
             },
             Ok(f) => f,
@@ -63,7 +56,10 @@ pub trait XmlDocumentFactory {
         Self::parse::<File>(reader, level_info)
     }
 
-    // FIXME: rename to something like parse_from_reader
+    /**
+     * Top-level trait for parsing an XML document. The document is
+     * provided via a reader built on the Read attribute.
+     */
     fn parse<R>(buf_reader: BufReader<R>,
         level_info: &Self::LI,
     ) -> Result<(DocumentInfo, Box<dyn Element>), XmlDocumentError>
@@ -71,9 +67,8 @@ pub trait XmlDocumentFactory {
         R:  Read,
     {
         // Create the factory using the reader and XML definition
-        // Create the factory implementation and call yz()
-// FIXME: Change name of xyz.
-        Self::xyz(buf_reader, level_info)
+        let mut parser = Parser::new(buf_reader);
+        Self::parse_document(&mut parser, &level_info)
     }
 
     fn _display_piece(&self, f: &mut fmt::Formatter<'_>, pieces: &Vec<XmlEvent>) -> fmt::Result {
@@ -88,24 +83,6 @@ pub trait XmlDocumentFactory {
         };
 
         Ok(())
-    }
-
-    /**
-     * Top-level trait for parsing an XML document. The document is
-     * provided via a reader built on the Read attribute.
-     */
-
-// FIXME: rename this
-//    fn xyz<'a, R: Read + 'a>(
-    fn xyz<R>(
-        reader:     BufReader<R>,
-        level_info: &Self::LI
-    ) -> Result<(DocumentInfo, Box<dyn Element>), XmlDocumentError>
-    where
-        R:  Read,
-    {
-        let mut parser = Parser::new(reader);
-        Self::parse_document(&mut parser, &level_info)
     }
 
     fn parse_document<R>(parser: &mut Parser<R>, level_info: &Self::LI) ->
@@ -166,7 +143,6 @@ pub trait XmlDocumentFactory {
      * Parse an element. We have already seen the XmlStartElement as a lookahead.
      */
     fn parse_element<R>(parser: &mut Parser<R>, name: OwnedName, element_info: ElementInfo, parent_level_info: &Self::LI) ->
-//        <<Self as XmlDocumentFactory>::AC as Accumulator>::Result
         Result<<<Self as XmlDocumentFactory>::AC as Accumulator>::Value, XmlDocumentError>
     where
         R:  Read,
@@ -235,7 +211,6 @@ pub trait XmlDocumentFactory {
     /*
      * We expect EndDocument, parsed as a lookahead
      */
-    // FIXME: return Ok() in some form
     fn parse_end_document<R>(parser: &mut Parser<R>) -> Result<(), XmlDocumentError>
     where
         R:  Read,
@@ -256,37 +231,11 @@ pub trait XmlDocumentFactory {
 
         Ok(())
     }
-
-/*
-    /**
-     * Allocate a new Accumulator
-     */
-    fn accumulator_new(name: OwnedName, element_info: ElementInfo) ->
-        Box<dyn Accumulator<Value = <<Self as XmlDocumentFactory>::AC as Accumulator>::Value, Result = <<Self as XmlDocumentFactory>::AC as Accumulator>::Result>>;
-
-*/
-
-/*
-    /**
-     * Return an error value from parsing one level of the document
-     */
-    fn err(e: XmlDocumentError) -> Self::RES;
-
-    /**
-     * Return a success value from parsing one level of the document
-     */
-// FIXME: Rename DocumentInfo to XmlTreeInfo
-    fn ok(document_info: DocumentInfo, top_element: <<Self as XmlDocumentFactory>::AC as Accumulator>::Value) -> Self::RES;
-*/
 }
 
 #[derive(Clone, Debug)]
 pub struct ElementInfo {
     pub lineno: LineNumber,
-/*
-    pub attributes: Vec<OwnedAttribute>,
-    pub namespace: Namespace,
-*/
 }
 
 impl ElementInfo {
@@ -297,10 +246,6 @@ impl ElementInfo {
     ) -> ElementInfo {
         ElementInfo {
             lineno,
-/*
-            attributes: attributes,
-            namespace: namespace,
-*/
         }
     }
 }
@@ -350,18 +295,6 @@ impl DirectElement {
             after_element,
         }
     }
-
-/*
-    pub fn get_attribute(&self, name: &str) -> Option<&String> {
-        for attribute in &self.element_info.attributes {
-            if attribute.name.local_name == name {
-                return Some(&attribute.value);
-            }
-        }
-
-        return None;
-    }
-*/
 }
 
 impl Default for DirectElement {
@@ -374,10 +307,6 @@ impl Default for DirectElement {
             },
             element_info: ElementInfo {
                 lineno:     0,
-/*
-                attributes: vec!(),
-                namespace:  Namespace(BTreeMap::<String, String>::new()),
-*/
             },
             subelements: vec!(),
             before_element: vec!(),
@@ -414,10 +343,6 @@ impl Element for DirectElement {
 
         let element_info = ElementInfo {
             lineno:     0,
-/*
-            attributes: vec!(),
-            namespace:  Namespace(BTreeMap::<String, String>::new()),
-*/
         };
         element_info_display(f, depth + 1, &element_info)?;
         write!(f, "{}", nl_indent(depth + 1))?;
@@ -494,10 +419,6 @@ impl XmlDisplay for DirectElement {
 
         let element_info = ElementInfo {
             lineno:     0,
-/*
-            attributes: vec!(),
-            namespace:  Namespace(BTreeMap::<String, String>::new()),
-*/
         };
         element_info_display(f, depth + 1, &element_info)?;
         write!(f, "{}vec!(), vec!(), vec!(),", nl_indent(depth + 1))?;
@@ -529,26 +450,14 @@ pub trait LevelInfo {
             Result = <<Self::Factory as XmlDocumentFactory>::AC as Accumulator>::Result>>;
 }
 
-/*
-pub trait LevelInfo {
-    fn next(&self) -> Self;
-    fn accumulator(&self, name: OwnedName, element_info: ElementInfo) ->
-        Box<dyn Accumulator<Value = <Self as LevelInfo>::AC::Value, Result = <Self as LevelInfo>::AC::Result>>;
-
-//        Box<dyn Accumulator<Value = Accumulator::Value, Result = Accumulator::Result>>;
-}
-*/
-
 /**
  * Information about an element as we parse it
  */
 pub trait Accumulator
 {
     type Value;
-//    type Value;
     // Return value for element processing
     type Result: Try<Output = Self::Value> + FromResidual<Result<Infallible, XmlDocumentError>>;
-    //type Result;
 
     /**
      * Return the final result from processing an Element

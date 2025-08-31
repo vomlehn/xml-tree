@@ -29,14 +29,6 @@ impl XmlDocumentFactory for XmlEcho
 {
     type LI = EchoLevelInfo;
     type AC = EchoAccumulator;
-
-/*
-    fn accumulator_new(name: OwnedName, element_info: ElementInfo) ->
-        Box<dyn Accumulator<Value = <<Self as XmlDocumentFactory>::AC as Accumulator>::Value, Result = <<Self as XmlDocumentFactory>::AC as Accumulator>::Result>>
-    {
-        Box::new(Self::AC::new(name, element_info))
-    }
-*/
 }
 
 impl fmt::Display for XmlEcho {
