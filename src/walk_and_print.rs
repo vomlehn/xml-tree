@@ -128,17 +128,9 @@ pub fn indent(n: usize) -> String {
 
 #[cfg(test)]
 mod print_tests {
-/*
-    use std::collections::BTreeMap;
-    use xml::attribute::OwnedAttribute;
-    use xml::common::XmlVersion;
-    use xml::name::OwnedName;
-    use xml::namespace::Namespace;
-    use xml::reader::XmlEvent;
-*/
 
     use crate::xml_document::{create_test_doc, Element, XmlTree};
-    use crate::xml_document_factory::{DocumentInfo, ElementInfo};
+    use crate::xml_document_factory::{DocumentInfo};
 
     use super::WalkAndPrint;
 

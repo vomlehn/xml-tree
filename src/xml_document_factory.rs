@@ -104,8 +104,8 @@ pub trait XmlDocumentFactory {
 
         let top_element = match xml_element.event {
             XmlEvent::StartElement{name, attributes, namespace} => {
-                let element_info = ElementInfo::new(xml_element.lineno, attributes, namespace);
-                match Self::parse_element(parser, name, element_info, level_info) {
+                let element_info = ElementInfo::new(name, xml_element.lineno, attributes, namespace);
+                match Self::parse_element(parser, element_info, level_info) {
                     Err(e) => return Err(e),
                     Ok(top_elem) => top_elem,
                 }
@@ -142,7 +142,7 @@ pub trait XmlDocumentFactory {
     /*
      * Parse an element. We have already seen the XmlStartElement as a lookahead.
      */
-    fn parse_element<R>(parser: &mut Parser<R>, name: OwnedName, element_info: ElementInfo, parent_level_info: &Self::LI) ->
+    fn parse_element<R>(parser: &mut Parser<R>, element_info: ElementInfo, parent_level_info: &Self::LI) ->
         Result<<<Self as XmlDocumentFactory>::AC as Accumulator>::Value, XmlDocumentError>
     where
         R:  Read,
@@ -150,7 +150,7 @@ pub trait XmlDocumentFactory {
     {
         parser.skip();
 
-        let mut accumulator = parent_level_info.accumulator(name, element_info);
+        let mut accumulator = parent_level_info.accumulator(element_info);
         let level_info = parent_level_info.next();
 
         // Now parse all subelements of this element until we get to the EndElement for this
@@ -165,8 +165,8 @@ pub trait XmlDocumentFactory {
                             accumulator.name(), accumulator.open_subelement().unwrap().name());
                     }
 
-                    let element_info = ElementInfo::new(xml_element.lineno, attributes, namespace);
-                    let subelement: <<Self as XmlDocumentFactory>::AC as Accumulator>::Value = Self::parse_element(parser, name, element_info, &level_info)?;
+                    let element_info = ElementInfo::new(name, xml_element.lineno, attributes, namespace);
+                    let subelement: <<Self as XmlDocumentFactory>::AC as Accumulator>::Value = Self::parse_element(parser, element_info, &level_info)?;
                     accumulator.start_subelement(subelement);
                 },
 
@@ -235,16 +235,19 @@ pub trait XmlDocumentFactory {
 
 #[derive(Clone, Debug)]
 pub struct ElementInfo {
-    pub lineno: LineNumber,
+    pub owned_name: OwnedName,
+    pub lineno:     LineNumber,
 }
 
 impl ElementInfo {
     pub fn new(
-        lineno: LineNumber,
-        _attributes: Vec<OwnedAttribute>,
-        _namespace: Namespace,
+        owned_name:     OwnedName,
+        lineno:         LineNumber,
+        _attributes:    Vec<OwnedAttribute>,
+        _namespace:     Namespace,
     ) -> ElementInfo {
         ElementInfo {
+            owned_name,
             lineno,
         }
     }
@@ -272,7 +275,6 @@ impl DocumentInfo {
 
 #[derive(Clone)]
 pub struct DirectElement {
-    pub name: OwnedName,
     pub element_info: ElementInfo,
     pub before_element: Vec<XmlEvent>,
     pub content: Vec<XmlEvent>,
@@ -281,13 +283,12 @@ pub struct DirectElement {
 }
 
 impl DirectElement {
-    pub fn new(name: OwnedName, element_info: ElementInfo,
+    pub fn new(element_info: ElementInfo,
         before_element: Vec::<XmlEvent>,
         content: Vec::<XmlEvent>,
         after_element: Vec::<XmlEvent>,
         subelements: Vec<Box<dyn Element>>) -> DirectElement {
         DirectElement {
-            name,
             element_info,
             subelements,
             before_element,
@@ -300,12 +301,12 @@ impl DirectElement {
 impl Default for DirectElement {
     fn default() -> DirectElement {
         DirectElement {
-            name: OwnedName {
-                local_name: "".to_string(),
-                namespace:  None,
-                prefix:     None
-            },
             element_info: ElementInfo {
+                owned_name: OwnedName {
+                    local_name: "".to_string(),
+                    namespace:  None,
+                    prefix:     None
+                },
                 lineno:     0,
             },
             subelements: vec!(),
@@ -335,7 +336,7 @@ impl Element for DirectElement {
             .expect("Unable to write Box::new");
 
         let owned_name = OwnedName {
-            local_name: self.name.to_string(),
+            local_name: self.name().to_string(),
             namespace:  None,
             prefix:     None,
         };
@@ -343,6 +344,7 @@ impl Element for DirectElement {
 
         let element_info = ElementInfo {
             lineno:     0,
+            owned_name: owned_name,
         };
         element_info_display(f, depth + 1, &element_info)?;
         write!(f, "{}", nl_indent(depth + 1))?;
@@ -382,7 +384,7 @@ for x in self.subelements() {
      */
     // FIXME: maybe remove this from Element
     fn name(&self) -> &str {
-        &self.name.local_name
+        &self.element_info.owned_name.local_name
     }
 
     fn lineno(&self) -> LineNumber {
@@ -410,16 +412,16 @@ impl XmlDisplay for DirectElement {
         write!(f, "{}Box::new(DirectElement::new(", nl_indent(depth))
             .expect("Unable to write Box::new");
 
-        let owned_name = OwnedName {
-            local_name: self.name.to_string(),
-            namespace:  None,
-            prefix:     None,
-        };
-        owned_name_display(f, depth + 1, &owned_name)?;
-
         let element_info = ElementInfo {
-            lineno:     0,
+            lineno: 0,
+            owned_name: OwnedName {
+                        local_name: self.name().to_string(),
+                        namespace:  None,
+                        prefix:     None,
+            },
         };
+
+        owned_name_display(f, depth + 1, &element_info.owned_name)?;
         element_info_display(f, depth + 1, &element_info)?;
         write!(f, "{}vec!(), vec!(), vec!(),", nl_indent(depth + 1))?;
 
@@ -444,7 +446,7 @@ fn element_info_display(f: &mut fmt::Formatter<'_>, depth: usize, element_info: 
 pub trait LevelInfo {
     type Factory: XmlDocumentFactory<LI = Self>;
     fn next(&self) -> Self;
-    fn accumulator(&self, name: OwnedName, element_info: ElementInfo) ->
+    fn accumulator(&self, element_info: ElementInfo) ->
         Box<dyn Accumulator<
             Value = <<Self::Factory as XmlDocumentFactory>::AC as Accumulator>::Value,
             Result = <<Self::Factory as XmlDocumentFactory>::AC as Accumulator>::Result>>;

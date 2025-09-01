@@ -4,7 +4,6 @@
 
 use std::fmt;
 use std::ops::{ControlFlow, FromResidual, Try};
-use xml::name::OwnedName;
 
 use crate::parser::LineNumber;
 use crate::walk_and_print::print_walk;
@@ -29,14 +28,6 @@ impl XmlDocumentFactory for XmlTree
 {
     type LI = TreeLevelInfo;
     type AC = TreeAccumulator;
-
-/*
-    fn accumulator_new(name: OwnedName, element_info: ElementInfo) ->
-        Box<dyn Accumulator<Value = <<Self as XmlDocumentFactory>::AC as Accumulator>::Value, Result = <<Self as XmlDocumentFactory>::AC as Accumulator>::Result>>
-    {
-        Box::new(Self::AC::new(name, element_info))
-    }
-*/
 }
 
 impl fmt::Display for XmlTree {
@@ -92,9 +83,9 @@ impl LevelInfo for TreeLevelInfo
         }
     }
 
-    fn accumulator(&self, name: OwnedName, element_info: ElementInfo) ->
+    fn accumulator(&self, element_info: ElementInfo) ->
         Box<dyn crate::xml_document_factory::Accumulator<Result = Result<Box<dyn Element + 'static>, XmlDocumentError>, Value = Box<dyn Element + 'static>> + 'static> {
-        Box::new(TreeAccumulator::new(name, element_info))
+        Box::new(TreeAccumulator::new(element_info))
     }
 }
 
@@ -110,8 +101,8 @@ pub struct TreeAccumulator {
 }
 
 impl TreeAccumulator {
-    pub fn new(name: OwnedName, element_info: ElementInfo) -> Self {
-        let element = Box::new(DirectElement::new(name, element_info, vec!(), vec!(), vec!(), vec!()));
+    pub fn new(element_info: ElementInfo) -> Self {
+        let element = Box::new(DirectElement::new(element_info, vec!(), vec!(), vec!(), vec!()));
 
         TreeAccumulator {
             element,

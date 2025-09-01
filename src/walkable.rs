@@ -96,19 +96,10 @@ where
 #[cfg(test)]
 mod test_tests {
     use std::cell::RefCell;
-//    use std::collections::BTreeMap;
     use std::fmt;
 
-/*
-    use xml::attribute::OwnedAttribute;
-    use xml::common::XmlVersion;
-    use xml::name::OwnedName;
-    use xml::namespace::Namespace;
-    use xml::reader::XmlEvent;
-*/
-
     use crate::xml_document::{create_test_doc, DirectElement, Element, XmlTree};
-    use crate::xml_document_factory::{DocumentInfo, ElementInfo};
+    use crate::xml_document_factory::{DocumentInfo};
     use crate::walkable::{Accumulator, BaseLevel, ElemData, WalkData, Walkable};
 
     const INDENT: &str = "    ";
@@ -255,55 +246,4 @@ mod test_tests {
         };
     }
 
-/* FIXME: remove this
-    /**
-     * Manually create an XmlTree.
-     */
-     // FIXME: This should be moved to a common area
-    fn create_test_doc() -> XmlTree {
-        let ns: Namespace = Namespace(BTreeMap::<String, String>::new());
-
-        let ei: ElementInfo = ElementInfo {
-            lineno: 1,
-            attributes: Vec::<OwnedAttribute>::new(),
-            namespace: ns,
-        };
-
-        XmlTree {
-            root:           branch("n1", &ei, vec![
-                                leaf("n2", &ei),
-                                branch("n3", &ei, vec![
-                                    leaf("n4", &ei)])
-                            ]),
-            document_info:  DocumentInfo {
-                                version: XmlVersion::Version10,
-                                encoding: "encoding".to_string(),
-                                standalone: None,
-                            },
-        }
-    }
-
-    fn leaf(name: &str, ei: &ElementInfo) -> Box<dyn Element> {
-        node(name, ei, Vec::<Element>::new())
-    }
-
-    fn branch(name: &str, ei: &ElementInfo, subelements: Vec<Element>) -> dyn Element {
-        node(name, ei, subelements)
-    }
-
-    fn node(name: &str, ei: &ElementInfo, subelements: Vec<Element>) -> Box<dyn Element> {
-        Box::new(DirectElement {
-            name: OwnedName {
-                local_name: name.to_string(),
-                namespace: None,
-                prefix: None,
-            },
-            element_info: (*ei).clone(),
-            subelements,
-            before_element: Vec::<XmlEvent>::new(),
-            content: Vec::<XmlEvent>::new(),
-            after_element: Vec::<XmlEvent>::new(),
-        })
-    }
-*/
 }

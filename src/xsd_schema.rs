@@ -23,32 +23,38 @@ lazy_static! {
         XmlTree::new(
             DocumentInfo::new(XmlVersion::Version10, "encoding".to_string(), None),
             Box::new(DirectElement::new(
-                OwnedName{local_name: "XsdSchema".to_string(),
-                    namespace: None, prefix: None},
-                ElementInfo::new(0, vec!(),
+//ElementInfo::new(0, vec!(),
+//    Namespace(BTreeMap::<String, String>::new())),
+                ElementInfo::new(
+                    OwnedName{local_name: "XsdSchema".to_string(),
+                        namespace: None, prefix: None},
+                    0, vec!(),
                     Namespace(BTreeMap::<String, String>::new())),
                 vec!(), vec!(), vec!(),
                 vec!(
                     Box::new(DirectElement::new(
-                        OwnedName{local_name: "import".to_string(),
-                            namespace: None, prefix: None},
-                        ElementInfo::new(0, vec!(),
+                        ElementInfo::new(
+                            OwnedName{local_name: "import".to_string(),
+                                namespace: None, prefix: None},
+                            0, vec!(),
                             Namespace(BTreeMap::<String, String>::new())),
                         vec!(), vec!(), vec!(),
                         vec!(
                         )
                     )),
                     Box::new(DirectElement::new(
+                        ElementInfo::new(
                         OwnedName{local_name: "annotation".to_string(),
                             namespace: None, prefix: None},
-                        ElementInfo::new(0, vec!(),
+                        0, vec!(),
                             Namespace(BTreeMap::<String, String>::new())),
                         vec!(), vec!(), vec!(),
                         vec!(
                             Box::new(DirectElement::new(
-                                OwnedName{local_name: "documentation".to_string(),
+                                ElementInfo::new(
+                        OwnedName{local_name: "documentation".to_string(),
                                     namespace: None, prefix: None},
-                                ElementInfo::new(0, vec!(),
+                                0, vec!(),
                                     Namespace(BTreeMap::<String, String>::new())),
                                 vec!(), vec!(), vec!(),
                                 vec!(
@@ -57,23 +63,26 @@ lazy_static! {
                         )
                     )),
                     Box::new(DirectElement::new(
+                        ElementInfo::new(
                         OwnedName{local_name: "element".to_string(),
                             namespace: None, prefix: None},
-                        ElementInfo::new(0, vec!(),
+                        0, vec!(),
                             Namespace(BTreeMap::<String, String>::new())),
                         vec!(), vec!(), vec!(),
                         vec!(
                             Box::new(DirectElement::new(
-                                OwnedName{local_name: "annotation".to_string(),
+                                ElementInfo::new(
+                        OwnedName{local_name: "annotation".to_string(),
                                     namespace: None, prefix: None},
-                                ElementInfo::new(0, vec!(),
+                                0, vec!(),
                                     Namespace(BTreeMap::<String, String>::new())),
                                 vec!(), vec!(), vec!(),
                                 vec!(
                                     Box::new(DirectElement::new(
-                                        OwnedName{local_name: "documentation".to_string(),
+                                        ElementInfo::new(
+                        OwnedName{local_name: "documentation".to_string(),
                                             namespace: None, prefix: None},
-                                        ElementInfo::new(0, vec!(),
+                                        0, vec!(),
                                             Namespace(BTreeMap::<String, String>::new())),
                                         vec!(), vec!(), vec!(),
                                         vec!(
@@ -82,23 +91,26 @@ lazy_static! {
                                 )
                             )),
                             Box::new(DirectElement::new(
-                                OwnedName{local_name: "key".to_string(),
+                                ElementInfo::new(
+                        OwnedName{local_name: "key".to_string(),
                                     namespace: None, prefix: None},
-                                ElementInfo::new(0, vec!(),
+                                0, vec!(),
                                     Namespace(BTreeMap::<String, String>::new())),
                                 vec!(), vec!(), vec!(),
                                 vec!(
                                     Box::new(DirectElement::new(
-                                        OwnedName{local_name: "annotation".to_string(),
+                                        ElementInfo::new(
+                        OwnedName{local_name: "annotation".to_string(),
                                             namespace: None, prefix: None},
-                                        ElementInfo::new(0, vec!(),
+                                        0, vec!(),
                                             Namespace(BTreeMap::<String, String>::new())),
                                         vec!(), vec!(), vec!(),
                                         vec!(
                                             Box::new(DirectElement::new(
-                                                OwnedName{local_name: "documentation".to_string(),
+                                                ElementInfo::new(
+                        OwnedName{local_name: "documentation".to_string(),
                                                     namespace: None, prefix: None},
-                                                ElementInfo::new(0, vec!(),
+                                                0, vec!(),
                                                     Namespace(BTreeMap::<String, String>::new())),
                                                 vec!(), vec!(), vec!(),
                                                 vec!(
@@ -107,18 +119,20 @@ lazy_static! {
                                         )
                                     )),
                                     Box::new(DirectElement::new(
-                                        OwnedName{local_name: "selector".to_string(),
+                                        ElementInfo::new(
+                        OwnedName{local_name: "selector".to_string(),
                                             namespace: None, prefix: None},
-                                        ElementInfo::new(0, vec!(),
+                                        0, vec!(),
                                             Namespace(BTreeMap::<String, String>::new())),
                                         vec!(), vec!(), vec!(),
                                         vec!(
                                         )
                                     )),
                                     Box::new(DirectElement::new(
-                                        OwnedName{local_name: "field".to_string(),
+                                        ElementInfo::new(
+                        OwnedName{local_name: "field".to_string(),
                                             namespace: None, prefix: None},
-                                        ElementInfo::new(0, vec!(),
+                                        0, vec!(),
                                             Namespace(BTreeMap::<String, String>::new())),
                                         vec!(), vec!(), vec!(),
                                         vec!(
@@ -129,32 +143,36 @@ lazy_static! {
                         )
                     )),
                     Box::new(DirectElement::new(
+                        ElementInfo::new(
                         OwnedName{local_name: "complexType".to_string(),
                             namespace: None, prefix: None},
-                        ElementInfo::new(0, vec!(),
+                        0, vec!(),
                             Namespace(BTreeMap::<String, String>::new())),
                         vec!(), vec!(), vec!(),
                         vec!(
                             Box::new(DirectElement::new(
-                                OwnedName{local_name: "annotation".to_string(),
+                                ElementInfo::new(
+                        OwnedName{local_name: "annotation".to_string(),
                                     namespace: None, prefix: None},
-                                ElementInfo::new(0, vec!(),
+                                0, vec!(),
                                     Namespace(BTreeMap::<String, String>::new())),
                                 vec!(), vec!(), vec!(),
                                 vec!(
                                     Box::new(DirectElement::new(
-                                        OwnedName{local_name: "documentation".to_string(),
+                                        ElementInfo::new(
+                        OwnedName{local_name: "documentation".to_string(),
                                             namespace: None, prefix: None},
-                                        ElementInfo::new(0, vec!(),
+                                        0, vec!(),
                                             Namespace(BTreeMap::<String, String>::new())),
                                         vec!(), vec!(), vec!(),
                                         vec!(
                                         )
                                     )),
                                     Box::new(DirectElement::new(
-                                        OwnedName{local_name: "appinfo".to_string(),
+                                        ElementInfo::new(
+                        OwnedName{local_name: "appinfo".to_string(),
                                             namespace: None, prefix: None},
-                                        ElementInfo::new(0, vec!(),
+                                        0, vec!(),
                                             Namespace(BTreeMap::<String, String>::new())),
                                         vec!(), vec!(), vec!(),
                                         vec!(
@@ -163,32 +181,36 @@ lazy_static! {
                                 )
                             )),
                             Box::new(DirectElement::new(
-                                OwnedName{local_name: "attribute".to_string(),
+                                ElementInfo::new(
+                        OwnedName{local_name: "attribute".to_string(),
                                     namespace: None, prefix: None},
-                                ElementInfo::new(0, vec!(),
+                                0, vec!(),
                                     Namespace(BTreeMap::<String, String>::new())),
                                 vec!(), vec!(), vec!(),
                                 vec!(
                                     Box::new(DirectElement::new(
-                                        OwnedName{local_name: "annotation".to_string(),
+                                        ElementInfo::new(
+                        OwnedName{local_name: "annotation".to_string(),
                                             namespace: None, prefix: None},
-                                        ElementInfo::new(0, vec!(),
+                                        0, vec!(),
                                             Namespace(BTreeMap::<String, String>::new())),
                                         vec!(), vec!(), vec!(),
                                         vec!(
                                             Box::new(DirectElement::new(
-                                                OwnedName{local_name: "documentation".to_string(),
+                                                ElementInfo::new(
+                        OwnedName{local_name: "documentation".to_string(),
                                                     namespace: None, prefix: None},
-                                                ElementInfo::new(0, vec!(),
+                                                0, vec!(),
                                                     Namespace(BTreeMap::<String, String>::new())),
                                                 vec!(), vec!(), vec!(),
                                                 vec!(
                                                 )
                                             )),
                                             Box::new(DirectElement::new(
-                                                OwnedName{local_name: "appinfo".to_string(),
+                                                ElementInfo::new(
+                        OwnedName{local_name: "appinfo".to_string(),
                                                     namespace: None, prefix: None},
-                                                ElementInfo::new(0, vec!(),
+                                                0, vec!(),
                                                     Namespace(BTreeMap::<String, String>::new())),
                                                 vec!(), vec!(), vec!(),
                                                 vec!(
@@ -197,37 +219,42 @@ lazy_static! {
                                         )
                                     )),
                                     Box::new(DirectElement::new(
-                                        OwnedName{local_name: "simpleType".to_string(),
+                                        ElementInfo::new(
+                        OwnedName{local_name: "simpleType".to_string(),
                                             namespace: None, prefix: None},
-                                        ElementInfo::new(0, vec!(),
+                                        0, vec!(),
                                             Namespace(BTreeMap::<String, String>::new())),
                                         vec!(), vec!(), vec!(),
                                         vec!(
                                             Box::new(DirectElement::new(
-                                                OwnedName{local_name: "restriction".to_string(),
+                                                ElementInfo::new(
+                        OwnedName{local_name: "restriction".to_string(),
                                                     namespace: None, prefix: None},
-                                                ElementInfo::new(0, vec!(),
+                                                0, vec!(),
                                                     Namespace(BTreeMap::<String, String>::new())),
                                                 vec!(), vec!(), vec!(),
                                                 vec!(
                                                     Box::new(DirectElement::new(
-                                                        OwnedName{local_name: "enumeration".to_string(),
+                                                        ElementInfo::new(
+                        OwnedName{local_name: "enumeration".to_string(),
                                                             namespace: None, prefix: None},
-                                                        ElementInfo::new(0, vec!(),
+                                                        0, vec!(),
                                                             Namespace(BTreeMap::<String, String>::new())),
                                                         vec!(), vec!(), vec!(),
                                                         vec!(
                                                             Box::new(DirectElement::new(
-                                                                OwnedName{local_name: "annotation".to_string(),
+                                                                ElementInfo::new(
+                        OwnedName{local_name: "annotation".to_string(),
                                                                     namespace: None, prefix: None},
-                                                                ElementInfo::new(0, vec!(),
+                                                                0, vec!(),
                                                                     Namespace(BTreeMap::<String, String>::new())),
                                                                 vec!(), vec!(), vec!(),
                                                                 vec!(
                                                                     Box::new(DirectElement::new(
-                                                                        OwnedName{local_name: "documentation".to_string(),
+                                                                        ElementInfo::new(
+                        OwnedName{local_name: "documentation".to_string(),
                                                                             namespace: None, prefix: None},
-                                                                        ElementInfo::new(0, vec!(),
+                                                                        0, vec!(),
                                                                             Namespace(BTreeMap::<String, String>::new())),
                                                                         vec!(), vec!(), vec!(),
                                                                         vec!(
@@ -244,23 +271,26 @@ lazy_static! {
                                 )
                             )),
                             Box::new(DirectElement::new(
-                                OwnedName{local_name: "choice".to_string(),
+                                ElementInfo::new(
+                        OwnedName{local_name: "choice".to_string(),
                                     namespace: None, prefix: None},
-                                ElementInfo::new(0, vec!(),
+                                0, vec!(),
                                     Namespace(BTreeMap::<String, String>::new())),
                                 vec!(), vec!(), vec!(),
                                 vec!(
                                     Box::new(DirectElement::new(
-                                        OwnedName{local_name: "annotation".to_string(),
+                                        ElementInfo::new(
+                        OwnedName{local_name: "annotation".to_string(),
                                             namespace: None, prefix: None},
-                                        ElementInfo::new(0, vec!(),
+                                        0, vec!(),
                                             Namespace(BTreeMap::<String, String>::new())),
                                         vec!(), vec!(), vec!(),
                                         vec!(
                                             Box::new(DirectElement::new(
-                                                OwnedName{local_name: "documentation".to_string(),
+                                                ElementInfo::new(
+                        OwnedName{local_name: "documentation".to_string(),
                                                     namespace: None, prefix: None},
-                                                ElementInfo::new(0, vec!(),
+                                                0, vec!(),
                                                     Namespace(BTreeMap::<String, String>::new())),
                                                 vec!(), vec!(), vec!(),
                                                 vec!(
@@ -269,23 +299,26 @@ lazy_static! {
                                         )
                                     )),
                                     Box::new(DirectElement::new(
-                                        OwnedName{local_name: "element".to_string(),
+                                        ElementInfo::new(
+                        OwnedName{local_name: "element".to_string(),
                                             namespace: None, prefix: None},
-                                        ElementInfo::new(0, vec!(),
+                                        0, vec!(),
                                             Namespace(BTreeMap::<String, String>::new())),
                                         vec!(), vec!(), vec!(),
                                         vec!(
                                             Box::new(DirectElement::new(
-                                                OwnedName{local_name: "annotation".to_string(),
+                                                ElementInfo::new(
+                        OwnedName{local_name: "annotation".to_string(),
                                                     namespace: None, prefix: None},
-                                                ElementInfo::new(0, vec!(),
+                                                0, vec!(),
                                                     Namespace(BTreeMap::<String, String>::new())),
                                                 vec!(), vec!(), vec!(),
                                                 vec!(
                                                     Box::new(DirectElement::new(
-                                                        OwnedName{local_name: "documentation".to_string(),
+                                                        ElementInfo::new(
+                        OwnedName{local_name: "documentation".to_string(),
                                                             namespace: None, prefix: None},
-                                                        ElementInfo::new(0, vec!(),
+                                                        0, vec!(),
                                                             Namespace(BTreeMap::<String, String>::new())),
                                                         vec!(), vec!(), vec!(),
                                                         vec!(
@@ -294,23 +327,26 @@ lazy_static! {
                                                 )
                                             )),
                                             Box::new(DirectElement::new(
-                                                OwnedName{local_name: "key".to_string(),
+                                                ElementInfo::new(
+                        OwnedName{local_name: "key".to_string(),
                                                     namespace: None, prefix: None},
-                                                ElementInfo::new(0, vec!(),
+                                                0, vec!(),
                                                     Namespace(BTreeMap::<String, String>::new())),
                                                 vec!(), vec!(), vec!(),
                                                 vec!(
                                                     Box::new(DirectElement::new(
-                                                        OwnedName{local_name: "annotation".to_string(),
+                                                        ElementInfo::new(
+                        OwnedName{local_name: "annotation".to_string(),
                                                             namespace: None, prefix: None},
-                                                        ElementInfo::new(0, vec!(),
+                                                        0, vec!(),
                                                             Namespace(BTreeMap::<String, String>::new())),
                                                         vec!(), vec!(), vec!(),
                                                         vec!(
                                                             Box::new(DirectElement::new(
-                                                                OwnedName{local_name: "documentation".to_string(),
+                                                                ElementInfo::new(
+                        OwnedName{local_name: "documentation".to_string(),
                                                                     namespace: None, prefix: None},
-                                                                ElementInfo::new(0, vec!(),
+                                                                0, vec!(),
                                                                     Namespace(BTreeMap::<String, String>::new())),
                                                                 vec!(), vec!(), vec!(),
                                                                 vec!(
@@ -319,18 +355,20 @@ lazy_static! {
                                                         )
                                                     )),
                                                     Box::new(DirectElement::new(
-                                                        OwnedName{local_name: "selector".to_string(),
+                                                        ElementInfo::new(
+                        OwnedName{local_name: "selector".to_string(),
                                                             namespace: None, prefix: None},
-                                                        ElementInfo::new(0, vec!(),
+                                                        0, vec!(),
                                                             Namespace(BTreeMap::<String, String>::new())),
                                                         vec!(), vec!(), vec!(),
                                                         vec!(
                                                         )
                                                     )),
                                                     Box::new(DirectElement::new(
-                                                        OwnedName{local_name: "field".to_string(),
+                                                        ElementInfo::new(
+                        OwnedName{local_name: "field".to_string(),
                                                             namespace: None, prefix: None},
-                                                        ElementInfo::new(0, vec!(),
+                                                        0, vec!(),
                                                             Namespace(BTreeMap::<String, String>::new())),
                                                         vec!(), vec!(), vec!(),
                                                         vec!(
@@ -343,32 +381,36 @@ lazy_static! {
                                 )
                             )),
                             Box::new(DirectElement::new(
-                                OwnedName{local_name: "sequence".to_string(),
+                                ElementInfo::new(
+                        OwnedName{local_name: "sequence".to_string(),
                                     namespace: None, prefix: None},
-                                ElementInfo::new(0, vec!(),
+                                0, vec!(),
                                     Namespace(BTreeMap::<String, String>::new())),
                                 vec!(), vec!(), vec!(),
                                 vec!(
                                     Box::new(DirectElement::new(
-                                        OwnedName{local_name: "annotation".to_string(),
+                                        ElementInfo::new(
+                        OwnedName{local_name: "annotation".to_string(),
                                             namespace: None, prefix: None},
-                                        ElementInfo::new(0, vec!(),
+                                        0, vec!(),
                                             Namespace(BTreeMap::<String, String>::new())),
                                         vec!(), vec!(), vec!(),
                                         vec!(
                                             Box::new(DirectElement::new(
-                                                OwnedName{local_name: "documentation".to_string(),
+                                                ElementInfo::new(
+                        OwnedName{local_name: "documentation".to_string(),
                                                     namespace: None, prefix: None},
-                                                ElementInfo::new(0, vec!(),
+                                                0, vec!(),
                                                     Namespace(BTreeMap::<String, String>::new())),
                                                 vec!(), vec!(), vec!(),
                                                 vec!(
                                                 )
                                             )),
                                             Box::new(DirectElement::new(
-                                                OwnedName{local_name: "appinfo".to_string(),
+                                                ElementInfo::new(
+                        OwnedName{local_name: "appinfo".to_string(),
                                                     namespace: None, prefix: None},
-                                                ElementInfo::new(0, vec!(),
+                                                0, vec!(),
                                                     Namespace(BTreeMap::<String, String>::new())),
                                                 vec!(), vec!(), vec!(),
                                                 vec!(
@@ -377,32 +419,36 @@ lazy_static! {
                                         )
                                     )),
                                     Box::new(DirectElement::new(
-                                        OwnedName{local_name: "element".to_string(),
+                                        ElementInfo::new(
+                        OwnedName{local_name: "element".to_string(),
                                             namespace: None, prefix: None},
-                                        ElementInfo::new(0, vec!(),
+                                        0, vec!(),
                                             Namespace(BTreeMap::<String, String>::new())),
                                         vec!(), vec!(), vec!(),
                                         vec!(
                                             Box::new(DirectElement::new(
-                                                OwnedName{local_name: "annotation".to_string(),
+                                                ElementInfo::new(
+                        OwnedName{local_name: "annotation".to_string(),
                                                     namespace: None, prefix: None},
-                                                ElementInfo::new(0, vec!(),
+                                                0, vec!(),
                                                     Namespace(BTreeMap::<String, String>::new())),
                                                 vec!(), vec!(), vec!(),
                                                 vec!(
                                                     Box::new(DirectElement::new(
-                                                        OwnedName{local_name: "documentation".to_string(),
+                                                        ElementInfo::new(
+                        OwnedName{local_name: "documentation".to_string(),
                                                             namespace: None, prefix: None},
-                                                        ElementInfo::new(0, vec!(),
+                                                        0, vec!(),
                                                             Namespace(BTreeMap::<String, String>::new())),
                                                         vec!(), vec!(), vec!(),
                                                         vec!(
                                                         )
                                                     )),
                                                     Box::new(DirectElement::new(
-                                                        OwnedName{local_name: "appinfo".to_string(),
+                                                        ElementInfo::new(
+                        OwnedName{local_name: "appinfo".to_string(),
                                                             namespace: None, prefix: None},
-                                                        ElementInfo::new(0, vec!(),
+                                                        0, vec!(),
                                                             Namespace(BTreeMap::<String, String>::new())),
                                                         vec!(), vec!(), vec!(),
                                                         vec!(
@@ -413,23 +459,26 @@ lazy_static! {
                                         )
                                     )),
                                     Box::new(DirectElement::new(
-                                        OwnedName{local_name: "choice".to_string(),
+                                        ElementInfo::new(
+                        OwnedName{local_name: "choice".to_string(),
                                             namespace: None, prefix: None},
-                                        ElementInfo::new(0, vec!(),
+                                        0, vec!(),
                                             Namespace(BTreeMap::<String, String>::new())),
                                         vec!(), vec!(), vec!(),
                                         vec!(
                                             Box::new(DirectElement::new(
-                                                OwnedName{local_name: "annotation".to_string(),
+                                                ElementInfo::new(
+                        OwnedName{local_name: "annotation".to_string(),
                                                     namespace: None, prefix: None},
-                                                ElementInfo::new(0, vec!(),
+                                                0, vec!(),
                                                     Namespace(BTreeMap::<String, String>::new())),
                                                 vec!(), vec!(), vec!(),
                                                 vec!(
                                                     Box::new(DirectElement::new(
-                                                        OwnedName{local_name: "documentation".to_string(),
+                                                        ElementInfo::new(
+                        OwnedName{local_name: "documentation".to_string(),
                                                             namespace: None, prefix: None},
-                                                        ElementInfo::new(0, vec!(),
+                                                        0, vec!(),
                                                             Namespace(BTreeMap::<String, String>::new())),
                                                         vec!(), vec!(), vec!(),
                                                         vec!(
@@ -438,167 +487,36 @@ lazy_static! {
                                                 )
                                             )),
                                             Box::new(DirectElement::new(
-                                                OwnedName{local_name: "element".to_string(),
+                                                ElementInfo::new(
+                        OwnedName{local_name: "element".to_string(),
                                                     namespace: None, prefix: None},
-                                                ElementInfo::new(0, vec!(),
+                                                0, vec!(),
                                                     Namespace(BTreeMap::<String, String>::new())),
                                                 vec!(), vec!(), vec!(),
                                                 vec!(
                                                     Box::new(DirectElement::new(
-                                                        OwnedName{local_name: "annotation".to_string(),
+                                                        ElementInfo::new(
+                        OwnedName{local_name: "annotation".to_string(),
                                                             namespace: None, prefix: None},
-                                                        ElementInfo::new(0, vec!(),
+                                                        0, vec!(),
                                                             Namespace(BTreeMap::<String, String>::new())),
                                                         vec!(), vec!(), vec!(),
                                                         vec!(
                                                             Box::new(DirectElement::new(
-                                                                OwnedName{local_name: "documentation".to_string(),
+                                                                ElementInfo::new(
+                        OwnedName{local_name: "documentation".to_string(),
                                                                     namespace: None, prefix: None},
-                                                                ElementInfo::new(0, vec!(),
+                                                                0, vec!(),
                                                                     Namespace(BTreeMap::<String, String>::new())),
                                                                 vec!(), vec!(), vec!(),
                                                                 vec!(
                                                                 )
                                                             )),
                                                             Box::new(DirectElement::new(
-                                                                OwnedName{local_name: "appinfo".to_string(),
+                                                                ElementInfo::new(
+                        OwnedName{local_name: "appinfo".to_string(),
                                                                     namespace: None, prefix: None},
-                                                                ElementInfo::new(0, vec!(),
-                                                                    Namespace(BTreeMap::<String, String>::new())),
-                                                                vec!(), vec!(), vec!(),
-                                                                vec!(
-                                                                )
-                                                            )),
-                                                        )
-                                                    )),
-                                                )
-                                            )),
-                                        )
-                                    )),
-                                )
-                            )),
-                            Box::new(DirectElement::new(
-                                OwnedName{local_name: "simpleContent".to_string(),
-                                    namespace: None, prefix: None},
-                                ElementInfo::new(0, vec!(),
-                                    Namespace(BTreeMap::<String, String>::new())),
-                                vec!(), vec!(), vec!(),
-                                vec!(
-                                    Box::new(DirectElement::new(
-                                        OwnedName{local_name: "extension".to_string(),
-                                            namespace: None, prefix: None},
-                                        ElementInfo::new(0, vec!(),
-                                            Namespace(BTreeMap::<String, String>::new())),
-                                        vec!(), vec!(), vec!(),
-                                        vec!(
-                                            Box::new(DirectElement::new(
-                                                OwnedName{local_name: "attribute".to_string(),
-                                                    namespace: None, prefix: None},
-                                                ElementInfo::new(0, vec!(),
-                                                    Namespace(BTreeMap::<String, String>::new())),
-                                                vec!(), vec!(), vec!(),
-                                                vec!(
-                                                )
-                                            )),
-                                        )
-                                    )),
-                                )
-                            )),
-                            Box::new(DirectElement::new(
-                                OwnedName{local_name: "sequence".to_string(),
-                                    namespace: None, prefix: None},
-                                ElementInfo::new(0, vec!(),
-                                    Namespace(BTreeMap::<String, String>::new())),
-                                vec!(), vec!(), vec!(),
-                                vec!(
-                                    Box::new(DirectElement::new(
-                                        OwnedName{local_name: "element".to_string(),
-                                            namespace: None, prefix: None},
-                                        ElementInfo::new(0, vec!(),
-                                            Namespace(BTreeMap::<String, String>::new())),
-                                        vec!(), vec!(), vec!(),
-                                        vec!(
-                                            Box::new(DirectElement::new(
-                                                OwnedName{local_name: "annotation".to_string(),
-                                                    namespace: None, prefix: None},
-                                                ElementInfo::new(0, vec!(),
-                                                    Namespace(BTreeMap::<String, String>::new())),
-                                                vec!(), vec!(), vec!(),
-                                                vec!(
-                                                    Box::new(DirectElement::new(
-                                                        OwnedName{local_name: "documentation".to_string(),
-                                                            namespace: None, prefix: None},
-                                                        ElementInfo::new(0, vec!(),
-                                                            Namespace(BTreeMap::<String, String>::new())),
-                                                        vec!(), vec!(), vec!(),
-                                                        vec!(
-                                                        )
-                                                    )),
-                                                    Box::new(DirectElement::new(
-                                                        OwnedName{local_name: "appinfo".to_string(),
-                                                            namespace: None, prefix: None},
-                                                        ElementInfo::new(0, vec!(),
-                                                            Namespace(BTreeMap::<String, String>::new())),
-                                                        vec!(), vec!(), vec!(),
-                                                        vec!(
-                                                        )
-                                                    )),
-                                                )
-                                            )),
-                                        )
-                                    )),
-                                    Box::new(DirectElement::new(
-                                        OwnedName{local_name: "choice".to_string(),
-                                            namespace: None, prefix: None},
-                                        ElementInfo::new(0, vec!(),
-                                            Namespace(BTreeMap::<String, String>::new())),
-                                        vec!(), vec!(), vec!(),
-                                        vec!(
-                                            Box::new(DirectElement::new(
-                                                OwnedName{local_name: "annotation".to_string(),
-                                                    namespace: None, prefix: None},
-                                                ElementInfo::new(0, vec!(),
-                                                    Namespace(BTreeMap::<String, String>::new())),
-                                                vec!(), vec!(), vec!(),
-                                                vec!(
-                                                    Box::new(DirectElement::new(
-                                                        OwnedName{local_name: "documentation".to_string(),
-                                                            namespace: None, prefix: None},
-                                                        ElementInfo::new(0, vec!(),
-                                                            Namespace(BTreeMap::<String, String>::new())),
-                                                        vec!(), vec!(), vec!(),
-                                                        vec!(
-                                                        )
-                                                    )),
-                                                )
-                                            )),
-                                            Box::new(DirectElement::new(
-                                                OwnedName{local_name: "element".to_string(),
-                                                    namespace: None, prefix: None},
-                                                ElementInfo::new(0, vec!(),
-                                                    Namespace(BTreeMap::<String, String>::new())),
-                                                vec!(), vec!(), vec!(),
-                                                vec!(
-                                                    Box::new(DirectElement::new(
-                                                        OwnedName{local_name: "annotation".to_string(),
-                                                            namespace: None, prefix: None},
-                                                        ElementInfo::new(0, vec!(),
-                                                            Namespace(BTreeMap::<String, String>::new())),
-                                                        vec!(), vec!(), vec!(),
-                                                        vec!(
-                                                            Box::new(DirectElement::new(
-                                                                OwnedName{local_name: "documentation".to_string(),
-                                                                    namespace: None, prefix: None},
-                                                                ElementInfo::new(0, vec!(),
-                                                                    Namespace(BTreeMap::<String, String>::new())),
-                                                                vec!(), vec!(), vec!(),
-                                                                vec!(
-                                                                )
-                                                            )),
-                                                            Box::new(DirectElement::new(
-                                                                OwnedName{local_name: "appinfo".to_string(),
-                                                                    namespace: None, prefix: None},
-                                                                ElementInfo::new(0, vec!(),
+                                                                0, vec!(),
                                                                     Namespace(BTreeMap::<String, String>::new())),
                                                                 vec!(), vec!(), vec!(),
                                                                 vec!(
@@ -613,46 +531,202 @@ lazy_static! {
                                 )
                             )),
                             Box::new(DirectElement::new(
-                                OwnedName{local_name: "complexContent".to_string(),
+                                ElementInfo::new(
+                        OwnedName{local_name: "simpleContent".to_string(),
                                     namespace: None, prefix: None},
-                                ElementInfo::new(0, vec!(),
+                                0, vec!(),
                                     Namespace(BTreeMap::<String, String>::new())),
                                 vec!(), vec!(), vec!(),
                                 vec!(
                                     Box::new(DirectElement::new(
-                                        OwnedName{local_name: "extension".to_string(),
+                                        ElementInfo::new(
+                        OwnedName{local_name: "extension".to_string(),
                                             namespace: None, prefix: None},
-                                        ElementInfo::new(0, vec!(),
+                                        0, vec!(),
                                             Namespace(BTreeMap::<String, String>::new())),
                                         vec!(), vec!(), vec!(),
                                         vec!(
                                             Box::new(DirectElement::new(
-                                                OwnedName{local_name: "attribute".to_string(),
+                                                ElementInfo::new(
+                        OwnedName{local_name: "attribute".to_string(),
                                                     namespace: None, prefix: None},
-                                                ElementInfo::new(0, vec!(),
+                                                0, vec!(),
+                                                    Namespace(BTreeMap::<String, String>::new())),
+                                                vec!(), vec!(), vec!(),
+                                                vec!(
+                                                )
+                                            )),
+                                        )
+                                    )),
+                                )
+                            )),
+                            Box::new(DirectElement::new(
+                                ElementInfo::new(
+                        OwnedName{local_name: "sequence".to_string(),
+                                    namespace: None, prefix: None},
+                                0, vec!(),
+                                    Namespace(BTreeMap::<String, String>::new())),
+                                vec!(), vec!(), vec!(),
+                                vec!(
+                                    Box::new(DirectElement::new(
+                                        ElementInfo::new(
+                        OwnedName{local_name: "element".to_string(),
+                                            namespace: None, prefix: None},
+                                        0, vec!(),
+                                            Namespace(BTreeMap::<String, String>::new())),
+                                        vec!(), vec!(), vec!(),
+                                        vec!(
+                                            Box::new(DirectElement::new(
+                                                ElementInfo::new(
+                        OwnedName{local_name: "annotation".to_string(),
+                                                    namespace: None, prefix: None},
+                                                0, vec!(),
                                                     Namespace(BTreeMap::<String, String>::new())),
                                                 vec!(), vec!(), vec!(),
                                                 vec!(
                                                     Box::new(DirectElement::new(
-                                                        OwnedName{local_name: "annotation".to_string(),
+                                                        ElementInfo::new(
+                        OwnedName{local_name: "documentation".to_string(),
                                                             namespace: None, prefix: None},
-                                                        ElementInfo::new(0, vec!(),
+                                                        0, vec!(),
+                                                            Namespace(BTreeMap::<String, String>::new())),
+                                                        vec!(), vec!(), vec!(),
+                                                        vec!(
+                                                        )
+                                                    )),
+                                                    Box::new(DirectElement::new(
+                                                        ElementInfo::new(
+                        OwnedName{local_name: "appinfo".to_string(),
+                                                            namespace: None, prefix: None},
+                                                        0, vec!(),
+                                                            Namespace(BTreeMap::<String, String>::new())),
+                                                        vec!(), vec!(), vec!(),
+                                                        vec!(
+                                                        )
+                                                    )),
+                                                )
+                                            )),
+                                        )
+                                    )),
+                                    Box::new(DirectElement::new(
+                                        ElementInfo::new(
+                        OwnedName{local_name: "choice".to_string(),
+                                            namespace: None, prefix: None},
+                                        0, vec!(),
+                                            Namespace(BTreeMap::<String, String>::new())),
+                                        vec!(), vec!(), vec!(),
+                                        vec!(
+                                            Box::new(DirectElement::new(
+                                                ElementInfo::new(
+                        OwnedName{local_name: "annotation".to_string(),
+                                                    namespace: None, prefix: None},
+                                                0, vec!(),
+                                                    Namespace(BTreeMap::<String, String>::new())),
+                                                vec!(), vec!(), vec!(),
+                                                vec!(
+                                                    Box::new(DirectElement::new(
+                                                        ElementInfo::new(
+                        OwnedName{local_name: "documentation".to_string(),
+                                                            namespace: None, prefix: None},
+                                                        0, vec!(),
+                                                            Namespace(BTreeMap::<String, String>::new())),
+                                                        vec!(), vec!(), vec!(),
+                                                        vec!(
+                                                        )
+                                                    )),
+                                                )
+                                            )),
+                                            Box::new(DirectElement::new(
+                                                ElementInfo::new(
+                        OwnedName{local_name: "element".to_string(),
+                                                    namespace: None, prefix: None},
+                                                0, vec!(),
+                                                    Namespace(BTreeMap::<String, String>::new())),
+                                                vec!(), vec!(), vec!(),
+                                                vec!(
+                                                    Box::new(DirectElement::new(
+                                                        ElementInfo::new(
+                        OwnedName{local_name: "annotation".to_string(),
+                                                            namespace: None, prefix: None},
+                                                        0, vec!(),
                                                             Namespace(BTreeMap::<String, String>::new())),
                                                         vec!(), vec!(), vec!(),
                                                         vec!(
                                                             Box::new(DirectElement::new(
-                                                                OwnedName{local_name: "documentation".to_string(),
+                                                                ElementInfo::new(
+                        OwnedName{local_name: "documentation".to_string(),
                                                                     namespace: None, prefix: None},
-                                                                ElementInfo::new(0, vec!(),
+                                                                0, vec!(),
                                                                     Namespace(BTreeMap::<String, String>::new())),
                                                                 vec!(), vec!(), vec!(),
                                                                 vec!(
                                                                 )
                                                             )),
                                                             Box::new(DirectElement::new(
-                                                                OwnedName{local_name: "appinfo".to_string(),
+                                                                ElementInfo::new(
+                        OwnedName{local_name: "appinfo".to_string(),
                                                                     namespace: None, prefix: None},
-                                                                ElementInfo::new(0, vec!(),
+                                                                0, vec!(),
+                                                                    Namespace(BTreeMap::<String, String>::new())),
+                                                                vec!(), vec!(), vec!(),
+                                                                vec!(
+                                                                )
+                                                            )),
+                                                        )
+                                                    )),
+                                                )
+                                            )),
+                                        )
+                                    )),
+                                )
+                            )),
+                            Box::new(DirectElement::new(
+                                ElementInfo::new(
+                        OwnedName{local_name: "complexContent".to_string(),
+                                    namespace: None, prefix: None},
+                                0, vec!(),
+                                    Namespace(BTreeMap::<String, String>::new())),
+                                vec!(), vec!(), vec!(),
+                                vec!(
+                                    Box::new(DirectElement::new(
+                                        ElementInfo::new(
+                        OwnedName{local_name: "extension".to_string(),
+                                            namespace: None, prefix: None},
+                                        0, vec!(),
+                                            Namespace(BTreeMap::<String, String>::new())),
+                                        vec!(), vec!(), vec!(),
+                                        vec!(
+                                            Box::new(DirectElement::new(
+                                                ElementInfo::new(
+                        OwnedName{local_name: "attribute".to_string(),
+                                                    namespace: None, prefix: None},
+                                                0, vec!(),
+                                                    Namespace(BTreeMap::<String, String>::new())),
+                                                vec!(), vec!(), vec!(),
+                                                vec!(
+                                                    Box::new(DirectElement::new(
+                                                        ElementInfo::new(
+                        OwnedName{local_name: "annotation".to_string(),
+                                                            namespace: None, prefix: None},
+                                                        0, vec!(),
+                                                            Namespace(BTreeMap::<String, String>::new())),
+                                                        vec!(), vec!(), vec!(),
+                                                        vec!(
+                                                            Box::new(DirectElement::new(
+                                                                ElementInfo::new(
+                        OwnedName{local_name: "documentation".to_string(),
+                                                                    namespace: None, prefix: None},
+                                                                0, vec!(),
+                                                                    Namespace(BTreeMap::<String, String>::new())),
+                                                                vec!(), vec!(), vec!(),
+                                                                vec!(
+                                                                )
+                                                            )),
+                                                            Box::new(DirectElement::new(
+                                                                ElementInfo::new(
+                        OwnedName{local_name: "appinfo".to_string(),
+                                                                    namespace: None, prefix: None},
+                                                                0, vec!(),
                                                                     Namespace(BTreeMap::<String, String>::new())),
                                                                 vec!(), vec!(), vec!(),
                                                                 vec!(
@@ -663,23 +737,26 @@ lazy_static! {
                                                 )
                                             )),
                                             Box::new(DirectElement::new(
-                                                OwnedName{local_name: "choice".to_string(),
+                                                ElementInfo::new(
+                        OwnedName{local_name: "choice".to_string(),
                                                     namespace: None, prefix: None},
-                                                ElementInfo::new(0, vec!(),
+                                                0, vec!(),
                                                     Namespace(BTreeMap::<String, String>::new())),
                                                 vec!(), vec!(), vec!(),
                                                 vec!(
                                                     Box::new(DirectElement::new(
-                                                        OwnedName{local_name: "annotation".to_string(),
+                                                        ElementInfo::new(
+                        OwnedName{local_name: "annotation".to_string(),
                                                             namespace: None, prefix: None},
-                                                        ElementInfo::new(0, vec!(),
+                                                        0, vec!(),
                                                             Namespace(BTreeMap::<String, String>::new())),
                                                         vec!(), vec!(), vec!(),
                                                         vec!(
                                                             Box::new(DirectElement::new(
-                                                                OwnedName{local_name: "documentation".to_string(),
+                                                                ElementInfo::new(
+                        OwnedName{local_name: "documentation".to_string(),
                                                                     namespace: None, prefix: None},
-                                                                ElementInfo::new(0, vec!(),
+                                                                0, vec!(),
                                                                     Namespace(BTreeMap::<String, String>::new())),
                                                                 vec!(), vec!(), vec!(),
                                                                 vec!(
@@ -688,23 +765,26 @@ lazy_static! {
                                                         )
                                                     )),
                                                     Box::new(DirectElement::new(
-                                                        OwnedName{local_name: "element".to_string(),
+                                                        ElementInfo::new(
+                        OwnedName{local_name: "element".to_string(),
                                                             namespace: None, prefix: None},
-                                                        ElementInfo::new(0, vec!(),
+                                                        0, vec!(),
                                                             Namespace(BTreeMap::<String, String>::new())),
                                                         vec!(), vec!(), vec!(),
                                                         vec!(
                                                             Box::new(DirectElement::new(
-                                                                OwnedName{local_name: "annotation".to_string(),
+                                                                ElementInfo::new(
+                        OwnedName{local_name: "annotation".to_string(),
                                                                     namespace: None, prefix: None},
-                                                                ElementInfo::new(0, vec!(),
+                                                                0, vec!(),
                                                                     Namespace(BTreeMap::<String, String>::new())),
                                                                 vec!(), vec!(), vec!(),
                                                                 vec!(
                                                                     Box::new(DirectElement::new(
-                                                                        OwnedName{local_name: "documentation".to_string(),
+                                                                        ElementInfo::new(
+                        OwnedName{local_name: "documentation".to_string(),
                                                                             namespace: None, prefix: None},
-                                                                        ElementInfo::new(0, vec!(),
+                                                                        0, vec!(),
                                                                             Namespace(BTreeMap::<String, String>::new())),
                                                                         vec!(), vec!(), vec!(),
                                                                         vec!(
@@ -717,32 +797,36 @@ lazy_static! {
                                                 )
                                             )),
                                             Box::new(DirectElement::new(
-                                                OwnedName{local_name: "sequence".to_string(),
+                                                ElementInfo::new(
+                        OwnedName{local_name: "sequence".to_string(),
                                                     namespace: None, prefix: None},
-                                                ElementInfo::new(0, vec!(),
+                                                0, vec!(),
                                                     Namespace(BTreeMap::<String, String>::new())),
                                                 vec!(), vec!(), vec!(),
                                                 vec!(
                                                     Box::new(DirectElement::new(
-                                                        OwnedName{local_name: "annotation".to_string(),
+                                                        ElementInfo::new(
+                        OwnedName{local_name: "annotation".to_string(),
                                                             namespace: None, prefix: None},
-                                                        ElementInfo::new(0, vec!(),
+                                                        0, vec!(),
                                                             Namespace(BTreeMap::<String, String>::new())),
                                                         vec!(), vec!(), vec!(),
                                                         vec!(
                                                             Box::new(DirectElement::new(
-                                                                OwnedName{local_name: "documentation".to_string(),
+                                                                ElementInfo::new(
+                        OwnedName{local_name: "documentation".to_string(),
                                                                     namespace: None, prefix: None},
-                                                                ElementInfo::new(0, vec!(),
+                                                                0, vec!(),
                                                                     Namespace(BTreeMap::<String, String>::new())),
                                                                 vec!(), vec!(), vec!(),
                                                                 vec!(
                                                                 )
                                                             )),
                                                             Box::new(DirectElement::new(
-                                                                OwnedName{local_name: "appinfo".to_string(),
+                                                                ElementInfo::new(
+                        OwnedName{local_name: "appinfo".to_string(),
                                                                     namespace: None, prefix: None},
-                                                                ElementInfo::new(0, vec!(),
+                                                                0, vec!(),
                                                                     Namespace(BTreeMap::<String, String>::new())),
                                                                 vec!(), vec!(), vec!(),
                                                                 vec!(
@@ -751,23 +835,26 @@ lazy_static! {
                                                         )
                                                     )),
                                                     Box::new(DirectElement::new(
-                                                        OwnedName{local_name: "choice".to_string(),
+                                                        ElementInfo::new(
+                        OwnedName{local_name: "choice".to_string(),
                                                             namespace: None, prefix: None},
-                                                        ElementInfo::new(0, vec!(),
+                                                        0, vec!(),
                                                             Namespace(BTreeMap::<String, String>::new())),
                                                         vec!(), vec!(), vec!(),
                                                         vec!(
                                                             Box::new(DirectElement::new(
-                                                                OwnedName{local_name: "annotation".to_string(),
+                                                                ElementInfo::new(
+                        OwnedName{local_name: "annotation".to_string(),
                                                                     namespace: None, prefix: None},
-                                                                ElementInfo::new(0, vec!(),
+                                                                0, vec!(),
                                                                     Namespace(BTreeMap::<String, String>::new())),
                                                                 vec!(), vec!(), vec!(),
                                                                 vec!(
                                                                     Box::new(DirectElement::new(
-                                                                        OwnedName{local_name: "documentation".to_string(),
+                                                                        ElementInfo::new(
+                        OwnedName{local_name: "documentation".to_string(),
                                                                             namespace: None, prefix: None},
-                                                                        ElementInfo::new(0, vec!(),
+                                                                        0, vec!(),
                                                                             Namespace(BTreeMap::<String, String>::new())),
                                                                         vec!(), vec!(), vec!(),
                                                                         vec!(
@@ -776,23 +863,26 @@ lazy_static! {
                                                                 )
                                                             )),
                                                             Box::new(DirectElement::new(
-                                                                OwnedName{local_name: "choice".to_string(),
+                                                                ElementInfo::new(
+                        OwnedName{local_name: "choice".to_string(),
                                                                     namespace: None, prefix: None},
-                                                                ElementInfo::new(0, vec!(),
+                                                                0, vec!(),
                                                                     Namespace(BTreeMap::<String, String>::new())),
                                                                 vec!(), vec!(), vec!(),
                                                                 vec!(
                                                                     Box::new(DirectElement::new(
-                                                                        OwnedName{local_name: "annotation".to_string(),
+                                                                        ElementInfo::new(
+                        OwnedName{local_name: "annotation".to_string(),
                                                                             namespace: None, prefix: None},
-                                                                        ElementInfo::new(0, vec!(),
+                                                                        0, vec!(),
                                                                             Namespace(BTreeMap::<String, String>::new())),
                                                                         vec!(), vec!(), vec!(),
                                                                         vec!(
                                                                             Box::new(DirectElement::new(
-                                                                                OwnedName{local_name: "documentation".to_string(),
+                                                                                ElementInfo::new(
+                        OwnedName{local_name: "documentation".to_string(),
                                                                                     namespace: None, prefix: None},
-                                                                                ElementInfo::new(0, vec!(),
+                                                                                0, vec!(),
                                                                                     Namespace(BTreeMap::<String, String>::new())),
                                                                                 vec!(), vec!(), vec!(),
                                                                                 vec!(
@@ -801,23 +891,26 @@ lazy_static! {
                                                                         )
                                                                     )),
                                                                     Box::new(DirectElement::new(
-                                                                        OwnedName{local_name: "element".to_string(),
+                                                                        ElementInfo::new(
+                        OwnedName{local_name: "element".to_string(),
                                                                             namespace: None, prefix: None},
-                                                                        ElementInfo::new(0, vec!(),
+                                                                        0, vec!(),
                                                                             Namespace(BTreeMap::<String, String>::new())),
                                                                         vec!(), vec!(), vec!(),
                                                                         vec!(
                                                                             Box::new(DirectElement::new(
-                                                                                OwnedName{local_name: "annotation".to_string(),
+                                                                                ElementInfo::new(
+                        OwnedName{local_name: "annotation".to_string(),
                                                                                     namespace: None, prefix: None},
-                                                                                ElementInfo::new(0, vec!(),
+                                                                                0, vec!(),
                                                                                     Namespace(BTreeMap::<String, String>::new())),
                                                                                 vec!(), vec!(), vec!(),
                                                                                 vec!(
                                                                                     Box::new(DirectElement::new(
-                                                                                        OwnedName{local_name: "documentation".to_string(),
+                                                                                        ElementInfo::new(
+                        OwnedName{local_name: "documentation".to_string(),
                                                                                             namespace: None, prefix: None},
-                                                                                        ElementInfo::new(0, vec!(),
+                                                                                        0, vec!(),
                                                                                             Namespace(BTreeMap::<String, String>::new())),
                                                                                         vec!(), vec!(), vec!(),
                                                                                         vec!(
@@ -830,23 +923,26 @@ lazy_static! {
                                                                 )
                                                             )),
                                                             Box::new(DirectElement::new(
-                                                                OwnedName{local_name: "element".to_string(),
+                                                                ElementInfo::new(
+                        OwnedName{local_name: "element".to_string(),
                                                                     namespace: None, prefix: None},
-                                                                ElementInfo::new(0, vec!(),
+                                                                0, vec!(),
                                                                     Namespace(BTreeMap::<String, String>::new())),
                                                                 vec!(), vec!(), vec!(),
                                                                 vec!(
                                                                     Box::new(DirectElement::new(
-                                                                        OwnedName{local_name: "annotation".to_string(),
+                                                                        ElementInfo::new(
+                        OwnedName{local_name: "annotation".to_string(),
                                                                             namespace: None, prefix: None},
-                                                                        ElementInfo::new(0, vec!(),
+                                                                        0, vec!(),
                                                                             Namespace(BTreeMap::<String, String>::new())),
                                                                         vec!(), vec!(), vec!(),
                                                                         vec!(
                                                                             Box::new(DirectElement::new(
-                                                                                OwnedName{local_name: "documentation".to_string(),
+                                                                                ElementInfo::new(
+                        OwnedName{local_name: "documentation".to_string(),
                                                                                     namespace: None, prefix: None},
-                                                                                ElementInfo::new(0, vec!(),
+                                                                                0, vec!(),
                                                                                     Namespace(BTreeMap::<String, String>::new())),
                                                                                 vec!(), vec!(), vec!(),
                                                                                 vec!(
@@ -859,32 +955,36 @@ lazy_static! {
                                                         )
                                                     )),
                                                     Box::new(DirectElement::new(
-                                                        OwnedName{local_name: "element".to_string(),
+                                                        ElementInfo::new(
+                        OwnedName{local_name: "element".to_string(),
                                                             namespace: None, prefix: None},
-                                                        ElementInfo::new(0, vec!(),
+                                                        0, vec!(),
                                                             Namespace(BTreeMap::<String, String>::new())),
                                                         vec!(), vec!(), vec!(),
                                                         vec!(
                                                             Box::new(DirectElement::new(
-                                                                OwnedName{local_name: "annotation".to_string(),
+                                                                ElementInfo::new(
+                        OwnedName{local_name: "annotation".to_string(),
                                                                     namespace: None, prefix: None},
-                                                                ElementInfo::new(0, vec!(),
+                                                                0, vec!(),
                                                                     Namespace(BTreeMap::<String, String>::new())),
                                                                 vec!(), vec!(), vec!(),
                                                                 vec!(
                                                                     Box::new(DirectElement::new(
-                                                                        OwnedName{local_name: "documentation".to_string(),
+                                                                        ElementInfo::new(
+                        OwnedName{local_name: "documentation".to_string(),
                                                                             namespace: None, prefix: None},
-                                                                        ElementInfo::new(0, vec!(),
+                                                                        0, vec!(),
                                                                             Namespace(BTreeMap::<String, String>::new())),
                                                                         vec!(), vec!(), vec!(),
                                                                         vec!(
                                                                         )
                                                                     )),
                                                                     Box::new(DirectElement::new(
-                                                                        OwnedName{local_name: "appinfo".to_string(),
+                                                                        ElementInfo::new(
+                        OwnedName{local_name: "appinfo".to_string(),
                                                                             namespace: None, prefix: None},
-                                                                        ElementInfo::new(0, vec!(),
+                                                                        0, vec!(),
                                                                             Namespace(BTreeMap::<String, String>::new())),
                                                                         vec!(), vec!(), vec!(),
                                                                         vec!(
@@ -893,16 +993,18 @@ lazy_static! {
                                                                 )
                                                             )),
                                                             Box::new(DirectElement::new(
-                                                                OwnedName{local_name: "complexType".to_string(),
+                                                                ElementInfo::new(
+                        OwnedName{local_name: "complexType".to_string(),
                                                                     namespace: None, prefix: None},
-                                                                ElementInfo::new(0, vec!(),
+                                                                0, vec!(),
                                                                     Namespace(BTreeMap::<String, String>::new())),
                                                                 vec!(), vec!(), vec!(),
                                                                 vec!(
                                                                     Box::new(DirectElement::new(
-                                                                        OwnedName{local_name: "complexContent".to_string(),
+                                                                        ElementInfo::new(
+                        OwnedName{local_name: "complexContent".to_string(),
                                                                             namespace: None, prefix: None},
-                                                                        ElementInfo::new(0, vec!(),
+                                                                        0, vec!(),
                                                                             Namespace(BTreeMap::<String, String>::new())),
                                                                         vec!(), vec!(), vec!(),
                                                                         vec!(
@@ -921,23 +1023,26 @@ lazy_static! {
                         )
                     )),
                     Box::new(DirectElement::new(
+                        ElementInfo::new(
                         OwnedName{local_name: "simpleType".to_string(),
                             namespace: None, prefix: None},
-                        ElementInfo::new(0, vec!(),
+                        0, vec!(),
                             Namespace(BTreeMap::<String, String>::new())),
                         vec!(), vec!(), vec!(),
                         vec!(
                             Box::new(DirectElement::new(
-                                OwnedName{local_name: "annotation".to_string(),
+                                ElementInfo::new(
+                        OwnedName{local_name: "annotation".to_string(),
                                     namespace: None, prefix: None},
-                                ElementInfo::new(0, vec!(),
+                                0, vec!(),
                                     Namespace(BTreeMap::<String, String>::new())),
                                 vec!(), vec!(), vec!(),
                                 vec!(
                                     Box::new(DirectElement::new(
-                                        OwnedName{local_name: "documentation".to_string(),
+                                        ElementInfo::new(
+                        OwnedName{local_name: "documentation".to_string(),
                                             namespace: None, prefix: None},
-                                        ElementInfo::new(0, vec!(),
+                                        0, vec!(),
                                             Namespace(BTreeMap::<String, String>::new())),
                                         vec!(), vec!(), vec!(),
                                         vec!(
@@ -946,23 +1051,26 @@ lazy_static! {
                                 )
                             )),
                             Box::new(DirectElement::new(
-                                OwnedName{local_name: "enumeration".to_string(),
+                                ElementInfo::new(
+                        OwnedName{local_name: "enumeration".to_string(),
                                     namespace: None, prefix: None},
-                                ElementInfo::new(0, vec!(),
+                                0, vec!(),
                                     Namespace(BTreeMap::<String, String>::new())),
                                 vec!(), vec!(), vec!(),
                                 vec!(
                                     Box::new(DirectElement::new(
-                                        OwnedName{local_name: "annotation".to_string(),
+                                        ElementInfo::new(
+                        OwnedName{local_name: "annotation".to_string(),
                                             namespace: None, prefix: None},
-                                        ElementInfo::new(0, vec!(),
+                                        0, vec!(),
                                             Namespace(BTreeMap::<String, String>::new())),
                                         vec!(), vec!(), vec!(),
                                         vec!(
                                             Box::new(DirectElement::new(
-                                                OwnedName{local_name: "documentation".to_string(),
+                                                ElementInfo::new(
+                        OwnedName{local_name: "documentation".to_string(),
                                                     namespace: None, prefix: None},
-                                                ElementInfo::new(0, vec!(),
+                                                0, vec!(),
                                                     Namespace(BTreeMap::<String, String>::new())),
                                                 vec!(), vec!(), vec!(),
                                                 vec!(
@@ -973,66 +1081,74 @@ lazy_static! {
                                 )
                             )),
                             Box::new(DirectElement::new(
-                                OwnedName{local_name: "restriction".to_string(),
+                                ElementInfo::new(
+                        OwnedName{local_name: "restriction".to_string(),
                                     namespace: None, prefix: None},
-                                ElementInfo::new(0, vec!(),
+                                0, vec!(),
                                     Namespace(BTreeMap::<String, String>::new())),
                                 vec!(), vec!(), vec!(),
                                 vec!(
                                     Box::new(DirectElement::new(
-                                        OwnedName{local_name: "maxInclusive".to_string(),
+                                        ElementInfo::new(
+                        OwnedName{local_name: "maxInclusive".to_string(),
                                             namespace: None, prefix: None},
-                                        ElementInfo::new(0, vec!(),
+                                        0, vec!(),
                                             Namespace(BTreeMap::<String, String>::new())),
                                         vec!(), vec!(), vec!(),
                                         vec!(
                                         )
                                     )),
                                     Box::new(DirectElement::new(
-                                        OwnedName{local_name: "minInclusive".to_string(),
+                                        ElementInfo::new(
+                        OwnedName{local_name: "minInclusive".to_string(),
                                             namespace: None, prefix: None},
-                                        ElementInfo::new(0, vec!(),
+                                        0, vec!(),
                                             Namespace(BTreeMap::<String, String>::new())),
                                         vec!(), vec!(), vec!(),
                                         vec!(
                                         )
                                     )),
                                     Box::new(DirectElement::new(
-                                        OwnedName{local_name: "pattern".to_string(),
+                                        ElementInfo::new(
+                        OwnedName{local_name: "pattern".to_string(),
                                             namespace: None, prefix: None},
-                                        ElementInfo::new(0, vec!(),
+                                        0, vec!(),
                                             Namespace(BTreeMap::<String, String>::new())),
                                         vec!(), vec!(), vec!(),
                                         vec!(
                                         )
                                     )),
                                     Box::new(DirectElement::new(
+                                        ElementInfo::new(
                                         OwnedName{local_name: "enumeration".to_string(),
                                             namespace: None, prefix: None},
-                                        ElementInfo::new(0, vec!(),
+                                        0, vec!(),
                                             Namespace(BTreeMap::<String, String>::new())),
                                         vec!(), vec!(), vec!(),
                                         vec!(
                                             Box::new(DirectElement::new(
-                                                OwnedName{local_name: "annotation".to_string(),
+                                                ElementInfo::new(
+                                                    OwnedName{local_name: "annotation".to_string(),
                                                     namespace: None, prefix: None},
-                                                ElementInfo::new(0, vec!(),
+                                                    0, vec!(),
                                                     Namespace(BTreeMap::<String, String>::new())),
                                                 vec!(), vec!(), vec!(),
                                                 vec!(
                                                     Box::new(DirectElement::new(
+                                                        ElementInfo::new(
                                                         OwnedName{local_name: "documentation".to_string(),
                                                             namespace: None, prefix: None},
-                                                        ElementInfo::new(0, vec!(),
+                                                        0, vec!(),
                                                             Namespace(BTreeMap::<String, String>::new())),
                                                         vec!(), vec!(), vec!(),
                                                         vec!(
                                                         )
                                                     )),
                                                     Box::new(DirectElement::new(
-                                                        OwnedName{local_name: "appinfo".to_string(),
+                                                            ElementInfo::new(
+                                                            OwnedName{local_name: "appinfo".to_string(),
                                                             namespace: None, prefix: None},
-                                                        ElementInfo::new(0, vec!(),
+                                                        0, vec!(),
                                                             Namespace(BTreeMap::<String, String>::new())),
                                                         vec!(), vec!(), vec!(),
                                                         vec!(
@@ -1045,9 +1161,10 @@ lazy_static! {
                                 )
                             )),
                             Box::new(DirectElement::new(
+                                ElementInfo::new(
                                 OwnedName{local_name: "union".to_string(),
                                     namespace: None, prefix: None},
-                                ElementInfo::new(0, vec!(),
+                                0, vec!(),
                                     Namespace(BTreeMap::<String, String>::new())),
                                 vec!(), vec!(), vec!(),
                                 vec!(

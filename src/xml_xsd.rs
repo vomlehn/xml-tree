@@ -1,25 +1,27 @@
+use std::io;
+use std::io::Write;
 use std::fmt;
 use std::ops::{ControlFlow, FromResidual, Try};
-use xml::name::OwnedName;
 
 use crate::parser::LineNumber;
 use crate::walk_and_print::nl_indent;
 pub use crate::xml_document_error::XmlDocumentError;
 use crate::xml_document_factory::{Accumulator, DirectElement, DocumentInfo, Element, ElementInfo, LevelInfo, XmlDocumentFactory};
 
-pub fn xxx(f: &mut fmt::Formatter<'_>, depth: usize, xml_doc: &XmlXsd) -> fmt::Result
+pub fn xxx(stdout: &mut io::Stdout, depth: usize, xml_doc: &XmlXsd) -> io::Result<()>
+//pub fn xxx(stdout: &mut io::Stdout, depth: usize, xml_doc: &XmlXsd) -> fmt::Result
 {
     let mut indent_str = nl_indent(depth);
-    write!(f, "{}XmlXsd::new(", indent_str)?;
+    write!(stdout, "{}XmlXsd::new(", indent_str)?;
 
     indent_str = nl_indent(depth + 1);
     let doc_info = &xml_doc.document_info;
-    write!(f, "{}DocumentInfo::new(", indent_str)?;
-    write!(f, "XmlVersion::Version10, ")?;
-    write!(f, "\"{}\".to_string(), ", doc_info.encoding)?;
-    write!(f, "{}", if doc_info.standalone.is_none() { "None" }
+    write!(stdout, "{}DocumentInfo::new(", indent_str)?;
+    write!(stdout, "XmlVersion::Version10, ")?;
+    write!(stdout, "\"{}\".to_string(), ", doc_info.encoding)?;
+    write!(stdout, "{}", if doc_info.standalone.is_none() { "None" }
         else if doc_info.standalone.unwrap() {"true"} else {"false"})?;
-    write!(f, "),")?;
+    write!(stdout, "),")?;
 
 /*
     let mut bl = PrintBaseLevel::new(f);
@@ -36,11 +38,15 @@ pub struct XmlXsd {
 }
 
 impl XmlXsd {
-    pub fn new(document_info: DocumentInfo, root: Box<dyn Element>) -> Self {
-        XmlXsd {
+    pub fn new(document_info: DocumentInfo, root: Box<dyn Element>) -> Result<Self, io::Error> {
+        let xml_xsd = XmlXsd {
             document_info,
             root,
-        }
+        };
+
+println!("calling xxx");
+        xxx(&mut io::stdout(), 0, &xml_xsd)?;
+        Ok(xml_xsd)
     }
 }
 
@@ -110,10 +116,10 @@ impl LevelInfo for XsdLevelInfo
         }
     }
 
-    fn accumulator(&self, name: OwnedName, element_info: ElementInfo) ->
+    fn accumulator(&self, element_info: ElementInfo) ->
         Box<dyn crate::xml_document_factory::Accumulator<Result = Result<Box<dyn Element + 'static>, XmlDocumentError>, Value = Box<dyn Element + 'static>> + 'static> {
-        print!("{}{}", nl_indent(self.depth), name.local_name);
-        Box::new(XsdAccumulator::new(name, element_info))
+        print!("{}{}", nl_indent(self.depth), element_info.owned_name.local_name);
+        Box::new(XsdAccumulator::new(element_info))
     }
 }
 
@@ -129,8 +135,8 @@ pub struct XsdAccumulator {
 }
 
 impl XsdAccumulator {
-    pub fn new(name: OwnedName, element_info: ElementInfo) -> Self {
-        let element = Box::new(DirectElement::new(name, element_info, vec!(), vec!(), vec!(), vec!()));
+    pub fn new(element_info: ElementInfo) -> Self {
+        let element = Box::new(DirectElement::new(element_info, vec!(), vec!(), vec!(), vec!()));
 
         XsdAccumulator {
             element,
