@@ -33,28 +33,17 @@ impl ParseDoc for ParseTree {
 
 impl LevelInfo for TreeLevelInfo {
     type AccumulatorType = TreeAccumulator;
-//    type Value = Box<dyn Element>;
 
     fn next_level(&self) -> Self {
         TreeLevelInfo
     }
 
     fn create_accumulator(&self, element_info: ElementInfo) ->
-//        Result<Box<dyn Accumulator<Value = Box<dyn Element>>>, XmlDocumentError>
         Result<TreeAccumulator, XmlDocumentError>
     {
         Ok(TreeAccumulator::new(element_info))
     }
 }
-
-/*
-impl ParseDoc for ParseTree
-{
-    type LI = TreeLevelInfo;
-    type AC = TreeAccumulator;
-//    type RES = Result<Box<dyn Element>, XmlDocumentError>;
-}
-*/
 
 impl fmt::Display for ParseTree {
     fn fmt(&self, _f: &mut fmt::Formatter<'_>) -> fmt::Result
@@ -86,7 +75,6 @@ impl FromResidual for ParseTree {
     { todo!() }
 }
 
-type ParseTreeResult = Box<dyn Element>;
 /// LevelInfo that doesn't track depth - just creates tree nodes
 #[derive(Debug, Clone)]
 pub struct TreeLevelInfo;
@@ -96,22 +84,6 @@ impl TreeLevelInfo {
         TreeLevelInfo
     }
 }
-
-/*
-impl LevelInfo for TreeLevelInfo {
-    type AccumulatorType = TreeAccumulator;
-
-    fn next_level(&self) -> Self {
-        TreeLevelInfo  // Depth doesn't matter for tree building
-    }
-    
-    fn create_accumulator(&self, element_info: ElementInfo) -> 
-        Result<TreeAccumulator, XmlDocumentError> 
-    {
-        Ok(TreeAccumulator::new(element_info))
-    }
-}
-*/
 
 /// Accumulator that builds actual element tree
 pub struct TreeAccumulator {

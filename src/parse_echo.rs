@@ -5,9 +5,8 @@
 use std::fmt;
 use std::ops::{ControlFlow, FromResidual, Try};
 
-use crate::element::{DirectElement, Element, ElementInfo};
+use crate::element::{Element, ElementInfo};
 use crate::parse_item::LineNumber;
-use crate::walk_print::nl_indent;
 pub use crate::xml_document_error::XmlDocumentError;
 use crate::parse_doc::{Accumulator, LevelInfo, ParseDoc};
 use crate::document::DocumentInfo;
@@ -29,11 +28,9 @@ impl XmlEcho {
 impl ParseDoc for XmlEcho {
     type LI = EchoLevelInfo;
     type AC = EchoAccumulator;
-    // No AC type needed anymore
 }
 
 impl LevelInfo for EchoLevelInfo {
-//    type Value = ();
     type AccumulatorType = EchoAccumulator;
 
     fn next_level(&self) -> Self {
@@ -41,22 +38,12 @@ impl LevelInfo for EchoLevelInfo {
     }
 
     fn create_accumulator(&self, element_info: ElementInfo) ->
-//        Result<Box<dyn Accumulator<Value = ()>>, XmlDocumentError>
         Result<EchoAccumulator, XmlDocumentError>
     {
         println!("{}<{}>", "  ".repeat(self.depth), element_info.owned_name.local_name);
         Ok(EchoAccumulator::new(element_info, self.depth))
     }
 }
-
-/*
-impl ParseDoc for XmlEcho
-{
-    type LI = EchoLevelInfo;
-    type AC = EchoAccumulator;
-//    type RES = Result<(), XmlDocumentError>;
-}
-*/
 
 impl fmt::Display for XmlEcho {
 // FIXME: make this work
@@ -90,8 +77,6 @@ impl FromResidual for XmlEcho {
     { todo!() }
 }
 
-type XmlEchoResult = Box<dyn Element>;
-
 /// LevelInfo that tracks depth for indented output
 #[derive(Debug, Clone)]
 pub struct EchoLevelInfo {
@@ -103,24 +88,6 @@ impl EchoLevelInfo {
         EchoLevelInfo { depth: 0 }
     }
 }
-
-/*
-impl LevelInfo for EchoLevelInfo {
-    type AccumulatorType = EchoAccumulator;
-
-    fn next_level(&self) -> Self {
-        EchoLevelInfo { depth: self.depth + 1 }
-    }
-    
-    fn create_accumulator(&self, element_info: ElementInfo) -> 
-        Result<EchoAccumulator, XmlDocumentError> 
-    {
-        // Print the element with proper indentation
-        println!("{}<{}>", "  ".repeat(self.depth), element_info.owned_name.local_name);
-        Ok(EchoAccumulator::new(element_info, self.depth))
-    }
-}
-*/
 
 /// Accumulator that just echoes structure (doesn't build elements)
 pub struct EchoAccumulator {
@@ -144,7 +111,7 @@ impl EchoAccumulator {
 impl Accumulator for EchoAccumulator {
     type Value = ();  // Echo doesn't return meaningful data
 
-    fn start_subelement(&mut self, element_info: &ElementInfo) {
+    fn start_subelement(&mut self, _element_info: &ElementInfo) {
         // Nothing special needed
     }
     

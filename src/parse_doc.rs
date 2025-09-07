@@ -10,11 +10,8 @@ use std::fs::File;
 use std::io::{BufReader, Read};
 use xml::reader::XmlEvent;
 
-//use xml_tree::{Element, set_banner_file_name, XmlDocumentError};
-
-
 use crate::document::DocumentInfo;
-use crate::element::{DirectElement, Element, ElementInfo};
+use crate::element::{ElementInfo};
 use crate::parse_item::{LineNumber, Parser};
 pub use crate::xml_document_error::XmlDocumentError;
 
@@ -86,8 +83,9 @@ pub trait ParseDoc {
             Ok(doc_info) => doc_info,
         };
 
-        // Read the next XML event, which is expected to be the start of an element. We use a
-        // lookahead so that we can be specific about an error if one occurred
+        // Read the next XML event, which is expected to be the start of an
+        // element. We use a lookahead so that we can be specific about an error
+        // if one occurred
         let xml_element = match parse_item.lookahead() {
             Err(e) => return Err(e),
             Ok(xml_elem) => xml_elem,
@@ -269,4 +267,3 @@ pub trait Accumulator {
     /// Get element line number (for error reporting)
     fn element_lineno(&self) -> LineNumber;
 }
-

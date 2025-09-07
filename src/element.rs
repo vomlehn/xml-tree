@@ -13,10 +13,7 @@ use xml::reader::XmlEvent;
 
 // FIXME: split into walk and parse sets of errors
 //use crate::xml_document_error::XmlDocumentError;
-//use crate::parse_tree::ParseTree;
 use crate::parse_item::LineNumber;
-//use crate::parse_doc::ParseDoc;
-use crate::parse_doc::Accumulator;
 // FIXME: not sure where these should really reside
 use crate::walk_print::{nl_indent, vec_display, XmlDisplay};
 
@@ -40,20 +37,6 @@ pub trait Element: DynClone {
     fn lineno(&self) -> LineNumber;
     fn subelements(&self) -> &Vec<Box<dyn Element>>;
     fn subelements_mut(&mut self) -> &mut Vec<Box<dyn Element>>;
-
-/*
-    /*
-     * Set up to process an element
-     */
-    fn start(&self) -> Accumulator;
-*/
-
-/*
-    /**
-     * Return the final result from processing an Element
-     */
-    fn end(&self, accumulator: Accumulator) -> Result<Self::Value, XmlDocumentError>;
-*/
 }
 
 #[derive(Clone, Debug)]
