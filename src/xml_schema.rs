@@ -1,6 +1,10 @@
 /*
  * Define the data structures used to describe the XML used for parsing.
  */
+
+/*
+ * FIXME: remove this, probably
+ *
 // FIXME: make sure errors returned are appropriate
 
 use std::fmt;
@@ -8,7 +12,7 @@ use std::fmt;
 
 use crate::banner::write_banner_file;
 use crate::xml_tree::XmlTree;
-use crate::walk_and_print::{nl_indent, print_walk, XmlDisplay};
+use crate::walk_print::{nl_indent, print_walk, XmlDisplay};
 
 pub struct XmlSchema<'a> {
     pub inner: XmlSchemaInner<'a>,
@@ -114,7 +118,7 @@ fn front_matter_display(f: &mut fmt::Formatter, depth: usize) -> fmt::Result {
         "use xml::namespace::Namespace;",
         "",
         "use crate::xml_document::DirectElement;", 
-        "use crate::xml_document_factory::{DocumentInfo, ElementInfo};",
+        "use crate::parse_tree::{DocumentInfo, ElementInfo};",
         "use crate::xml_schema::XmlSchema;", 
         "use crate::XmlTree;",
         "", 
@@ -149,3 +153,4 @@ fn back_matter_display(f: &mut fmt::Formatter, depth: usize) -> fmt::Result {
 // FIXME: is this needed?
 // write!(f, "\n")
 }
+*/

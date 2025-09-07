@@ -1,3 +1,6 @@
+/*
+ * FIXME: parts of thisthis should probaby go away
+ */
 /**
  * Basic structure for recursive printing
  */
@@ -5,13 +8,51 @@
 use std::fmt;
 
 // FIXME: delete xml_tree::Element
-use crate::xml_tree::XmlTree;
-use crate::xml_document_factory::Element;
-use crate::walkable::{Accumulator/*, BaseLevel*/, ElemData/*, Walkable*/};
-use crate::walkable::walk;
+//use crate::xml_tree::XmlTree;
+//use crate::parse_tree::Element;
+//use crate::walkable::{Accumulator/*, BaseLevel*/, ElemData/*, Walkable*/};
+//use crate::walkable::walk;
 
 const INDENT: &str = "    ";
 
+pub fn nl_indent(n: usize) -> String {
+    "\n".to_owned() + &indent(n)
+}
+
+pub fn indent(n: usize) -> String {
+    INDENT.repeat(n)
+}
+
+/**
+ * Print a descriptor of the given type.
+ * f:       Formatter
+ * depth:   Indentation
+ */
+// FIXME: uses of this need to be cleaned up and consolidated
+pub fn vec_display<T>(f: &mut fmt::Formatter, depth: usize, vec: &Vec<T>) -> fmt::Result
+where
+    T:  XmlDisplay
+{
+    if vec.is_empty() {
+        write!(f, "vec!()")?;
+    } else {
+        write!(f, "{}vec!(", nl_indent(depth + 1))?;
+        for elem in vec {
+                elem.print(f, depth)?;
+        }
+        write!(f, "{})", nl_indent(depth))?;
+    }
+
+    Ok(())
+}
+
+pub trait XmlDisplay
+{
+    fn print(&self, f: &mut fmt::Formatter<'_>, depth: usize) -> fmt::Result;
+}
+
+/*
+ * FIXME: delete the following, probably
 pub fn print_walk(f: &mut fmt::Formatter<'_>, depth: usize, xml_doc: &XmlTree) -> fmt::Result
 {
     let mut indent_str = nl_indent(depth);
@@ -118,19 +159,11 @@ impl ElemData<PrintAccumulator, PrintElemData> for PrintElemData {
  */
 pub type PrintWalkData = ();
 
-pub fn nl_indent(n: usize) -> String {
-    "\n".to_owned() + &indent(n)
-}
-
-pub fn indent(n: usize) -> String {
-    INDENT.repeat(n)
-}
-
 #[cfg(test)]
 mod print_tests {
 
     use crate::xml_document::{create_test_doc, Element, XmlTree};
-    use crate::xml_document_factory::{DocumentInfo};
+    use crate::parse_tree::{DocumentInfo};
 
     use super::WalkAndPrint;
 
@@ -145,31 +178,4 @@ mod print_tests {
         println!("{}", po);
     }
 }
-
-/**
- * Print a descriptor of the given type.
- * f:       Formatter
- * depth:   Indentation
- */
-// FIXME: uses of this need to be cleaned up and consolidated
-pub fn vec_display<T>(f: &mut fmt::Formatter, depth: usize, vec: &Vec<T>) -> fmt::Result
-where
-    T:  XmlDisplay
-{
-    if vec.is_empty() {
-        write!(f, "vec!()")?;
-    } else {
-        write!(f, "{}vec!(", nl_indent(depth + 1))?;
-        for elem in vec {
-                elem.print(f, depth)?;
-        }
-        write!(f, "{})", nl_indent(depth))?;
-    }
-
-    Ok(())
-}
-
-pub trait XmlDisplay
-{
-    fn print(&self, f: &mut fmt::Formatter<'_>, depth: usize) -> fmt::Result;
-}
+*/

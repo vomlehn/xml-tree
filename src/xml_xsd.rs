@@ -1,12 +1,13 @@
+/*
 use std::io;
 use std::io::Write;
 use std::fmt;
 use std::ops::{ControlFlow, FromResidual, Try};
 
-use crate::parser::LineNumber;
-use crate::walk_and_print::nl_indent;
+use crate::parse_item::LineNumber;
+use crate::walk_print::nl_indent;
 pub use crate::xml_document_error::XmlDocumentError;
-use crate::xml_document_factory::{Accumulator, DirectElement, DocumentInfo, Element, ElementInfo, LevelInfo, XmlDocumentFactory};
+use crate::parse_tree::{Accumulator, DirectElement, DocumentInfo, Element, ElementInfo, LevelInfo, ParseTree};
 
 pub fn xxx(stdout: &mut io::Stdout, depth: usize, xml_doc: &XmlXsd) -> io::Result<()>
 //pub fn xxx(stdout: &mut io::Stdout, depth: usize, xml_doc: &XmlXsd) -> fmt::Result
@@ -50,7 +51,7 @@ println!("calling xxx");
     }
 }
 
-impl XmlDocumentFactory for XmlXsd
+impl ParseTree for XmlXsd
 {
     type LI = XsdLevelInfo;
     type AC = XsdAccumulator;
@@ -75,7 +76,7 @@ impl fmt::Debug for XmlXsd {
 
 impl Try for XmlXsd
 {
-    type Output = <<XmlXsd as XmlDocumentFactory>::AC as Accumulator>::Value;
+    type Output = <<XmlXsd as ParseTree>::AC as Accumulator>::Value;
     type Residual = XmlDocumentError;
     fn from_output(_: <Self as Try>::Output) -> Self
     { todo!() }
@@ -117,7 +118,7 @@ impl LevelInfo for XsdLevelInfo
     }
 
     fn accumulator(&self, element_info: ElementInfo) ->
-        Box<dyn crate::xml_document_factory::Accumulator<Result = Result<Box<dyn Element + 'static>, XmlDocumentError>, Value = Box<dyn Element + 'static>> + 'static> {
+        Box<dyn crate::parse_tree::Accumulator<Result = Result<Box<dyn Element + 'static>, XmlDocumentError>, Value = Box<dyn Element + 'static>> + 'static> {
         print!("{}{}", nl_indent(self.depth), element_info.owned_name.local_name);
         Box::new(XsdAccumulator::new(element_info))
     }
@@ -180,3 +181,4 @@ impl Accumulator for XsdAccumulator
         self.element.lineno()
     }
 }
+*/

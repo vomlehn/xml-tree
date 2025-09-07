@@ -1,3 +1,8 @@
+/* 
+ * FIXME: This should probably go away
+ */
+
+/*
 /*
  * Trait for building recursive walk types
  */
@@ -8,7 +13,7 @@ use std::ops::{FromResidual, Try};
 
 // FIXME: delete xml_tree::Element
 use crate::xml_tree::XmlTree;
-use crate::xml_document_factory::Element;
+use crate::parse_tree::Element;
 
 /**
  * Data for the Element being worked on by walk_down().
@@ -99,7 +104,7 @@ mod test_tests {
     use std::fmt;
 
     use crate::xml_document::{create_test_doc, DirectElement, Element, XmlTree};
-    use crate::xml_document_factory::{DocumentInfo};
+    use crate::parse_tree::{DocumentInfo};
     use crate::walkable::{Accumulator, BaseLevel, ElemData, WalkData, Walkable};
 
     const INDENT: &str = "    ";
@@ -247,3 +252,4 @@ mod test_tests {
     }
 
 }
+*/

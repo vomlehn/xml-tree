@@ -31,7 +31,7 @@ impl fmt::Display for dyn XmlElement {
 /**
  * An XML element
  * lineno:  Line number of the start of this element
- * event:   XmlEvent returned by the XML low level parser
+ * event:   XmlEvent returned by the XML low level parse_item
  */
 #[derive(Clone, Debug)]
 pub struct XmlDirectElement {

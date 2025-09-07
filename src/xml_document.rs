@@ -6,11 +6,11 @@
 use std::fmt;
 use xml::reader::XmlEvent;
 
-use crate::xml_document_factory::Element;
-use crate::walk_and_print::XmlDisplay;
+use crate::element::Element;
+use crate::walk_print::XmlDisplay;
 
 // FIXME: where should this function go?
-use crate::walk_and_print::nl_indent;
+use crate::walk_print::nl_indent;
 
 #[cfg(test)]
 mod tests {
@@ -254,6 +254,7 @@ pub trait ElemData<ED>
     fn next_level(&self, element: &dyn Element) -> ED;
 }
 
+/*
 /**
  * Data returned by Accumulator functions.
  */
@@ -275,6 +276,7 @@ pub trait Accumulator<'a, BL, ED, WD, WR> {
     fn add(&mut self, wd: &WD) -> WR;
     fn summary(&self, bl: &mut BL) -> WR;
 }
+*/
 
 impl XmlDisplay for XmlEvent {
     fn print(&self, f: &mut fmt::Formatter<'_>, depth: usize) -> fmt::Result {

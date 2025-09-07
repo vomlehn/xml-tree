@@ -30,7 +30,7 @@ pub fn set_banner_file_name(name: Option<String>) {
     }
 }
 
-pub fn write_banner_file(f: &mut fmt::Formatter<'_>) -> fmt::Result {
+pub fn _write_banner_file(f: &mut fmt::Formatter<'_>) -> fmt::Result {
     let banner_file_name = BANNER_FILE_NAME.lock().unwrap().clone();
 
     if let Some(name) = banner_file_name {

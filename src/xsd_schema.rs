@@ -5,20 +5,21 @@
 // FIXME: insert banner
 // Auto-generated file
 use lazy_static::lazy_static;
-use std::collections::BTreeMap;
+//use std::collections::BTreeMap;
 
-use xml::common::XmlVersion;
-use xml::name::OwnedName;
-use xml::namespace::Namespace;
+//use xml::common::XmlVersion;
+//use xml::name::OwnedName;
+//use xml::namespace::Namespace;
 
-use crate::xml_document_factory::{DirectElement, DocumentInfo, ElementInfo};
-use crate::xml_tree::XmlTree;
-use crate::xml_schema::XmlSchema;
+//use crate::parse_tree::{DirectElement, DocumentInfo, ElementInfo};
+//use crate::xml_tree::XmlTree;
+use crate::xsd_data::XsdSchema;
 
 lazy_static! {
-    pub static ref XSD_SCHEMA: XmlSchema<'static> = XmlSchema::new(
+    pub static ref XSD_SCHEMA: XsdSchema<'static> = XsdSchema::new(
+/*
         "XSD_SCHEMA",
-        "XmlSchema",
+        "XsdSchema",
         "XsdSchema",
         XmlTree::new(
             DocumentInfo::new(XmlVersion::Version10, "encoding".to_string(), None),
@@ -1175,5 +1176,6 @@ lazy_static! {
                 )
             )),
         )
+*/
     );
 }
