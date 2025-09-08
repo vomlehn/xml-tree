@@ -11,41 +11,26 @@ pub use crate::xml_document_error::XmlDocumentError;
 use crate::parse_doc::{Accumulator, LevelInfo, ParseDoc};
 use crate::document::DocumentInfo;
 
-pub struct ParseEcho {
+pub struct ParseXsd {
     pub document_info:  DocumentInfo,
     pub root:           Box<dyn Element>,
 }
 
-impl ParseEcho {
+impl ParseXsd {
     pub fn new(document_info: DocumentInfo, root: Box<dyn Element>) -> Self {
-        ParseEcho {
+        ParseXsd {
             document_info,
             root,
         }
     }
 }
 
-impl ParseDoc for ParseEcho {
-    type LI = EchoLevelInfo;
-    type AC = EchoAccumulator;
+impl ParseDoc for ParseXsd {
+    type LI = XsdLevelInfo;
+    type AC = XsdAccumulator;
 }
 
-impl LevelInfo for EchoLevelInfo {
-    type AccumulatorType = EchoAccumulator;
-
-    fn next_level(&self) -> Self {
-        EchoLevelInfo { depth: self.depth + 1 }
-    }
-
-    fn create_accumulator(&self, element_info: ElementInfo) ->
-        Result<EchoAccumulator, XmlDocumentError>
-    {
-        println!("{}<{}>", "  ".repeat(self.depth), element_info.owned_name.local_name);
-        Ok(EchoAccumulator::new(element_info, self.depth))
-    }
-}
-
-impl fmt::Display for ParseEcho {
+impl fmt::Display for ParseXsd {
 // FIXME: make this work
     fn fmt(&self, _f: &mut fmt::Formatter<'_>) -> fmt::Result
     {
@@ -54,7 +39,7 @@ impl fmt::Display for ParseEcho {
     }
 }
 
-impl fmt::Debug for ParseEcho {
+impl fmt::Debug for ParseXsd {
 // FIXME: make this work
     fn fmt(&self, _f: &mut fmt::Formatter<'_>) -> fmt::Result {
         todo!();
@@ -62,9 +47,9 @@ impl fmt::Debug for ParseEcho {
     }
 }
 
-impl Try for ParseEcho
+impl Try for ParseXsd
 {
-    type Output = <<ParseEcho as ParseDoc>::AC as Accumulator>::Value;
+    type Output = <<ParseXsd as ParseDoc>::AC as Accumulator>::Value;
     type Residual = XmlDocumentError;
     fn from_output(_: <Self as Try>::Output) -> Self
     { todo!() }
@@ -72,34 +57,56 @@ impl Try for ParseEcho
     { todo!() }
 }
 
-impl FromResidual for ParseEcho {
-    fn from_residual(_: <ParseEcho as Try>::Residual) -> Self
+impl FromResidual for ParseXsd {
+    fn from_residual(_: <ParseXsd as Try>::Residual) -> Self
     { todo!() }
 }
 
 /// LevelInfo that tracks depth for indented output
 #[derive(Debug, Clone)]
-pub struct EchoLevelInfo {
-    depth: usize,
+pub struct XsdLevelInfo {
+    depth:      usize,
+    element:    Box<dyn Element>,
 }
 
-impl EchoLevelInfo {
-    pub fn new() -> Self {
-        EchoLevelInfo { depth: 0 }
+impl XsdLevelInfo {
+    pub fn new(root: &Box<dyn Element>) -> Self {
+        XsdLevelInfo {
+            depth:      0,
+            element:    root.clone(),
+        }
+    }
+}
+
+impl LevelInfo for XsdLevelInfo {
+    type AccumulatorType = XsdAccumulator;
+
+    fn next_level(&self) -> Self {
+        XsdLevelInfo {
+            depth:      self.depth + 1,
+            element:    self.element.subelements()[0].clone(),
+        }
+    }
+
+    fn create_accumulator(&self, element_info: ElementInfo) ->
+        Result<XsdAccumulator, XmlDocumentError>
+    {
+        println!("{}<{}>", "  ".repeat(self.depth), element_info.owned_name.local_name);
+        Ok(XsdAccumulator::new(element_info, self.depth))
     }
 }
 
 /// Accumulator that just echoes structure (doesn't build elements)
-pub struct EchoAccumulator {
+pub struct XsdAccumulator {
     element_name: String,
     element_lineno: LineNumber,
     depth: usize,
     current_subelement_name: Option<String>,
 }
 
-impl EchoAccumulator {
+impl XsdAccumulator {
     pub fn new(element_info: ElementInfo, depth: usize) -> Self {
-        EchoAccumulator {
+        XsdAccumulator {
             element_name: element_info.owned_name.local_name.clone(),
             element_lineno: element_info.lineno,
             depth,
@@ -108,8 +115,8 @@ impl EchoAccumulator {
     }
 }
 
-impl Accumulator for EchoAccumulator {
-    type Value = ();  // Echo doesn't return meaningful data
+impl Accumulator for XsdAccumulator {
+    type Value = ();  // Xsd doesn't return meaningful data
 
     fn start_subelement(&mut self, _element_info: &ElementInfo) {
         // Nothing special needed

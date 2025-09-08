@@ -1,3 +1,4 @@
+// FIXME: this has test code that needs to be put in a proper place
 /*
  * Take an XML Definition tree and an input source, then use them to
  * generate an XmlTree
@@ -11,6 +12,7 @@ use crate::walk_print::XmlDisplay;
 
 // FIXME: where should this function go?
 use crate::walk_print::nl_indent;
+/*
 
 #[cfg(test)]
 mod tests {
@@ -276,6 +278,7 @@ pub trait Accumulator<'a, BL, ED, WD, WR> {
     fn add(&mut self, wd: &WD) -> WR;
     fn summary(&self, bl: &mut BL) -> WR;
 }
+*/
 */
 
 impl XmlDisplay for XmlEvent {
