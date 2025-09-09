@@ -117,7 +117,7 @@ fn front_matter_display(f: &mut fmt::Formatter, depth: usize) -> fmt::Result {
         "use xml::name::OwnedName;",
         "use xml::namespace::Namespace;",
         "",
-        "use crate::xml_document::DirectElement;", 
+        "use crate::xml_document::XmlElement;", 
         "use crate::parse_tree::{DocumentInfo, ElementInfo};",
         "use crate::xml_schema::XmlSchema;", 
         "use crate::XmlTree;",

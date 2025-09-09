@@ -23,18 +23,18 @@ mod tests {
 
         use super::*;
 
-        use crate::xml_schema::{DirectElement, Element};
+        use crate::xml_schema::{XmlElement, Element};
 
         lazy_static!{
             static ref TEST_XML_DESC_TREE: XmlSchema<'static> =
                 XmlSchema::new("MySchema",
-                    Arc::new(DirectElement::new("XTCE", vec!(
-                    Arc::new(DirectElement::new("SpaceSystem", vec!(
-                        Arc::new(DirectElement::new("a1", vec!(
-                            Arc::new(DirectElement::new("a2", vec!())),
+                    Arc::new(XmlElement::new("XTCE", vec!(
+                    Arc::new(XmlElement::new("SpaceSystem", vec!(
+                        Arc::new(XmlElement::new("a1", vec!(
+                            Arc::new(XmlElement::new("a2", vec!())),
                         ))),
-                        Arc::new(DirectElement::new("a2", vec!(
-                            Arc::new(DirectElement::new("a1", vec!()))
+                        Arc::new(XmlElement::new("a2", vec!(
+                            Arc::new(XmlElement::new("a1", vec!()))
                         ))),
                     ))),
                 ))),
@@ -44,11 +44,11 @@ mod tests {
         lazy_static!{
             static ref TEST_MATH: XmlSchema<'static> =
                 XmlSchema::new("MathSchema",
-                    Arc::new(DirectElement::new("Math", vec!(
-                    Arc::new(DirectElement::new("operand", vec!(
-                        Arc::new(DirectElement::new("int", vec!())),
+                    Arc::new(XmlElement::new("Math", vec!(
+                    Arc::new(XmlElement::new("operand", vec!(
+                        Arc::new(XmlElement::new("int", vec!())),
                     ))),
-                    Arc::new(DirectElement::new("operator", vec!())),
+                    Arc::new(XmlElement::new("operator", vec!())),
                 ))),
             );
         }
@@ -237,7 +237,7 @@ fn branch(name: &str, ei: &ElementInfo, subelements: Vec<dyn Element>) -> Box<dy
 
 #[cfg(test)]
 fn node(name: &str, ei: &ElementInfo, subelements: Vec<dyn Element>) -> Box<dyn Element> {
-    Box::new(DirectElement {
+    Box::new(XmlElement {
         name: OwnedName {
             local_name: name.to_string(),
             namespace: None,

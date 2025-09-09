@@ -103,7 +103,7 @@ mod test_tests {
     use std::cell::RefCell;
     use std::fmt;
 
-    use crate::xml_document::{create_test_doc, DirectElement, Element, XmlTree};
+    use crate::xml_document::{create_test_doc, XmlElement, Element, XmlTree};
     use crate::parse_tree::{DocumentInfo};
     use crate::walkable::{Accumulator, BaseLevel, ElemData, WalkData, Walkable};
 

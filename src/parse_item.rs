@@ -18,78 +18,25 @@ use crate::xml_document_error::XmlDocumentError;
 
 pub type LineNumber = usize;
 
-pub trait XmlElement {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result;
-}
-
-impl fmt::Display for dyn XmlElement {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.fmt(f)
-    }
-}
-
 /**
  * An XML element
  * lineno:  Line number of the start of this element
  * event:   XmlEvent returned by the XML low level parse_item
  */
 #[derive(Clone, Debug)]
-pub struct XmlDirectElement {
+pub struct ParseElement {
     pub lineno: LineNumber,
     pub event: XmlEvent,
 }
 
-impl XmlDirectElement {
-    fn new(lineno: LineNumber, event: XmlEvent) -> XmlDirectElement {
-        XmlDirectElement {
+impl ParseElement {
+    fn new(lineno: LineNumber, event: XmlEvent) -> ParseElement {
+        ParseElement {
             lineno,
             event,
         }
     }
 }
-
-impl XmlElement for XmlDirectElement {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        // FIXME: can I do better than the debug format?
-        write!(f, "{:?}", self)
-    }
-}
-
-/*
-/**
- * List of XmlElements that can be shared to reduce the XML tree size
- * subelements: This is the list
- */
-pub struct XmlIndirectElement {
-    pub subelements:    Vec::<Box<dyn XmlElement>>,
-}
-
-impl<'a> XmlIndirectElement {
-    /*
-    fn new() -> XmlIndirectElement {
-        XmlIndirectElement {
-            subelements:    Vec::new(),
-        }
-    }
-    */
-}
-
-impl XmlElement for XmlIndirectElement {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut sep = "";
-        write!(f, "[")?;
-
-        for element in &self.subelements {
-            element.fmt(f)?;
-            write!(f, "{}", sep)?;
-            sep = ", ";
-        }
-
-        write!(f, "]\n")?;
-        Ok(())
-    }
-}
-*/
 
 /**
  * XML Parser
@@ -101,7 +48,7 @@ impl XmlElement for XmlIndirectElement {
  */
 pub struct Parser<R: Read> {
     lineno_ref: Rc<RefCell<LineNumber>>,
-    pending: Option<Result<XmlDirectElement, XmlDocumentError>>,
+    pending: Option<Result<ParseElement, XmlDocumentError>>,
     event_reader: EventReader<LinenoReader<R>>,
 }
 
@@ -120,15 +67,15 @@ impl<R: Read> Parser<R> {
 
     /**
      * Read the next XmlElement. Each read returns a new value. This
-     * XmlElement is always an XmlDirectElement
+     * XmlElement is always an ParseElement
      *
      * self:    &mut Parser
      *
      * Returns:
-     * Ok(XmlDirectElement)
+     * Ok(ParseElement)
      * Err(XmlDocumentError)
      */
-    pub fn next(&mut self) -> Result<XmlDirectElement, XmlDocumentError> {
+    pub fn next(&mut self) -> Result<ParseElement, XmlDocumentError> {
         let result = self.lookahead()?;
 /*
         if let Err(e) = result {
@@ -142,7 +89,7 @@ impl<R: Read> Parser<R> {
 
     /*
      * Discard the current XmlElement, forcing a fetch of the next item
-     * if current() is used. This XmlElement is always an XmlDirectElement
+     * if current() is used. This XmlElement is always an ParseElement
      *
      * self:    &mut Parser
      */
@@ -152,15 +99,15 @@ impl<R: Read> Parser<R> {
 
     /*
      * Read the next XmlElement from the input stream, without removing
-     * it from the stream. This XmlElement is always an XmlDirectElement
+     * it from the stream. This XmlElement is always an ParseElement
      *
      * self:    &mut Parser
      *
      * Returns:
-     * Ok(XmlDirectElement)
+     * Ok(ParseElement)
      * Err(XmlDocumentError)
      */
-    pub fn lookahead(&mut self) -> Result<XmlDirectElement, XmlDocumentError> {
+    pub fn lookahead(&mut self) -> Result<ParseElement, XmlDocumentError> {
         // If we don't have any lookahead token, read another token to be
         // the lookahead token.
         if self.pending.is_none() {
@@ -180,7 +127,7 @@ impl<R: Read> Parser<R> {
                     return err;
                 },
                 Ok(xml_event) => {
-                    let element = XmlDirectElement::new(lineno, xml_event);
+                    let element = ParseElement::new(lineno, xml_event);
                     let ok = Ok(element.clone());
                     let pending_ok = Some(Ok(element));
                     self.pending = pending_ok;
