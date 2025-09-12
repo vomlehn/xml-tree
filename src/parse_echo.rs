@@ -150,3 +150,11 @@ impl Accumulator for EchoAccumulator {
         self.element_lineno
     }
 }
+cargo
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn testit() {
+        panic!("run echo test");
+    }
+}
