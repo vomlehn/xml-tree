@@ -5,19 +5,19 @@ pub mod xml_document;
 pub mod xml_document_error;
 pub mod xml_schema;
 
-mod banner;
-mod document;
-mod element;
-mod multiterator; // FIXME: toss this
-mod parse_doc;
-mod parse_echo;
-mod parse_item;
-mod parse_tree;
-mod parse_xsd;
-mod walk_print;
-mod walk_tree;
-mod xsd_data;
-mod xsd_schema;
+pub mod banner;
+pub mod document;
+pub mod element;
+pub mod multiterator; // FIXME: toss this
+pub mod parse_doc;
+pub mod parse_echo;
+pub mod parse_item;
+pub mod parse_tree;
+pub mod parse_xsd;
+pub mod walk_print;
+pub mod walk_tree;
+pub mod xsd_data;
+pub mod xsd_schema;
 
 pub use crate::banner::set_banner_file_name;
 pub use crate::document::DocumentInfo;

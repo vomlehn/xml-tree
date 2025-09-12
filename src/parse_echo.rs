@@ -150,11 +150,35 @@ impl Accumulator for EchoAccumulator {
         self.element_lineno
     }
 }
-cargo
+
 #[cfg(test)]
 mod tests {
+    use std::io::{BufReader, Cursor};
+
+    use crate::parse_doc::ParseDoc;
+
+    use super::{EchoLevelInfo, ParseEcho};
+
     #[test]
     fn testit() {
-        panic!("run echo test");
+        let input_str = 
+            "<!--  \n".to_owned() +
+            "\n" +
+            "Just supply a few elements. This will only work for non-checking code.\n" +
+            " -->\n" +
+            "<schema xmlns:xtce=\"http://www.omg.org/spec/XTCE/20180204\" xmlns=\"http://www.w3.org/2001/XMLSchema\" targetNamespace=\"http://www.omg.org/spec/XTCE/20180204\" elementFormDefault=\"qualified\" attributeFormDefault=\"unqualified\" version=\"1.2\">\n" +
+            "    <one>\n" +
+            "    </one>\n" +
+            "    <two>\n" +
+            "    </two>\n" +
+            "</schema>\n";
+        let cursor = Cursor::new((&input_str).as_bytes());
+        let reader = BufReader::new(cursor);
+
+        let echo_level_info = EchoLevelInfo::new();
+
+        // FIXME: Handle returned error
+        let _ = ParseEcho::parse(reader, &echo_level_info);
+        println!();
     }
 }
