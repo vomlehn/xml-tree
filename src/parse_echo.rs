@@ -172,6 +172,10 @@ mod tests {
             "    <two>\n" +
             "    </two>\n" +
             "</schema>\n";
+        for (lineno, line) in input_str.split('\n').enumerate() {
+            println!("{} {}", lineno, line);
+        }
+
         let cursor = Cursor::new((&input_str).as_bytes());
         let reader = BufReader::new(cursor);
 

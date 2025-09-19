@@ -36,6 +36,21 @@ impl ParseElement {
             event,
         }
     }
+
+    pub fn name(&self) -> String {
+        let result = match &self.event {
+            XmlEvent::StartDocument{version: _, encoding: _, standalone: _} => "StartDocument".to_string(),
+            XmlEvent::EndDocument => "EndDocument".to_string(),
+            XmlEvent::StartElement{name, attributes: _, namespace: _} => format!("StartElement<{}>", name.local_name),
+            XmlEvent::EndElement{name} => format!("EndElement<{}>", name.local_name),
+            XmlEvent::ProcessingInstruction{name: _, data: _} => "ProcessingInstruction".to_string(),
+            XmlEvent::CData(_) => "CData".to_string(),
+            XmlEvent::Comment(_) => "Comment".to_string(),
+            XmlEvent::Characters(_) => "Characters".to_string(),
+            XmlEvent::Whitespace(_) => "Whitespace".to_string(),
+        };
+        result.to_string()
+    }
 }
 
 /**

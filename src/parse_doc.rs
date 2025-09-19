@@ -86,7 +86,8 @@ pub trait ParseDoc {
         // Read the next XML event, which is expected to be the start of an
         // element. We use a lookahead so that we can be specific about an error
         // if one occurred
-        let xml_element = match parse_item.lookahead() {
+        let lookahead_item = parse_item.lookahead();
+        let xml_element = match lookahead_item {
             Err(e) => return Err(e),
             Ok(xml_elem) => xml_elem,
         };
@@ -103,6 +104,7 @@ pub trait ParseDoc {
 
             _ => panic!("FIXME: Expected element, got {:?}", xml_element.event),
         };
+println!("Before parse_end_document: {:?}", parse_item);
 
         // And, wrap up by making sure things conclude as expected.
         match Self::parse_end_document(parse_item) {
@@ -158,7 +160,10 @@ pub trait ParseDoc {
                     let subelement_info = ElementInfo::new(name, xml_element.lineno, attributes, namespace);
                     accumulator.start_subelement(&subelement_info);
 
+println!("---");
+println!("calling parse_element under {} subelement {}", accumulator.element_name(), subelement_info.owned_name.local_name);
                     let subelement_result = Self::parse_element(parse_item, subelement_info, &subelement_level_info)?;
+println!("back from parse_element");
                     
                     accumulator.add_subelement(subelement_result);
                 },
@@ -173,7 +178,6 @@ pub trait ParseDoc {
                         }
                         
                         accumulator.end_subelement();
-                    } else {
                         break;
                     }
                 },
@@ -205,10 +209,12 @@ pub trait ParseDoc {
     where
         R: Read,
     {
+println!("---");
         parse_item.skip();
 
         loop {
             let xml_element = parse_item.next()?;
+
             match xml_element.event {
                 XmlEvent::Whitespace(_) |
                     XmlEvent::Characters(_) => {},
