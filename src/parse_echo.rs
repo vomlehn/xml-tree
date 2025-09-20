@@ -10,6 +10,7 @@ use crate::parse_item::LineNumber;
 pub use crate::xml_document_error::XmlDocumentError;
 use crate::parse_doc::{Accumulator, LevelInfo, ParseDoc};
 use crate::document::DocumentInfo;
+use crate::walk_print::nl_indent;
 
 pub struct ParseEcho {
     pub document_info:  DocumentInfo,
@@ -40,7 +41,7 @@ impl LevelInfo for EchoLevelInfo {
     fn create_accumulator(&self, element_info: ElementInfo) ->
         Result<EchoAccumulator, XmlDocumentError>
     {
-        println!("{}<{}>", "  ".repeat(self.depth), element_info.owned_name.local_name);
+        print!("{}<{}>", nl_indent(self.depth), element_info.owned_name.local_name);
         Ok(EchoAccumulator::new(element_info, self.depth))
     }
 }
@@ -122,7 +123,7 @@ impl Accumulator for EchoAccumulator {
     
     fn end_subelement(&mut self) {
         if let Some(name) = &self.current_subelement_name {
-            println!("{}</{}>", "  ".repeat(self.depth + 1), name);
+            print!("{}</{}>", nl_indent(self.depth + 1), name);
         }
         self.current_subelement_name = None;
     }
@@ -138,7 +139,7 @@ impl Accumulator for EchoAccumulator {
     }
     
     fn finish(self) -> () {
-        println!("{}</{}>", "  ".repeat(self.depth), self.element_name);
+        print!("{}</{}>", nl_indent(self.depth), self.element_name);
         ()
     }
     
@@ -153,6 +154,7 @@ impl Accumulator for EchoAccumulator {
 
 #[cfg(test)]
 mod tests {
+    use stdext::function_name;
     use std::io::{BufReader, Cursor};
 
     use crate::parse_doc::ParseDoc;
@@ -161,6 +163,8 @@ mod tests {
 
     #[test]
     fn testit() {
+        println!("Running test {}", function_name!());
+
         let input_str = 
             "<!--  \n".to_owned() +
             "\n" +
@@ -168,9 +172,13 @@ mod tests {
             " -->\n" +
             "<schema xmlns:xtce=\"http://www.omg.org/spec/XTCE/20180204\" xmlns=\"http://www.w3.org/2001/XMLSchema\" targetNamespace=\"http://www.omg.org/spec/XTCE/20180204\" elementFormDefault=\"qualified\" attributeFormDefault=\"unqualified\" version=\"1.2\">\n" +
             "    <one>\n" +
+            "       <two>\n" +
+            "          <three>\n" +
+            "          </three>\n" +
+            "       </two>\n" +
             "    </one>\n" +
-            "    <two>\n" +
-            "    </two>\n" +
+            "    <four>\n" +
+            "    </four>\n" +
             "</schema>\n";
         for (lineno, line) in input_str.split('\n').enumerate() {
             println!("{} {}", lineno, line);

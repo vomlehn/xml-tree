@@ -54,7 +54,7 @@ impl ParseElement {
 }
 
 /**
- * XML Parser
+ * Parser
  * lineno_ref:      Reference counted reference to current line number
  *                  FIXME: check that this is appropriate
  * pending:         If None, we don't have a lookahead token. Otherwise,
@@ -236,3 +236,54 @@ enum XmlEvt {
     Whitespace(String),
 }
 */
+
+#[cfg(test)]
+mod tests {
+    use stdext::function_name;
+    use std::io::{BufReader, Cursor};
+
+    use crate::parse_item::Parser;
+    use crate::xml_document_error::XmlDocumentError;
+
+    /*
+    let input_str = 
+        "<!--  \n".to_owned() +
+        "\n" +
+        "Just supply a few elements. This will only work for non-checking code.\n" +
+        " -->\n" +
+        "<schema xmlns:xtce=\"http://www.omg.org/spec/XTCE/20180204\" xmlns=\"http://www.w3.org/2001/XMLSchema\" targetNamespace=\"http://www.omg.org/spec/XTCE/20180204\" elementFormDefault=\"qualified\" attributeFormDefault=\"unqualified\" version=\"1.2\">\n" +
+        "    <one>\n" +
+        "       <two>\n" +
+        "          <three>\n" +
+        "          </three>\n" +
+        "       </two>\n" +
+        "    </one>\n" +
+        "    <four>\n" +
+        "    </four>\n" +
+        "</schema>\n";
+    */
+
+    fn parser_new(input: &str) -> Parser<BufReader<Cursor<Vec<u8>>>> {
+        let input_bytes = input.as_bytes().to_vec();
+        let cursor = Cursor::new(input_bytes);
+        let reader = BufReader::new(cursor);
+        Parser::new(reader)
+    }
+
+    #[test]
+    fn parse_empty() {
+        test_parse_empty();
+    }
+
+    fn test_parse_empty() {
+        println!("Running test {}", function_name!());
+        let mut parser = parser_new("");
+        match parser.next() {
+            Err(XmlDocumentError::NoDocumentFound()) => {
+                println!("Parse of empty input ended as expected");
+            },
+
+            _res => panic!("Unexpected return {:?}", _res),
+        };
+    }
+}
