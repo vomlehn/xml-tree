@@ -311,35 +311,10 @@ mod tests {
         let mut parser = parser_new(INPUT);
 
         start_document(&mut parser);
-
-        let element = parser.next();
-        if let xml::reader::XmlEvent::StartElement { name, .. } = &element.unwrap().event {
-            print!("<{}>", name.local_name);
-            assert_eq!(name.local_name, "schema");
-        } else {
-            panic!("Failed to get <schema>");
-        }
-
-        let element = parser.next();
-        if let xml::reader::XmlEvent::Whitespace(ws) = &element.unwrap().event {
-            print!("{}", ws);
-        } else {
-            panic!("Failed to get Whitespace");
-        }
-
-        let element = parser.next();
-        if let xml::reader::XmlEvent::EndElement { name, .. } = &element.unwrap().event {
-            print!("</{}>", name.local_name);
-            assert_eq!(name.local_name, "schema");
-        } else {
-            panic!("Failed to get </schema>");
-        }
-
-        let element = parser.next();
-        if let xml::reader::XmlEvent::EndDocument = &element.unwrap().event {
-        } else {
-            panic!("Failed to get EndDocument");
-        }
+        start_element(&mut parser, &"schema".to_string());
+        whitespace(&mut parser);
+        end_element(&mut parser, &"schema".to_string());
+        end_document(&mut parser);
 
         println!();
     }
@@ -358,71 +333,15 @@ mod tests {
 
         let mut parser = parser_new(INPUT);
 
-        let element = parser.next();
-        if let xml::reader::XmlEvent::StartDocument { version: _, encoding: _, standalone: _ } = &element.unwrap().event {
-        } else {
-            panic!("Failed to get StartDocument");
-        }
-
+        start_document(&mut parser);
         start_element(&mut parser, &"schema".to_string());
-
-        let element = parser.next();
-        if let xml::reader::XmlEvent::Whitespace(ws) = &element.unwrap().event {
-            print!("{}", ws);
-        } else {
-            panic!("Failed to get Whitespace");
-        }
-
+        whitespace(&mut parser);
         start_element(&mut parser, &"one".to_string());
-/*
-        let element = parser.next();
-        if let xml::reader::XmlEvent::StartElement { name, .. } = &element.unwrap().event {
-            print!("<{}>", name.local_name);
-            assert_eq!(name.local_name, "one");
-        } else {
-            panic!("Failed to get <one>");
-        }
-*/
-
         whitespace(&mut parser);
-
-        let element = parser.next();
-        if let xml::reader::XmlEvent::EndElement { name, .. } = &element.unwrap().event {
-            print!("</{}>", name.local_name);
-            assert_eq!(name.local_name, "one");
-        } else {
-            panic!("Failed to get </one>");
-        }
-
+        end_element(&mut parser, &"one".to_string());
         whitespace(&mut parser);
-/*
-        let element = parser.next();
-        if let xml::reader::XmlEvent::Whitespace(ws) = &element.unwrap().event {
-            print!("{}", ws);
-        } else {
-            panic!("Failed to get Whitespace");
-        }
-*/
-
         end_element(&mut parser, &"schema".to_string());
-/*
-        let element = parser.next();
-        if let xml::reader::XmlEvent::EndElement { name, .. } = &element.unwrap().event {
-            print!("</{}>", name.local_name);
-            assert_eq!(name.local_name, "schema");
-        } else {
-            panic!("Failed to get </schema>");
-        }
-*/
-
         end_document(&mut parser);
-/*
-        let element = parser.next();
-        if let xml::reader::XmlEvent::EndDocument = &element.unwrap().event {
-        } else {
-            panic!("Failed to get EndDocument");
-        }
-*/
 
         println!();
     }
