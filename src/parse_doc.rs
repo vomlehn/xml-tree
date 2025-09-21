@@ -104,7 +104,6 @@ pub trait ParseDoc {
 
             _ => panic!("FIXME: Expected element, got {:?}", xml_element.event),
         };
-println!("Before parse_end_document: {:?}", parse_item);
 
         // And, wrap up by making sure things conclude as expected.
         match Self::parse_end_document(parse_item) {
@@ -157,19 +156,18 @@ println!("Before parse_end_document: {:?}", parse_item);
 
             match xml_element.event {
                 XmlEvent::StartElement{name, attributes, namespace} => {
+println!("Start element {}", name.local_name);
                     let subelement_info = ElementInfo::new(name, xml_element.lineno, attributes, namespace);
                     accumulator.start_subelement(&subelement_info);
-
-println!("---");
-println!("calling parse_element under {} subelement {}", accumulator.element_name(), subelement_info.owned_name.local_name);
                     let subelement_result = Self::parse_element(parse_item, subelement_info, &subelement_level_info)?;
-println!("back from parse_element");
                     
                     accumulator.add_subelement(subelement_result);
                 },
 
                 XmlEvent::EndElement{name} => {
                     if accumulator.has_open_subelement() {
+                        // We have an element optn at this level, process it
+println!("looping with EndElement {}", name.local_name);
                         parse_item.skip();
                         
                         if name.local_name != accumulator.current_subelement_name() {
@@ -178,6 +176,10 @@ println!("back from parse_element");
                         }
                         
                         accumulator.end_subelement();
+                    } else {
+                        // No open element on this level, it must be from the
+                        // level above.
+println!("break from EndElement {}", name.local_name);
                         break;
                     }
                 },
@@ -199,6 +201,7 @@ println!("back from parse_element");
             }
         }
 
+println!("return from parse_element");
         Ok(accumulator.finish())
     }
 

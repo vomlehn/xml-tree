@@ -240,10 +240,14 @@ enum XmlEvt {
 #[cfg(test)]
 mod tests {
     use stdext::function_name;
+    use std::borrow::Cow;
     use std::io::{BufReader, Cursor};
+    use xml::reader::ErrorKind;
+//    use std::error::Error;
 
     use crate::parse_item::Parser;
     use crate::xml_document_error::XmlDocumentError;
+    use crate::xml_document_error::XmlDocumentError::XmlError;
 
     /*
     let input_str = 
@@ -272,18 +276,42 @@ mod tests {
 
     #[test]
     fn parse_empty() {
-        test_parse_empty();
-    }
-
-    fn test_parse_empty() {
         println!("Running test {}", function_name!());
         let mut parser = parser_new("");
+
+/*
         match parser.next() {
-            Err(XmlDocumentError::NoDocumentFound()) => {
-                println!("Parse of empty input ended as expected");
+            Err(XmlDocumentError::XmlError(1, xml::reader::Error)) => {
+//xml::reader::ErrorKind::Syntax(msg))) => {
+                match msg {
+                    Cow::Borrowed("Unexpected end of stream: no root element found") => {
+                        println!("Syntax msg {}", msg);
+                    },
+                    _ => panic!("Unexpected message"),
+                };
             },
 
-            _res => panic!("Unexpected return {:?}", _res),
+            _ => panic!("FIXME: handle XmlDocumentError"),
+        };
+*/
+
+        match parser.next() {
+            Err(XmlDocumentError::XmlError(1, xml_error)) => {
+                println!("xml_error {:?}", xml_error);
+                match xml_error.kind() {
+                    ErrorKind::Syntax(msg) => {
+                        match msg {
+                            Cow::Borrowed("Unexpected end of stream: no root element found") => {
+                                println!("Syntax msg {}", msg);
+                            },
+                            _ => panic!("Unexpected message"),
+                        };
+                    },
+                    _ => panic!("Non-Syntax case"),
+                }
+            },
+
+            _ => panic!("FIXME: handle XmlDocumentError"),
         };
     }
 }
