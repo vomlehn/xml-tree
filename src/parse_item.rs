@@ -241,7 +241,7 @@ enum XmlEvt {
 mod tests {
     use stdext::function_name;
     use std::io::{BufReader, Cursor};
-    use xml::name::OwnedName;
+//    use xml::name::OwnedName;
     use xml::reader::ErrorKind;
     use xml::common::Position;
 
@@ -310,11 +310,7 @@ mod tests {
 
         let mut parser = parser_new(INPUT);
 
-        let element = parser.next();
-        if let xml::reader::XmlEvent::StartDocument { version: _, encoding: _, standalone: _ } = &element.unwrap().event {
-        } else {
-            panic!("Failed to get StartDocument");
-        }
+        start_document(&mut parser);
 
         let element = parser.next();
         if let xml::reader::XmlEvent::StartElement { name, .. } = &element.unwrap().event {
@@ -354,6 +350,8 @@ mod tests {
         const INPUT: &str = concat!("<schema>\n",
             "   <one>\n",
             "   </one>\n",
+            "   <two>\n",
+            "   </two>\n",
             "</schema>\n");
         print!("INPUT:\n{}", INPUT);
         println!("OUTPUT:");
@@ -375,6 +373,8 @@ mod tests {
             panic!("Failed to get Whitespace");
         }
 
+        start_element(&mut parser, &"one".to_string());
+/*
         let element = parser.next();
         if let xml::reader::XmlEvent::StartElement { name, .. } = &element.unwrap().event {
             print!("<{}>", name.local_name);
@@ -382,13 +382,9 @@ mod tests {
         } else {
             panic!("Failed to get <one>");
         }
+*/
 
-        let element = parser.next();
-        if let xml::reader::XmlEvent::Whitespace(ws) = &element.unwrap().event {
-            print!("{}", ws);
-        } else {
-            panic!("Failed to get Whitespace");
-        }
+        whitespace(&mut parser);
 
         let element = parser.next();
         if let xml::reader::XmlEvent::EndElement { name, .. } = &element.unwrap().event {
@@ -398,13 +394,18 @@ mod tests {
             panic!("Failed to get </one>");
         }
 
+        whitespace(&mut parser);
+/*
         let element = parser.next();
         if let xml::reader::XmlEvent::Whitespace(ws) = &element.unwrap().event {
             print!("{}", ws);
         } else {
             panic!("Failed to get Whitespace");
         }
+*/
 
+        end_element(&mut parser, &"schema".to_string());
+/*
         let element = parser.next();
         if let xml::reader::XmlEvent::EndElement { name, .. } = &element.unwrap().event {
             print!("</{}>", name.local_name);
@@ -412,12 +413,16 @@ mod tests {
         } else {
             panic!("Failed to get </schema>");
         }
+*/
 
+        end_document(&mut parser);
+/*
         let element = parser.next();
         if let xml::reader::XmlEvent::EndDocument = &element.unwrap().event {
         } else {
             panic!("Failed to get EndDocument");
         }
+*/
 
         println!();
     }
@@ -429,6 +434,41 @@ mod tests {
             assert_eq!(&name.local_name, element_name);
         } else {
             panic!("Failed to get <{}>", element_name);
+        }
+    }
+
+    fn end_element(parser: &mut Parser<BufReader<Cursor<Vec<u8>>>>, element_name: &String) {
+        let element = parser.next();
+        if let xml::reader::XmlEvent::EndElement { name, .. } = &element.unwrap().event {
+            print!("</{}>", name.local_name);
+            assert_eq!(&name.local_name, element_name);
+        } else {
+            panic!("Failed to get </{}>", element_name);
+        }
+    }
+
+    fn whitespace(parser: &mut Parser<BufReader<Cursor<Vec<u8>>>>) {
+        let element = parser.next();
+        if let xml::reader::XmlEvent::Whitespace(ws) = &element.unwrap().event {
+            print!("{}", ws);
+        } else {
+            panic!("Failed to get Whitespace");
+        }
+    }
+
+    fn start_document(parser: &mut Parser<BufReader<Cursor<Vec<u8>>>>) {
+        let element = parser.next();
+        if let xml::reader::XmlEvent::StartDocument { version: _, encoding: _, standalone: _ } = &element.unwrap().event {
+        } else {
+            panic!("Failed to get StartDocument");
+        }
+    }
+
+    fn end_document(parser: &mut Parser<BufReader<Cursor<Vec<u8>>>>) {
+        let element = parser.next();
+        if let xml::reader::XmlEvent::EndDocument = &element.unwrap().event {
+        } else {
+            panic!("Failed to get EndDocument");
         }
     }
 }
