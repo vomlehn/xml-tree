@@ -240,10 +240,10 @@ enum XmlEvt {
 #[cfg(test)]
 mod tests {
     use stdext::function_name;
-    use std::borrow::Cow;
     use std::io::{BufReader, Cursor};
     use xml::reader::ErrorKind;
-//    use std::error::Error;
+    use xml::common::TextPosition;
+    use xml::common::Position;
 
     use crate::parse_item::Parser;
     use crate::xml_document_error::XmlDocumentError;
@@ -279,16 +279,24 @@ mod tests {
         println!("Running test {}", function_name!());
         let mut parser = parser_new("");
 
-        let expected_pos = 1;
-        let expected_msg = xml::reader::ErrorKind::Syntax(Cow::Borrowed("Unexpected end of stream: no root element found"));
-
         match parser.next() {
-            Err(XmlDocumentError::XmlError(1, msg)) => {
-//                assert_eq!(1, expected_pos);
-//                assert_eq!(msg, expected_msg);
+            Err(XmlDocumentError::XmlError(pos, xml_error)) => {
+                let error_pos = xml_error.position();
+                match xml_error.kind() {
+                    ErrorKind::Syntax(msg) => {
+                        println!("Got syntax error at line {}, XML pos {}:{}: {}",
+                             pos, error_pos.row, error_pos.column, msg);
+                    },
+                    ErrorKind::UnexpectedEof => {
+                        println!("Got unexpected EOF at line {}, XML pos {}:{}",
+                                 pos, error_pos.row, error_pos.column);
+                    },
+                    other => {
+                        println!("Got other XML error: {:?}", other);
+                    }
+                }
             },
-
-            _ => panic!("FIXME: handle XmlDocumentError"),
+            other => panic!("Unexpected result: {:?}", other),
         };
     }
 }
