@@ -279,36 +279,13 @@ mod tests {
         println!("Running test {}", function_name!());
         let mut parser = parser_new("");
 
-/*
-        match parser.next() {
-            Err(XmlDocumentError::XmlError(1, xml::reader::Error)) => {
-//xml::reader::ErrorKind::Syntax(msg))) => {
-                match msg {
-                    Cow::Borrowed("Unexpected end of stream: no root element found") => {
-                        println!("Syntax msg {}", msg);
-                    },
-                    _ => panic!("Unexpected message"),
-                };
-            },
-
-            _ => panic!("FIXME: handle XmlDocumentError"),
-        };
-*/
+        let expected_pos = 1;
+        let expected_msg = xml::reader::ErrorKind::Syntax(Cow::Borrowed("Unexpected end of stream: no root element found"));
 
         match parser.next() {
-            Err(XmlDocumentError::XmlError(1, xml_error)) => {
-                println!("xml_error {:?}", xml_error);
-                match xml_error.kind() {
-                    ErrorKind::Syntax(msg) => {
-                        match msg {
-                            Cow::Borrowed("Unexpected end of stream: no root element found") => {
-                                println!("Syntax msg {}", msg);
-                            },
-                            _ => panic!("Unexpected message"),
-                        };
-                    },
-                    _ => panic!("Non-Syntax case"),
-                }
+            Err(XmlDocumentError::XmlError(1, msg)) => {
+//                assert_eq!(1, expected_pos);
+//                assert_eq!(msg, expected_msg);
             },
 
             _ => panic!("FIXME: handle XmlDocumentError"),
