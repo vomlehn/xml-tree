@@ -340,6 +340,10 @@ mod tests {
         whitespace(&mut parser);
         end_element(&mut parser, &"one".to_string());
         whitespace(&mut parser);
+        start_element(&mut parser, &"two".to_string());
+        whitespace(&mut parser);
+        end_element(&mut parser, &"two".to_string());
+        whitespace(&mut parser);
         end_element(&mut parser, &"schema".to_string());
         end_document(&mut parser);
 
