@@ -33,7 +33,7 @@ run:
 
 test:
 	clear
-	cargo test --jobs=1 $(TEST) -- --nocapture $(TEE)
+	cargo test $(TEST) -- --test-threads=1 --nocapture $(TEE)
 
 .PHONY: clippy
 clippy:
