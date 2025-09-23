@@ -97,6 +97,7 @@ impl<R: Read> Parser<R> {
             return Err(e);
         }
 */
+        print!("(next {})", result.name());
 
         self.skip();
         Ok(result)
@@ -109,6 +110,7 @@ impl<R: Read> Parser<R> {
      * self:    &mut Parser
      */
     pub fn skip(&mut self) {
+        print!("(skip)");
         self.pending = None;
     }
 
@@ -139,27 +141,31 @@ impl<R: Read> Parser<R> {
                     let err = Err(error.clone());
                     let pending_err = Some(Err(error));
                     self.pending = pending_err;
-                    return err;
+                    err
                 },
                 Ok(xml_event) => {
                     let element = ParseElement::new(lineno, xml_event);
+println!("(lookahead {})", element.name());
                     let ok = Ok(element.clone());
                     let pending_ok = Some(Ok(element));
                     self.pending = pending_ok;
-                    return ok;
+                    ok
                 }
-            };
-
-        }
-
-        // We do have a pending token. If it's an error, return that. If
-        // it's a token, return that, but in either case, don't remove it.
-        match self.pending.take() {
-            None => Err(XmlDocumentError::InternalError(
-                *self.lineno_ref.borrow(),
-                "self.pending is None when it must be Some".to_string(),
-            )),
-            Some(element) => element,
+            }
+        } else {
+            // We do have a pending token. If it's an error, return that. If
+            // it's a token, return that, but in either case, don't remove it.
+let e = {
+            match self.pending.take() {
+                None => Err(XmlDocumentError::InternalError(
+                    *self.lineno_ref.borrow(),
+                    "self.pending is None when it must be Some".to_string(),
+                )),
+                Some(element) => element,
+            }
+};
+println!("(lookahead {})", e.clone().unwrap().name());
+e
         }
     }
 }
@@ -350,6 +356,163 @@ mod tests {
         println!();
     }
 
+    #[test]
+    fn test_nest_and_multiple() {
+        println!("\nRunning test {}", function_name!());
+        const INPUT: &str = concat!(
+            "<schema>\n",
+            "   <one>\n",
+            "   <two>\n",
+            "   <three>\n",
+            "   </three>\n",
+            "   </two>\n",
+            "   </one>\n",
+            "   <four>\n",
+            "   </four>\n",
+            "</schema>\n");
+        print!("INPUT:\n{}", INPUT);
+        println!("OUTPUT:");
+
+        let mut parser = parser_new(INPUT);
+
+        start_document(&mut parser);
+        start_element(&mut parser, &"schema".to_string());
+        whitespace(&mut parser);
+        start_element(&mut parser, &"one".to_string());
+        whitespace(&mut parser);
+        start_element(&mut parser, &"two".to_string());
+        whitespace(&mut parser);
+        start_element(&mut parser, &"three".to_string());
+        whitespace(&mut parser);
+        end_element(&mut parser, &"three".to_string());
+        whitespace(&mut parser);
+        end_element(&mut parser, &"two".to_string());
+        whitespace(&mut parser);
+        end_element(&mut parser, &"one".to_string());
+        whitespace(&mut parser);
+        start_element(&mut parser, &"four".to_string());
+        whitespace(&mut parser);
+        end_element(&mut parser, &"four".to_string());
+        whitespace(&mut parser);
+        end_element(&mut parser, &"schema".to_string());
+        end_document(&mut parser);
+
+        println!();
+    }
+
+    #[test]
+    fn test_full() {
+        println!("\nRunning test {}", function_name!());
+
+        const INPUT: &str = concat!(
+            "<!--  \n",
+            "\n",
+            "Just supply a few elements. This will only work for non-checking code.\n",
+            " -->\n",
+            "<schema xmlns:xtce=\"http://www.omg.org/spec/XTCE/20180204\" xmlns=\"http://www.w3.org/2001/XMLSchema\" targetNamespace=\"http://www.omg.org/spec/XTCE/20180204\" elementFormDefault=\"qualified\" attributeFormDefault=\"unqualified\" version=\"1.2\">\n",
+            "    <one>\n",
+            "       <two>\n",
+            "          <three>\n",
+            "          </three>\n",
+            "       </two>\n",
+            "    </one>\n",
+            "    <four>\n",
+            "    </four>\n",
+            "</schema>\n");
+
+        print!("INPUT:\n{}", INPUT);
+        println!("OUTPUT:");
+
+        let mut parser = parser_new(INPUT);
+
+        start_document(&mut parser);
+        start_element_lookahead(&mut parser, &"schema".to_string());
+
+        // top of parse_element
+        skip(&mut parser);
+        whitespace(&mut parser);
+
+        // top of loop
+        start_element_lookahead(&mut parser, &"one".to_string());
+        skip(&mut parser);
+
+        whitespace(&mut parser);
+        start_element(&mut parser, &"two".to_string());
+        whitespace(&mut parser);
+        start_element(&mut parser, &"three".to_string());
+        whitespace(&mut parser);
+        end_element(&mut parser, &"three".to_string());
+        whitespace(&mut parser);
+        end_element(&mut parser, &"two".to_string());
+        whitespace(&mut parser);
+        end_element(&mut parser, &"one".to_string());
+        whitespace(&mut parser);
+
+        start_element_lookahead(&mut parser, &"four".to_string());
+        skip(&mut parser);
+        whitespace(&mut parser);
+
+        end_element_lookahead(&mut parser, &"four".to_string());
+        skip(&mut parser);
+        whitespace(&mut parser);
+
+        end_element(&mut parser, &"schema".to_string());
+        end_document(&mut parser);
+
+        println!();
+    }
+
+    #[test]
+    fn test_lookahead() {
+        println!("\nRunning test {}", function_name!());
+        const INPUT: &str = concat!("<schema>\n",
+            "   <one>\n",
+            "   <two>\n",
+            "   <three>\n",
+            "   </three>\n",
+            "   </two>\n",
+            "   </one>\n",
+            "   <four>\n",
+            "   </four>\n",
+            "</schema>\n");
+        print!("INPUT:\n{}", INPUT);
+        println!("OUTPUT:");
+
+        let mut parser = parser_new(INPUT);
+
+        start_document(&mut parser);
+        start_element_lookahead(&mut parser, &"schema".to_string());
+
+        // top of parse_element
+        skip(&mut parser);
+
+        // top of loop
+        start_element_lookahead(&mut parser, &"one".to_string());
+        skip(&mut parser);
+
+        whitespace(&mut parser);
+        start_element(&mut parser, &"two".to_string());
+        whitespace(&mut parser);
+        start_element(&mut parser, &"three".to_string());
+        whitespace(&mut parser);
+        end_element(&mut parser, &"three".to_string());
+        whitespace(&mut parser);
+        end_element(&mut parser, &"two".to_string());
+        whitespace(&mut parser);
+        end_element(&mut parser, &"one".to_string());
+        whitespace(&mut parser);
+        start_element_lookahead(&mut parser, &"four".to_string());
+        skip(&mut parser);
+        start_element(&mut parser, &"four".to_string());
+        whitespace(&mut parser);
+        end_element(&mut parser, &"four".to_string());
+        whitespace(&mut parser);
+        end_element(&mut parser, &"schema".to_string());
+        end_document(&mut parser);
+
+        println!();
+    }
+
     fn start_element(parser: &mut Parser<BufReader<Cursor<Vec<u8>>>>, element_name: &String) {
         let element = parser.next();
         if let xml::reader::XmlEvent::StartElement { name, .. } = &element.unwrap().event {
@@ -377,6 +540,30 @@ mod tests {
         } else {
             panic!("Failed to get Whitespace");
         }
+    }
+
+    fn start_element_lookahead(parser: &mut Parser<BufReader<Cursor<Vec<u8>>>>, element_name: &String) {
+        let element = parser.lookahead();
+        if let xml::reader::XmlEvent::StartElement { name, .. } = &element.unwrap().event {
+            print!("<{}>", name.local_name);
+            assert_eq!(&name.local_name, element_name);
+        } else {
+            panic!("Failed to get <{}>", element_name);
+        }
+    }
+
+    fn end_element_lookahead(parser: &mut Parser<BufReader<Cursor<Vec<u8>>>>, element_name: &String) {
+        let element = parser.lookahead();
+        if let xml::reader::XmlEvent::EndElement { name, .. } = &element.unwrap().event {
+            print!("</{}>", name.local_name);
+            assert_eq!(&name.local_name, element_name);
+        } else {
+            panic!("Failed to get </{}>", element_name);
+        }
+    }
+
+    fn skip(parser: &mut Parser<BufReader<Cursor<Vec<u8>>>>) {
+        parser.skip();
     }
 
     fn start_document(parser: &mut Parser<BufReader<Cursor<Vec<u8>>>>) {
