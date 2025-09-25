@@ -23,18 +23,18 @@ mod tests {
 
         use super::*;
 
-        use crate::xml_schema::{XmlElement, Element};
+        use crate::xml_schema::{ParseElement, Element};
 
         lazy_static!{
             static ref TEST_XML_DESC_TREE: XmlSchema<'static> =
                 XmlSchema::new("MySchema",
-                    Arc::new(XmlElement::new("XTCE", vec!(
-                    Arc::new(XmlElement::new("SpaceSystem", vec!(
-                        Arc::new(XmlElement::new("a1", vec!(
-                            Arc::new(XmlElement::new("a2", vec!())),
+                    Arc::new(ParseElement::new("XTCE", vec!(
+                    Arc::new(ParseElement::new("SpaceSystem", vec!(
+                        Arc::new(ParseElement::new("a1", vec!(
+                            Arc::new(ParseElement::new("a2", vec!())),
                         ))),
-                        Arc::new(XmlElement::new("a2", vec!(
-                            Arc::new(XmlElement::new("a1", vec!()))
+                        Arc::new(ParseElement::new("a2", vec!(
+                            Arc::new(ParseElement::new("a1", vec!()))
                         ))),
                     ))),
                 ))),
@@ -44,11 +44,11 @@ mod tests {
         lazy_static!{
             static ref TEST_MATH: XmlSchema<'static> =
                 XmlSchema::new("MathSchema",
-                    Arc::new(XmlElement::new("Math", vec!(
-                    Arc::new(XmlElement::new("operand", vec!(
-                        Arc::new(XmlElement::new("int", vec!())),
+                    Arc::new(ParseElement::new("Math", vec!(
+                    Arc::new(ParseElement::new("operand", vec!(
+                        Arc::new(ParseElement::new("int", vec!())),
                     ))),
-                    Arc::new(XmlElement::new("operator", vec!())),
+                    Arc::new(ParseElement::new("operator", vec!())),
                 ))),
             );
         }
@@ -237,7 +237,7 @@ fn branch(name: &str, ei: &ElementInfo, subelements: Vec<dyn Element>) -> Box<dy
 
 #[cfg(test)]
 fn node(name: &str, ei: &ElementInfo, subelements: Vec<dyn Element>) -> Box<dyn Element> {
-    Box::new(XmlElement {
+    Box::new(ParseElement {
         name: OwnedName {
             local_name: name.to_string(),
             namespace: None,

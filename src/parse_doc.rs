@@ -87,22 +87,22 @@ pub trait ParseDoc {
         // element. We use a lookahead so that we can be specific about an error
         // if one occurred
         let lookahead_item = parse_item.lookahead();
-        let xml_element = match lookahead_item {
+        let parse_element = match lookahead_item {
             Err(e) => return Err(e),
             Ok(xml_elem) => xml_elem,
         };
 
         // Now verify that the token we just read starts an element.
-        let top_element = match xml_element.event {
+        let top_element = match parse_element.event {
             XmlEvent::StartElement{name, attributes, namespace} => {
-                let element_info = ElementInfo::new(name, xml_element.lineno, attributes, namespace);
+                let element_info = ElementInfo::new(name, parse_element.lineno, attributes, namespace);
                 match Self::parse_element(parse_item, element_info, element_level_info) {
                     Err(e) => return Err(e),
                     Ok(top_elem) => top_elem,
                 }
             },
 
-            _ => panic!("FIXME: Expected element, got {:?}", xml_element.event),
+            _ => panic!("FIXME: Expected element, got {:?}", parse_element.event),
         };
 
         // And, wrap up by making sure things conclude as expected.
@@ -122,9 +122,9 @@ pub trait ParseDoc {
     where
         R: Read,
     {
-        let xml_element = parse_item.next()?;
+        let parse_element = parse_item.next()?;
 
-        if let XmlEvent::StartDocument{version, encoding, standalone} = xml_element.event {
+        if let XmlEvent::StartDocument{version, encoding, standalone} = parse_element.event {
             Ok(DocumentInfo::new(version, encoding, standalone))
         } else {
             panic!("FIXME: document doesn't start with StartDocument")
@@ -152,12 +152,12 @@ pub trait ParseDoc {
 
         // Parse all subelements until we hit the EndElement
         loop {
-            let xml_element = parse_item.lookahead()?;
+            let parse_element = parse_item.lookahead()?;
 
-            match xml_element.event {
+            match parse_element.event {
                 XmlEvent::StartElement{name, attributes, namespace} => {
 println!("Start element {}", name.local_name);
-                    let subelement_info = ElementInfo::new(name, xml_element.lineno, attributes, namespace);
+                    let subelement_info = ElementInfo::new(name, parse_element.lineno, attributes, namespace);
                     accumulator.start_subelement(&subelement_info);
                     let subelement_result = Self::parse_element(parse_item, subelement_info, &subelement_level_info)?;
                     
@@ -196,7 +196,7 @@ println!("break from EndElement {}", name.local_name);
                 },
 
                 _ => {
-                    panic!("FIXME: Unexpected XML event: {:?}", xml_element.event);
+                    panic!("FIXME: Unexpected XML event: {:?}", parse_element.event);
                 }
             }
         }
@@ -216,15 +216,15 @@ println!("---");
         parse_item.skip();
 
         loop {
-            let xml_element = parse_item.next()?;
+            let parse_element = parse_item.next()?;
 
-            match xml_element.event {
+            match parse_element.event {
                 XmlEvent::Whitespace(_) |
                     XmlEvent::Characters(_) => {},
 
                 XmlEvent::EndDocument => break,
 
-                _ => panic!("FIXME: Expected end of document but found {:?}", xml_element.event)
+                _ => panic!("FIXME: Expected end of document but found {:?}", parse_element.event)
             }
         }
 

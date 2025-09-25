@@ -21,7 +21,7 @@ pub mod xsd_schema;
 
 pub use crate::banner::set_banner_file_name;
 pub use crate::document::DocumentInfo;
-pub use crate::element::{XmlElement, Element, ElementInfo};
+pub use crate::element::{ParseElement, Element, ElementInfo};
 pub use crate::parse_doc::{Accumulator, ParseDoc};
 pub use crate::parse_echo::{EchoAccumulator, EchoLevelInfo, ParseEcho};
 pub use crate::parse_tree::{ParseTree, TreeAccumulator, TreeLevelInfo};

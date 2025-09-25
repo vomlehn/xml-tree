@@ -5,7 +5,7 @@
 use std::fmt;
 use std::ops::{ControlFlow, FromResidual, Try};
 
-use crate::element::{XmlElement, Element, ElementInfo};
+use crate::element::{ParseElement, Element, ElementInfo};
 use crate::parse_item::LineNumber;
 pub use crate::xml_document_error::XmlDocumentError;
 use crate::parse_doc::{Accumulator, LevelInfo, ParseDoc};
@@ -87,14 +87,14 @@ impl TreeLevelInfo {
 
 /// Accumulator that builds actual element tree
 pub struct TreeAccumulator {
-    element: XmlElement,
+    element: ParseElement,
     current_subelement_name: Option<String>,
 }
 
 impl TreeAccumulator {
     pub fn new(element_info: ElementInfo) -> Self {
         TreeAccumulator {
-            element: XmlElement::new(element_info, vec![], vec![], vec![], vec![]),
+            element: ParseElement::new(element_info, vec![], vec![], vec![], vec![]),
             current_subelement_name: None,
         }
     }

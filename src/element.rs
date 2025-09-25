@@ -18,14 +18,14 @@ use crate::parse_item::LineNumber;
 use crate::walk_print::{nl_indent, vec_display, XmlDisplay};
 
 /*
- * trait making XmlElement and IndirectElement work well together
+ * trait making ParseElement and IndirectElement work well together
  * name:            Function that returns the name of the element
  * get:             Search for an element by name. FIXME: This is probably for
  *                  future expansion.
  * name:            Returns the name for the element. FIXME: This really only
- *                  makes sense for XmlElements and should probably be removed
+ *                  makes sense for ParseElements and should probably be removed
  * subelements:     Returns a reference to a vector of Elements. These are
- *                  sub-elements for XmlElements and a linear set of elements
+ *                  sub-elements for ParseElements and a linear set of elements
  *                  at the same depth as the parent element for IndirectElements.
  * subelements_mut: Like subelements but returns a mutable value
  */
@@ -60,7 +60,7 @@ impl ElementInfo {
 }
 
 #[derive(Clone)]
-pub struct XmlElement {
+pub struct ParseElement {
     pub element_info: ElementInfo,
     pub before_element: Vec<XmlEvent>,
     pub content: Vec<XmlEvent>,
@@ -68,13 +68,13 @@ pub struct XmlElement {
     pub subelements: Vec<Box<dyn Element>>,
 }
 
-impl XmlElement {
+impl ParseElement {
     pub fn new(element_info: ElementInfo,
         before_element: Vec::<XmlEvent>,
         content: Vec::<XmlEvent>,
         after_element: Vec::<XmlEvent>,
-        subelements: Vec<Box<dyn Element>>) -> XmlElement {
-        XmlElement {
+        subelements: Vec<Box<dyn Element>>) -> ParseElement {
+        ParseElement {
             element_info,
             subelements,
             before_element,
@@ -84,9 +84,9 @@ impl XmlElement {
     }
 }
 
-impl Default for XmlElement {
-    fn default() -> XmlElement {
-        XmlElement {
+impl Default for ParseElement {
+    fn default() -> ParseElement {
+        ParseElement {
             element_info: ElementInfo {
                 owned_name: OwnedName {
                     local_name: "".to_string(),
@@ -103,22 +103,22 @@ impl Default for XmlElement {
     }
 }
 
-impl fmt::Display for XmlElement {
+impl fmt::Display for ParseElement {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.display(f, 0)
     }
 }
 
-impl fmt::Debug for XmlElement {
+impl fmt::Debug for ParseElement {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.debug(f, 0)
     }
 }
 
-impl Element for XmlElement {
+impl Element for ParseElement {
     fn display(&self, f: &mut fmt::Formatter<'_>, depth: usize) -> fmt::Result {
 
-        write!(f, "{}vec!(Box::new(XmlElement::new(", nl_indent(depth))
+        write!(f, "{}vec!(Box::new(ParseElement::new(", nl_indent(depth))
             .expect("Unable to write Box::new");
 
         let owned_name = OwnedName {
@@ -192,10 +192,10 @@ for x in self.subelements() {
     }
 }
 
-impl XmlDisplay for XmlElement {
+impl XmlDisplay for ParseElement {
     fn print(&self, f: &mut fmt::Formatter<'_>, depth: usize) -> fmt::Result {
 
-        write!(f, "{}Box::new(XmlElement::new(", nl_indent(depth))
+        write!(f, "{}Box::new(ParseElement::new(", nl_indent(depth))
             .expect("Unable to write Box::new");
 
         let element_info = ElementInfo {

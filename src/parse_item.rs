@@ -81,8 +81,8 @@ impl<R: Read> Parser<R> {
     }
 
     /**
-     * Read the next XmlElement. Each read returns a new value. This
-     * XmlElement is always an ParseElement
+     * Read the next ParseElement. Each read returns a new value. This
+     * ParseElement is always an ParseElement
      *
      * self:    &mut Parser
      *
@@ -104,8 +104,8 @@ impl<R: Read> Parser<R> {
     }
 
     /*
-     * Discard the current XmlElement, forcing a fetch of the next item
-     * if current() is used. This XmlElement is always an ParseElement
+     * Discard the current ParseElement, forcing a fetch of the next item
+     * if current() is used. This ParseElement is always an ParseElement
      *
      * self:    &mut Parser
      */
@@ -115,8 +115,8 @@ impl<R: Read> Parser<R> {
     }
 
     /*
-     * Read the next XmlElement from the input stream, without removing
-     * it from the stream. This XmlElement is always an ParseElement
+     * Read the next ParseElement from the input stream, without removing
+     * it from the stream. This ParseElement is always an ParseElement
      *
      * self:    &mut Parser
      *

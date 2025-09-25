@@ -15,13 +15,16 @@ use crate::walk_print::nl_indent;
 pub struct ParseEcho {
     pub document_info:  DocumentInfo,
     pub root:           Box<dyn Element>,
+    pub depth:          usize,
 }
+/// LevelInfo that doesn't track depth or any other information
 
 impl ParseEcho {
     pub fn new(document_info: DocumentInfo, root: Box<dyn Element>) -> Self {
         ParseEcho {
             document_info,
             root,
+            depth:          0,
         }
     }
 }
