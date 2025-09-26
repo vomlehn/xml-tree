@@ -11,6 +11,8 @@ TEE =
 TEE = 2>&1 | tee make.out
 TEE_A = 2>&1 | tee -a make.out
 
+TEST_OPTS = --test-threads=1 --nocapture
+
 all:	build
 
 .PHONY: build
@@ -34,7 +36,7 @@ run:
 
 test:
 	clear
-	cargo test $(TEST) -- --test-threads=1 --nocapture $(TEE)
+	cargo test $(TEST) -- $(TEST_OPTS) $(TEE)
 
 .PHONY: clippy
 clippy:

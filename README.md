@@ -10,5 +10,6 @@ XML parsing components. The names of most of the files use the convention
 
 <target> may be
      doc - the entire document is parsed while inherited actions are performed
-     echo - the action is to output the XML input
+     echo - the action is to output the original XML input
      tree - the action is to build an XML tree and return it
+     schema - Output the Rust code for a schema
