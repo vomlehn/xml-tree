@@ -6,11 +6,11 @@ use std::fmt;
 use std::ops::{ControlFlow, FromResidual, Try};
 
 use crate::element::{Element, ElementInfo};
+use crate::misc::nl_indent;
 use crate::parse_item::LineNumber;
 pub use crate::xml_document_error::XmlDocumentError;
 use crate::parse_doc::{Accumulator, LevelInfo, ParseDoc};
 use crate::document::DocumentInfo;
-use crate::walk_print::nl_indent;
 
 pub struct ParseEcho {
     pub document_info:  DocumentInfo,

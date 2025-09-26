@@ -8,10 +8,8 @@ use std::fmt;
 use xml::reader::XmlEvent;
 
 use crate::element::Element;
-use crate::walk_print::XmlDisplay;
-
-// FIXME: where should this function go?
-use crate::walk_print::nl_indent;
+use crate::misc::nl_indent;
+use crate::misc::XmlDisplay;
 /*
 
 #[cfg(test)]
@@ -23,18 +21,18 @@ mod tests {
 
         use super::*;
 
-        use crate::xml_schema::{ParseElement, Element};
+        use crate::xml_schema::{TreeElement, Element};
 
         lazy_static!{
             static ref TEST_XML_DESC_TREE: XmlSchema<'static> =
                 XmlSchema::new("MySchema",
-                    Arc::new(ParseElement::new("XTCE", vec!(
-                    Arc::new(ParseElement::new("SpaceSystem", vec!(
-                        Arc::new(ParseElement::new("a1", vec!(
-                            Arc::new(ParseElement::new("a2", vec!())),
+                    Arc::new(TreeElement::new("XTCE", vec!(
+                    Arc::new(TreeElement::new("SpaceSystem", vec!(
+                        Arc::new(TreeElement::new("a1", vec!(
+                            Arc::new(TreeElement::new("a2", vec!())),
                         ))),
-                        Arc::new(ParseElement::new("a2", vec!(
-                            Arc::new(ParseElement::new("a1", vec!()))
+                        Arc::new(TreeElement::new("a2", vec!(
+                            Arc::new(TreeElement::new("a1", vec!()))
                         ))),
                     ))),
                 ))),
@@ -44,11 +42,11 @@ mod tests {
         lazy_static!{
             static ref TEST_MATH: XmlSchema<'static> =
                 XmlSchema::new("MathSchema",
-                    Arc::new(ParseElement::new("Math", vec!(
-                    Arc::new(ParseElement::new("operand", vec!(
-                        Arc::new(ParseElement::new("int", vec!())),
+                    Arc::new(TreeElement::new("Math", vec!(
+                    Arc::new(TreeElement::new("operand", vec!(
+                        Arc::new(TreeElement::new("int", vec!())),
                     ))),
-                    Arc::new(ParseElement::new("operator", vec!())),
+                    Arc::new(TreeElement::new("operator", vec!())),
                 ))),
             );
         }
@@ -237,7 +235,7 @@ fn branch(name: &str, ei: &ElementInfo, subelements: Vec<dyn Element>) -> Box<dy
 
 #[cfg(test)]
 fn node(name: &str, ei: &ElementInfo, subelements: Vec<dyn Element>) -> Box<dyn Element> {
-    Box::new(ParseElement {
+    Box::new(TreeElement {
         name: OwnedName {
             local_name: name.to_string(),
             namespace: None,

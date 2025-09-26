@@ -24,14 +24,14 @@ pub type LineNumber = usize;
  * event:   XmlEvent returned by the XML low level parse_item
  */
 #[derive(Clone, Debug)]
-pub struct ParseElement {
+pub struct TreeElement {
     pub lineno: LineNumber,
     pub event: XmlEvent,
 }
 
-impl ParseElement {
-    fn new(lineno: LineNumber, event: XmlEvent) -> ParseElement {
-        ParseElement {
+impl TreeElement {
+    fn new(lineno: LineNumber, event: XmlEvent) -> TreeElement {
+        TreeElement {
             lineno,
             event,
         }
@@ -63,7 +63,7 @@ impl ParseElement {
  */
 pub struct Parser<R: Read> {
     lineno_ref: Rc<RefCell<LineNumber>>,
-    pending: Option<Result<ParseElement, XmlDocumentError>>,
+    pending: Option<Result<TreeElement, XmlDocumentError>>,
     event_reader: EventReader<LinenoReader<R>>,
 }
 
@@ -81,16 +81,16 @@ impl<R: Read> Parser<R> {
     }
 
     /**
-     * Read the next ParseElement. Each read returns a new value. This
-     * ParseElement is always an ParseElement
+     * Read the next TreeElement. Each read returns a new value. This
+     * TreeElement is always an TreeElement
      *
      * self:    &mut Parser
      *
      * Returns:
-     * Ok(ParseElement)
+     * Ok(TreeElement)
      * Err(XmlDocumentError)
      */
-    pub fn next(&mut self) -> Result<ParseElement, XmlDocumentError> {
+    pub fn next(&mut self) -> Result<TreeElement, XmlDocumentError> {
         let result = self.lookahead()?;
 /*
         if let Err(e) = result {
@@ -104,8 +104,8 @@ impl<R: Read> Parser<R> {
     }
 
     /*
-     * Discard the current ParseElement, forcing a fetch of the next item
-     * if current() is used. This ParseElement is always an ParseElement
+     * Discard the current TreeElement, forcing a fetch of the next item
+     * if current() is used. This TreeElement is always an TreeElement
      *
      * self:    &mut Parser
      */
@@ -115,16 +115,16 @@ impl<R: Read> Parser<R> {
     }
 
     /*
-     * Read the next ParseElement from the input stream, without removing
-     * it from the stream. This ParseElement is always an ParseElement
+     * Read the next TreeElement from the input stream, without removing
+     * it from the stream. This TreeElement is always an TreeElement
      *
      * self:    &mut Parser
      *
      * Returns:
-     * Ok(ParseElement)
+     * Ok(TreeElement)
      * Err(XmlDocumentError)
      */
-    pub fn lookahead(&mut self) -> Result<ParseElement, XmlDocumentError> {
+    pub fn lookahead(&mut self) -> Result<TreeElement, XmlDocumentError> {
         // If we don't have any lookahead token, read another token to be
         // the lookahead token.
         if self.pending.is_none() {
@@ -144,7 +144,7 @@ impl<R: Read> Parser<R> {
                     err
                 },
                 Ok(xml_event) => {
-                    let element = ParseElement::new(lineno, xml_event);
+                    let element = TreeElement::new(lineno, xml_event);
 println!("(lookahead {})", element.name());
                     let ok = Ok(element.clone());
                     let pending_ok = Some(Ok(element));
