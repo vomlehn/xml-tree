@@ -97,7 +97,7 @@ impl<R: Read> Parser<R> {
             return Err(e);
         }
 */
-        print!("(next {})", result.name());
+//        print!("(next {})", result.name());
 
         self.skip();
         Ok(result)
@@ -110,7 +110,7 @@ impl<R: Read> Parser<R> {
      * self:    &mut Parser
      */
     pub fn skip(&mut self) {
-        print!("(skip)");
+//        print!("(skip)");
         self.pending = None;
     }
 
@@ -145,7 +145,7 @@ impl<R: Read> Parser<R> {
                 },
                 Ok(xml_event) => {
                     let element = TreeElement::new(lineno, xml_event);
-println!("(lookahead {})", element.name());
+//println!("(lookahead {})", element.name());
                     let ok = Ok(element.clone());
                     let pending_ok = Some(Ok(element));
                     self.pending = pending_ok;
@@ -164,7 +164,7 @@ let e = {
                 Some(element) => element,
             }
 };
-println!("(lookahead {})", e.clone().unwrap().name());
+//println!("(lookahead {})", e.clone().unwrap().name());
 e
         }
     }

@@ -6,6 +6,7 @@ use std::ops::{ControlFlow, FromResidual, Try};
 use xml::name::OwnedName;
 use xml::reader::XmlEvent;
 
+use crate::banner::write_banner_file;
 use crate::element::{Element, ElementInfo, element_info_display};
 use crate::misc::{nl_indent, owned_name_display, vec_display, XmlDisplay};
 use crate::parse_item::LineNumber;
@@ -13,17 +14,25 @@ pub use crate::xml_document_error::XmlDocumentError;
 use crate::parse_doc::{Accumulator, LevelInfo, ParseDoc};
 use crate::document::DocumentInfo;
 
-pub struct ParseSchema {
+/*
+ * Parse an input stream of XSD code and generate Rust code. That code is
+ * then used to guide the parsing of XML code. The XSD is actually XML.
+ */
+pub struct ParseSchema<'a> {
+    pub const_name:     &'a str,
+    pub schema_type:    &'a str,
+    pub schema_name:    &'a str,
     pub document_info:  DocumentInfo,
     pub root:           Box<dyn Element>,
     pub depth:          usize,
 }
 
-/// LevelInfo that doesn't track depth or any other information
-
-impl ParseSchema {
+impl<'a> ParseSchema <'a>{
     pub fn new(document_info: DocumentInfo, root: Box<dyn Element>) -> Self {
         ParseSchema {
+            const_name:     "FIXMEconstname",
+            schema_type:    "FIXMEschematype",
+            schema_name:    "FIXMEschemaname",
             document_info,
             root,
             depth:          0,
@@ -31,7 +40,7 @@ impl ParseSchema {
     }
 }
 
-impl ParseDoc for ParseSchema {
+impl<'a> ParseDoc for ParseSchema<'a> {
     type LI = SchemaLevelInfo;
     type AC = SchemaAccumulator;
 }
@@ -51,6 +60,7 @@ impl LevelInfo for SchemaLevelInfo {
     }
 }
 
+/*
 impl fmt::Display for ParseSchema {
 // FIXME: make this work
     fn fmt(&self, _f: &mut fmt::Formatter<'_>) -> fmt::Result
@@ -67,10 +77,11 @@ impl fmt::Debug for ParseSchema {
         //print_walk(f, 0, self)
     }
 }
+*/
 
-impl Try for ParseSchema
+impl<'a> Try for ParseSchema<'a>
 {
-    type Output = <<ParseSchema as ParseDoc>::AC as Accumulator>::Value;
+    type Output = <<ParseSchema<'a> as ParseDoc>::AC as Accumulator>::Value;
     type Residual = XmlDocumentError;
     fn from_output(_: <Self as Try>::Output) -> Self
     { todo!() }
@@ -78,7 +89,7 @@ impl Try for ParseSchema
     { todo!() }
 }
 
-impl FromResidual for ParseSchema {
+impl<'a> FromResidual for ParseSchema <'a>{
     fn from_residual(_: <ParseSchema as Try>::Residual) -> Self
     { todo!() }
 }
@@ -117,8 +128,15 @@ impl SchemaAccumulator {
 impl Accumulator for SchemaAccumulator {
     type Value = ();  // Schema doesn't return meaningful data
 
-    fn start_subelement(&mut self, _element_info: &ElementInfo) {
-        // Nothing special needed
+    /*
+     * Note that we have started a sublement
+     */
+    fn start_subelement(&mut self, element_info: &ElementInfo) {
+        println!("SchemaElement::newXXX(\"{}\"", element_info.owned_name.local_name);
+        
+        // FIXME: probably needs to be fully qualified
+        // FIXME: propagate to other parse_.*() code
+        self.current_subelement_name = Some(element_info.owned_name.local_name.clone());
     }
     
     fn add_subelement(&mut self, _subelement: ()) {
@@ -313,6 +331,130 @@ impl XmlDisplay for SchemaElement {
     }
 }
 
+/*
+impl<'a> XmlDisplay for ParseSchema<'a> {
+    fn print(&self, f: &mut fmt::Formatter, depth: usize) -> fmt::Result {
+        write!(f, "{}{}", nl_indent(depth), self.inner)
+    }
+}
+*/
+
+pub struct ParseSchemaPrint {
+}
+
+/*
+impl<'a> fmt::Display for ParseSchema<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.inner)?;
+        writeln!(f, "schema_name: {}", self.inner.schema_name)?;
+        Ok(())
+    }
+}
+*/
+
+/*
+ * Top-level definition of the schema
+ * schema_name:     Name of the schema
+ * const_name:      Const name. This is how the code refers to the schema
+ * xml_document:    XML document
+ */
+//#[derive(Clone)]
+/*
+pub struct ParseSchemaInner<'a> {
+    pub const_name:     &'a str,
+    pub schema_type:    &'a str,
+    pub schema_name:    &'a str,
+//    pub xml_document:   XmlTree,
+}
+
+impl<'a> ParseSchemaInner<'a> {
+    pub fn display(&self) {
+        println!("ParseSchemaInner::display");
+    }
+}
+*/
+
+impl fmt::Display for ParseSchema<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let depth = 0;
+        front_matter_display(f, depth)?;
+
+        let indent_str = nl_indent(depth);
+        write!(f, "{}lazy_static! {{", indent_str)?;
+
+        static_parse_schema_display(f, depth + 1, self.const_name, self.schema_type, self.schema_name)?;
+
+unimplemented!();
+//        print_walk(f, depth + 2, &self.xml_document)?;
+
+//        back_matter_display(f, 1)?;
+//        Ok(())
+    }
+}
+
+impl fmt::Debug for ParseSchema<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "inner \"{}\" (\"{}\")", self.const_name, self.schema_name)
+//        writeln!(f, "inner \"{}\" (\"{}\")", self.const_name, self.schema_name)?;
+//        writeln!(f, "xml_document {:?}", self.xml_document)
+    }
+}
+
+impl XmlDisplay for ParseSchema<'_> {
+    fn print(&self, f: &mut fmt::Formatter, depth: usize) -> fmt::Result {
+        write!(f, "{}{}", nl_indent(depth), self)
+    }
+}
+
+fn front_matter_display(f: &mut fmt::Formatter, depth: usize) -> fmt::Result {
+    let front_matter: Vec::<&str> = vec!(
+        "// FIXME: insert banner",
+        "// Auto-generated file",
+        "use lazy_static::lazy_static;", 
+        "use std::collections::BTreeMap;",
+        "", 
+        "use xml::common::XmlVersion;",
+        "use xml::name::OwnedName;",
+        "use xml::namespace::Namespace;",
+        "",
+        "use crate::xml_document::TreeElement;", 
+        "use crate::parse_tree::{DocumentInfo, ElementInfo};",
+        "use crate::parse_schema::ParseSchema;", 
+        "use crate::XmlTree;",
+        "", 
+    );
+
+    write_banner_file(f)?;
+
+    let indent_str = nl_indent(depth);
+
+    for front in front_matter {
+        write!(f, "{}{}", indent_str, front)?;
+    }
+
+    Ok(())
+}
+
+fn static_parse_schema_display(f: &mut fmt::Formatter, depth: usize, const_name: &str, schema_type: &str, schema_name: &str) -> fmt::Result {
+    let indent_str = nl_indent(depth);
+    write!(f, "{}pub static ref {const_name}: {schema_type}<'static> = {schema_type}::new(", indent_str)?;
+
+    let indent_str = nl_indent(depth + 1);
+    for name in [const_name, schema_type, schema_name] {
+        write!(f, "{}\"{}\",", indent_str, name)?;
+    }
+
+    Ok(())
+}
+
+fn back_matter_display(f: &mut fmt::Formatter, depth: usize) -> fmt::Result {
+    write!(f, "{});", nl_indent(depth))?;
+    write!(f, "{}}}", nl_indent(depth - 1))
+// FIXME: is this needed?
+// write!(f, "\n")
+}
+
+/*
 #[cfg(test)]
 mod tests {
     use stdext::function_name;
@@ -355,6 +497,7 @@ mod tests {
         println!();
     }
 }
+*/
 
 /*
 use std::fmt;

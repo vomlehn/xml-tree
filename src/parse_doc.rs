@@ -78,6 +78,7 @@ pub trait ParseDoc {
     where
         R: Read,
     {
+//println!("---> entering parse_document");
         let document_info = match Self::parse_start_document(parse_item) {
             Err(e) => return Err(e),
             Ok(doc_info) => doc_info,
@@ -142,6 +143,7 @@ pub trait ParseDoc {
     where
         R: Read,
     {
+//println!("parse_element: enter with {}", element_info.owned_name.local_name);
         parse_item.skip();
         
         // Create accumulator for this element
@@ -156,10 +158,11 @@ pub trait ParseDoc {
 
             match parse_element.event {
                 XmlEvent::StartElement{name, attributes, namespace} => {
-println!("Start element {}", name.local_name);
-                    let subelement_info = ElementInfo::new(name, parse_element.lineno, attributes, namespace);
+                    let subelement_info = ElementInfo::new(name, parse_element.lineno,
+                        attributes, namespace);
                     accumulator.start_subelement(&subelement_info);
-                    let subelement_result = Self::parse_element(parse_item, subelement_info, &subelement_level_info)?;
+                    let subelement_result = Self::parse_element(parse_item,
+                        subelement_info, &subelement_level_info)?;
                     
                     accumulator.add_subelement(subelement_result);
                 },
@@ -167,7 +170,6 @@ println!("Start element {}", name.local_name);
                 XmlEvent::EndElement{name} => {
                     if accumulator.has_open_subelement() {
                         // We have an element optn at this level, process it
-println!("looping with EndElement {}", name.local_name);
                         parse_item.skip();
                         
                         if name.local_name != accumulator.current_subelement_name() {
@@ -179,7 +181,6 @@ println!("looping with EndElement {}", name.local_name);
                     } else {
                         // No open element on this level, it must be from the
                         // level above.
-println!("break from EndElement {}", name.local_name);
                         break;
                     }
                 },
@@ -201,7 +202,6 @@ println!("break from EndElement {}", name.local_name);
             }
         }
 
-println!("return from parse_element");
         Ok(accumulator.finish())
     }
 
@@ -212,7 +212,7 @@ println!("return from parse_element");
     where
         R: Read,
     {
-println!("---");
+//println!("---");
         parse_item.skip();
 
         loop {

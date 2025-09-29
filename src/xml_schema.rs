@@ -2,18 +2,16 @@
  * Define the data structures used to describe the XML used for parsing.
  */
 
-/*
- * FIXME: remove this, probably
- *
 // FIXME: make sure errors returned are appropriate
 
-use std::fmt;
-// FIXME: implement some more iterators
+//use std::fmt;
 
-use crate::banner::write_banner_file;
-use crate::xml_tree::XmlTree;
-use crate::walk_print::{nl_indent, print_walk, XmlDisplay};
+//use crate::banner::write_banner_file;
+//use crate::xml_tree::XmlTree;
+//use crate::misc::{nl_indent, print_walk, XmlDisplay};
+//use crate::misc::{nl_indent, XmlDisplay};
 
+/*
 pub struct XmlSchema<'a> {
     pub inner: XmlSchemaInner<'a>,
 }
