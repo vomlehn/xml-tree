@@ -108,6 +108,7 @@ impl SchemaLevelInfo {
 
 /// Accumulator that just echoes structure (doesn't build elements)
 pub struct SchemaAccumulator {
+    element: SchemaElement,
     element_name: String,
     element_lineno: LineNumber,
     depth: usize,
@@ -116,7 +117,11 @@ pub struct SchemaAccumulator {
 
 impl SchemaAccumulator {
     pub fn new(element_info: ElementInfo, depth: usize) -> Self {
+        let ei = element_info.clone();
+        let element = SchemaElement::new(ei, vec![], vec![], vec![], vec![]);
         SchemaAccumulator {
+            element,
+            // FIXME: should use element.name()
             element_name: element_info.owned_name.local_name.clone(),
             element_lineno: element_info.lineno,
             depth,
@@ -132,7 +137,8 @@ impl Accumulator for SchemaAccumulator {
      * Note that we have started a sublement
      */
     fn start_subelement(&mut self, element_info: &ElementInfo) {
-        println!("SchemaElement::newXXX(\"{}\"", element_info.owned_name.local_name);
+//        println!("SchemaElement::newXXX(\"{}\"", element_info.owned_name.local_name);
+        print!("{}", self.element);
         
         // FIXME: probably needs to be fully qualified
         // FIXME: propagate to other parse_.*() code

@@ -96,8 +96,9 @@ pub struct TreeAccumulator {
 
 impl TreeAccumulator {
     pub fn new(element_info: ElementInfo) -> Self {
+        let element = TreeElement::new(element_info, vec![], vec![], vec![], vec![]);
         TreeAccumulator {
-            element: TreeElement::new(element_info, vec![], vec![], vec![], vec![]),
+            element,
             current_subelement_name: None,
         }
     }
