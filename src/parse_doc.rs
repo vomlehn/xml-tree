@@ -143,7 +143,6 @@ pub trait ParseDoc {
     where
         R: Read,
     {
-//println!("parse_element: enter with {}", element_info.owned_name.local_name);
         parse_item.skip();
         
         // Create accumulator for this element
@@ -212,7 +211,6 @@ pub trait ParseDoc {
     where
         R: Read,
     {
-//println!("---");
         parse_item.skip();
 
         loop {

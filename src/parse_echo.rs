@@ -106,7 +106,7 @@ impl EchoAccumulator {
         EchoAccumulator {
             element_name: element_info.owned_name.local_name.clone(),
             element_lineno: element_info.lineno,
-            depth,
+            depth: depth + 1,
             current_subelement_name: None,
         }
     }
