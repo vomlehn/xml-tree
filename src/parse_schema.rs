@@ -212,6 +212,7 @@ impl Accumulator for SchemaAccumulator {
         if let Some(_name) = &self.current_subelement_name {
         }
         self.current_subelement_name = None;
+        print!(",");
     }
     
     fn has_open_subelement(&self) -> bool {
