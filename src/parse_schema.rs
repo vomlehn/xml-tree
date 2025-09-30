@@ -301,9 +301,9 @@ impl SchemaElement {
         let depth1 = depth0 + 1;
         let depth2 = depth1 + 1;
 
-        println!("{})", nl_indent(depth2));
-        println!("{})", nl_indent(depth1));
-        println!("{})", indent(depth0));
+        print!("{})", nl_indent(depth2));
+        print!("{})", nl_indent(depth1));
+        print!("{})", nl_indent(depth0));
             // FIXME: return error
         Ok(())
     }
