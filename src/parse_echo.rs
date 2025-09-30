@@ -15,7 +15,7 @@ use crate::document::DocumentInfo;
 pub struct ParseEcho {
     pub document_info:  DocumentInfo,
     pub root:           Box<dyn Element>,
-    pub depth:          usize,
+//    pub depth:          usize,
 }
 /// LevelInfo that doesn't track depth or any other information
 
@@ -24,7 +24,7 @@ impl ParseEcho {
         ParseEcho {
             document_info,
             root,
-            depth:          0,
+//            depth:          0,
         }
     }
 }
@@ -32,21 +32,6 @@ impl ParseEcho {
 impl ParseDoc for ParseEcho {
     type LI = EchoLevelInfo;
     type AC = EchoAccumulator;
-}
-
-impl LevelInfo for EchoLevelInfo {
-    type AccumulatorType = EchoAccumulator;
-
-    fn next_level(&self) -> Self {
-        EchoLevelInfo { depth: self.depth + 1 }
-    }
-
-    fn create_accumulator(&self, element_info: ElementInfo) ->
-        Result<EchoAccumulator, XmlDocumentError>
-    {
-        print!("{}<{}>", nl_indent(self.depth), element_info.owned_name.local_name);
-        Ok(EchoAccumulator::new(element_info, self.depth))
-    }
 }
 
 impl fmt::Display for ParseEcho {
@@ -90,6 +75,21 @@ pub struct EchoLevelInfo {
 impl EchoLevelInfo {
     pub fn new() -> Self {
         EchoLevelInfo { depth: 0 }
+    }
+}
+
+impl LevelInfo for EchoLevelInfo {
+    type AccumulatorType = EchoAccumulator;
+
+    fn next_level(&self) -> Self {
+        EchoLevelInfo { depth: self.depth + 1 }
+    }
+
+    fn create_accumulator(&self, element_info: ElementInfo) ->
+        Result<EchoAccumulator, XmlDocumentError>
+    {
+        print!("{}<{}>", nl_indent(self.depth), element_info.owned_name.local_name);
+        Ok(EchoAccumulator::new(element_info, self.depth))
     }
 }
 

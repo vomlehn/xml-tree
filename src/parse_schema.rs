@@ -24,7 +24,6 @@ pub struct ParseSchema<'a> {
     pub schema_name:    &'a str,
     pub document_info:  DocumentInfo,
     pub root:           Box<dyn Element>,
-//    pub depth:          usize,
 }
 
 impl<'a> ParseSchema <'a>{
@@ -35,7 +34,6 @@ impl<'a> ParseSchema <'a>{
             schema_name:    "FIXMEschemaname",
             document_info,
             root,
-//            depth:          0,
         }
     }
 }
@@ -44,6 +42,86 @@ impl<'a> ParseDoc for ParseSchema<'a> {
     type LI = SchemaLevelInfo;
     type AC = SchemaAccumulator;
 }
+
+pub struct ParseSchemaPrint {
+}
+
+impl fmt::Display for ParseSchema<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let depth = 0;
+        front_matter_display(f, depth)?;
+
+        let indent_str = nl_indent(depth);
+        write!(f, "{}lazy_static! {{", indent_str)?;
+
+        static_parse_schema_display(f, depth + 1, self.const_name, self.schema_type, self.schema_name)?;
+
+unimplemented!();
+//        print_walk(f, depth + 2, &self.xml_document)?;
+
+//        back_matter_display(f, 1)?;
+//        Ok(())
+    }
+}
+
+impl fmt::Debug for ParseSchema<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "inner \"{}\" (\"{}\")", self.const_name, self.schema_name)
+//        writeln!(f, "inner \"{}\" (\"{}\")", self.const_name, self.schema_name)?;
+//        writeln!(f, "xml_document {:?}", self.xml_document)
+    }
+}
+
+fn front_matter_display(f: &mut fmt::Formatter, depth: usize) -> fmt::Result {
+    let front_matter: Vec::<&str> = vec!(
+        "// FIXME: insert banner",
+        "// Auto-generated file",
+        "use lazy_static::lazy_static;", 
+        "use std::collections::BTreeMap;",
+        "", 
+        "use xml::common::XmlVersion;",
+        "use xml::name::OwnedName;",
+        "use xml::namespace::Namespace;",
+        "",
+        "use crate::xml_document::TreeElement;", 
+        "use crate::parse_tree::{DocumentInfo, ElementInfo};",
+        "use crate::parse_schema::ParseSchema;", 
+        "use crate::XmlTree;",
+        "", 
+    );
+
+    write_banner_file(f)?;
+
+    let indent_str = nl_indent(depth);
+
+    for front in front_matter {
+        write!(f, "{}{}", indent_str, front)?;
+    }
+
+    Ok(())
+}
+
+fn static_parse_schema_display(f: &mut fmt::Formatter, depth: usize, const_name: &str, schema_type: &str, schema_name: &str) -> fmt::Result {
+    let indent_str = nl_indent(depth);
+    write!(f, "{}pub static ref {const_name}: {schema_type}<'static> = {schema_type}::new(", indent_str)?;
+
+    let indent_str = nl_indent(depth + 1);
+    for name in [const_name, schema_type, schema_name] {
+        write!(f, "{}\"{}\",", indent_str, name)?;
+    }
+
+    Ok(())
+}
+
+/*
+fn back_matter_display(f: &mut fmt::Formatter, depth: usize) -> fmt::Result {
+    write!(f, "{});", nl_indent(depth))?;
+    write!(f, "{}}}", nl_indent(depth - 1))
+// FIXME: is this needed?
+// write!(f, "\n")
+}
+
+*/
 
 impl<'a> Try for ParseSchema<'a>
 {
@@ -106,7 +184,7 @@ impl SchemaAccumulator {
             // FIXME: should use element.name()
             element_name: element_info.owned_name.local_name.clone(),
             element_lineno: element_info.lineno,
-            depth: depth + 1,
+            depth: depth,
             current_subelement_name: None,
         }
     }
@@ -119,8 +197,6 @@ impl Accumulator for SchemaAccumulator {
      * Note that we have started a sublement
      */
     fn start_subelement(&mut self, element_info: &ElementInfo) {
-//        println!("SchemaElement::newXXX(\"{}\"", element_info.owned_name.local_name);
-        
         // FIXME: probably needs to be fully qualified
         // FIXME: propagate to other parse_.*() code
         self.current_subelement_name = Some(element_info.owned_name.local_name.clone());
@@ -132,9 +208,9 @@ impl Accumulator for SchemaAccumulator {
     }
     
     fn end_subelement(&mut self) {
-//        if let Some(name) = &self.current_subelement_name {
-//            print!("{}</{}>", nl_indent(self.depth + 1), name);
-//        }
+        // FIXME: what's this for?
+        if let Some(_name) = &self.current_subelement_name {
+        }
         self.current_subelement_name = None;
     }
     
@@ -149,8 +225,8 @@ impl Accumulator for SchemaAccumulator {
     }
     
     fn finish(self) -> () {
-//        print!("{}</{}>", nl_indent(self.depth), self.element_name);
-        ()
+        // FIXME: return error
+        let _ = self.element.display_end(self.depth);
     }
     
     fn element_name(&self) -> &str {
@@ -188,6 +264,49 @@ impl SchemaElement {
             after_element,
         }
     }
+
+    fn display_start(&self, f: &mut fmt::Formatter::<'_>, depth: usize) -> fmt::Result {
+        let depth0 = 3 * depth;
+        let depth1 = depth0 + 1;
+        let depth2 = depth1 + 1;
+
+        // FIXME: return error code
+        let _ = write!(f, "{}vec!(Box::new(SchemaElement::new(",
+            nl_indent(depth0));
+
+        let owned_name = OwnedName {
+            local_name: self.name().to_string(),
+            namespace:  None,
+            prefix:     None,
+        };
+        owned_name_display(f, depth1, &owned_name)?;
+
+        let element_info = ElementInfo {
+            lineno:     0,
+            owned_name: owned_name,
+        };
+        element_info_display(f, depth1, &element_info)?;
+        write!(f, "{}", nl_indent(depth1))?;
+        vec_display::<XmlEvent>(f, depth1, &self.before_element)?;
+        write!(f, ", ")?;
+        vec_display::<XmlEvent>(f, depth1, &self.content)?;
+        write!(f, ", ")?;
+        vec_display::<XmlEvent>(f, depth1, &self.after_element)?;
+        write!(f, ",")?;
+        write!(f, "{}vec!(", nl_indent(depth1 + 1))
+    }
+
+    fn display_end(&self, depth: usize) -> fmt::Result {
+        let depth0 = 3 * depth;
+        let depth1 = depth0 + 1;
+        let depth2 = depth1 + 1;
+
+        println!("{})", nl_indent(depth2));
+        println!("{})", nl_indent(depth1));
+        println!("{})", indent(depth0));
+            // FIXME: return error
+        Ok(())
+    }
 }
 
 impl Default for SchemaElement {
@@ -218,35 +337,13 @@ impl fmt::Display for SchemaElement {
 
 impl fmt::Debug for SchemaElement {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.debug(f, 0)
+        self.debug(f, self.depth)
     }
 }
 
 impl Element for SchemaElement {
     fn display(&self, f: &mut fmt::Formatter<'_>, depth: usize) -> fmt::Result {
-        write!(f, "{}vec!(Box::new(SchemaElement::new(", indent(depth))
-            .expect("Unable to write Box::new");
-
-        let owned_name = OwnedName {
-            local_name: self.name().to_string(),
-            namespace:  None,
-            prefix:     None,
-        };
-        owned_name_display(f, depth + 1, &owned_name)?;
-
-        let element_info = ElementInfo {
-            lineno:     0,
-            owned_name: owned_name,
-        };
-        element_info_display(f, depth + 1, &element_info)?;
-        write!(f, "{}", nl_indent(depth + 1))?;
-        vec_display::<XmlEvent>(f, depth, &self.before_element)?;
-        write!(f, ", ")?;
-        vec_display::<XmlEvent>(f, depth, &self.content)?;
-        write!(f, ", ")?;
-        vec_display::<XmlEvent>(f, depth, &self.after_element)?;
-        write!(f, ",")?;
-        write!(f, "{}vec!(", nl_indent(depth + 1))
+        self.display_start(f, depth)
     }
 
     fn debug(&self, f: &mut fmt::Formatter<'_>, depth: usize) -> fmt::Result {
@@ -320,89 +417,3 @@ impl XmlDisplay for SchemaElement {
         write!(f, "{}vec!(", nl_indent(depth + 1))
     }
 }
-
-pub struct ParseSchemaPrint {
-}
-
-impl fmt::Display for ParseSchema<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let depth = 0;
-        front_matter_display(f, depth)?;
-
-        let indent_str = nl_indent(depth);
-        write!(f, "{}lazy_static! {{", indent_str)?;
-
-        static_parse_schema_display(f, depth + 1, self.const_name, self.schema_type, self.schema_name)?;
-
-unimplemented!();
-//        print_walk(f, depth + 2, &self.xml_document)?;
-
-//        back_matter_display(f, 1)?;
-//        Ok(())
-    }
-}
-
-impl fmt::Debug for ParseSchema<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f, "inner \"{}\" (\"{}\")", self.const_name, self.schema_name)
-//        writeln!(f, "inner \"{}\" (\"{}\")", self.const_name, self.schema_name)?;
-//        writeln!(f, "xml_document {:?}", self.xml_document)
-    }
-}
-
-/*
-impl XmlDisplay for ParseSchema<'_> {
-    fn print(&self, f: &mut fmt::Formatter, depth: usize) -> fmt::Result {
-        write!(f, "{}{}", nl_indent(depth), self)
-    }
-}
-*/
-
-fn front_matter_display(f: &mut fmt::Formatter, depth: usize) -> fmt::Result {
-    let front_matter: Vec::<&str> = vec!(
-        "// FIXME: insert banner",
-        "// Auto-generated file",
-        "use lazy_static::lazy_static;", 
-        "use std::collections::BTreeMap;",
-        "", 
-        "use xml::common::XmlVersion;",
-        "use xml::name::OwnedName;",
-        "use xml::namespace::Namespace;",
-        "",
-        "use crate::xml_document::TreeElement;", 
-        "use crate::parse_tree::{DocumentInfo, ElementInfo};",
-        "use crate::parse_schema::ParseSchema;", 
-        "use crate::XmlTree;",
-        "", 
-    );
-
-    write_banner_file(f)?;
-
-    let indent_str = nl_indent(depth);
-
-    for front in front_matter {
-        write!(f, "{}{}", indent_str, front)?;
-    }
-
-    Ok(())
-}
-
-fn static_parse_schema_display(f: &mut fmt::Formatter, depth: usize, const_name: &str, schema_type: &str, schema_name: &str) -> fmt::Result {
-    let indent_str = nl_indent(depth);
-    write!(f, "{}pub static ref {const_name}: {schema_type}<'static> = {schema_type}::new(", indent_str)?;
-
-    let indent_str = nl_indent(depth + 1);
-    for name in [const_name, schema_type, schema_name] {
-        write!(f, "{}\"{}\",", indent_str, name)?;
-    }
-
-    Ok(())
-}
-
-fn back_matter_display(f: &mut fmt::Formatter, depth: usize) -> fmt::Result {
-    write!(f, "{});", nl_indent(depth))?;
-    write!(f, "{}}}", nl_indent(depth - 1))
-// FIXME: is this needed?
-// write!(f, "\n")
-}
-

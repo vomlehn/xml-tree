@@ -239,7 +239,8 @@ pub trait LevelInfo {
     /// Create the next level info for subelements
     fn next_level(&self) -> Self;
     
-    /// Create an accumulator for processing an element at this level
+    /// Create an accumulator for processing an element at this level. This is called
+    /// when we start the processing.
     fn create_accumulator(&self, element_info: ElementInfo) -> 
         Result<Self::AccumulatorType, XmlDocumentError>;
 }
@@ -253,16 +254,17 @@ pub trait Accumulator {
     /// Called when starting to process a subelement
     fn start_subelement(&mut self, element_info: &ElementInfo);
     
-    /// Add a completed subelement to this accumulator
-    fn add_subelement(&mut self, subelement: Self::Value);
-    
     /// Called when finishing processing a subelement
     fn end_subelement(&mut self);
     
-    /// Check if we're currently processing a subelement
+    /// Add a completed subelement to this accumulator
+    fn add_subelement(&mut self, subelement: Self::Value);
+    
+    /// Determine whether we're currently processing a subelement
+    /// Returns: true if we are nested in a subelement, false otherwise
     fn has_open_subelement(&self) -> bool;
     
-    /// Get the name of the current subelement (for error reporting)
+    /// Get the name of the current subelement
     fn current_subelement_name(&self) -> &str;
     
     /// Return the final result for this element
