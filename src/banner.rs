@@ -30,6 +30,7 @@ pub fn set_banner_file_name(name: Option<String>) {
     }
 }
 
+// FIXME: consolidate this and print_banner_file
 pub fn write_banner_file(f: &mut fmt::Formatter<'_>) -> fmt::Result {
     let banner_file_name = BANNER_FILE_NAME.lock().unwrap().clone();
 
@@ -37,6 +38,21 @@ pub fn write_banner_file(f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match fs::read_to_string(&name) {
             Ok(contents) => write!(f, "{}", contents)?,
             Err(e) => write!(f, "Error reading file '{}': {}", &name, e)?,
+        }
+    }
+
+    Ok(())
+}
+
+pub fn print_banner_file() -> fmt::Result {
+    let banner_file_name = BANNER_FILE_NAME.lock().unwrap().clone();
+
+    if let Some(name) = banner_file_name {
+        match fs::read_to_string(&name) {
+            // FIXME: check for error
+            Ok(contents) => print!("{}", contents),
+            // FIXME: check for error
+            Err(e) => print!("Error reading file '{}': {}", &name, e),
         }
     }
 
