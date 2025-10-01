@@ -41,16 +41,11 @@ impl<'a> ParseSchema {
     }
 
     pub fn parse_path<'b> (
-        path: &'b str,
+        params:             &ParseSchemaParams,
+        path:               &'b str,
         element_level_info: &<ParseSchema as ParseDoc>::LI,
     ) -> Result<(DocumentInfo, <<<ParseSchema as ParseDoc>::LI as LevelInfo>::AccumulatorType as Accumulator>::Value), XmlDocumentError>
     {
-        let params = ParseSchemaParams {
-            const_name:     "FIXMEconstname",
-            schema_type:    "FIXMEschematype",
-            schema_name:    "FIXMEschemaname",
-        };
-
         // FIXME: check for error
         let _ = Self::display_start(&params);
         let res = Self::parse_path_base(path, element_level_info)?;
@@ -59,18 +54,13 @@ impl<'a> ParseSchema {
     }
 
     pub fn parse<R>(
-        buf_reader: BufReader<R>,
+        params:             &ParseSchemaParams,
+        buf_reader:         BufReader<R>,
         element_level_info: &<ParseSchema as ParseDoc>::LI,
     ) -> Result<(DocumentInfo, <<<ParseSchema as ParseDoc>::LI as LevelInfo>::AccumulatorType as Accumulator>::Value), XmlDocumentError>
     where
         R: Read,
     {
-        let params = ParseSchemaParams {
-            const_name:     "FIXMEconstname",
-            schema_type:    "FIXMEschematype",
-            schema_name:    "FIXMEschemaname",
-        };
-
         // FIXME: check for error
         let _ = Self::display_start(&params);
         let res = Self::parse_base(buf_reader, element_level_info)?;

@@ -25,7 +25,7 @@ pub use crate::document::DocumentInfo;
 pub use crate::element::{Element, ElementInfo};
 pub use crate::parse_doc::{Accumulator, ParseDoc};
 pub use crate::parse_echo::{EchoAccumulator, EchoLevelInfo, ParseEcho};
-pub use crate::parse_schema::{ParseSchema, SchemaElement, SchemaAccumulator, SchemaLevelInfo};
+pub use crate::parse_schema::{ParseSchema, ParseSchemaParams, SchemaElement, SchemaAccumulator, SchemaLevelInfo};
 pub use crate::parse_tree::{ParseTree, TreeElement, TreeAccumulator, TreeLevelInfo};
 pub use crate::parse_xsd::{ParseXsd, XsdAccumulator, XsdLevelInfo};
 pub use crate::xml_document_error::XmlDocumentError;
