@@ -3,6 +3,7 @@
  */
 
 use std::fmt;
+use std::io::{BufReader, Read};
 use std::ops::{ControlFlow, FromResidual, Try};
 
 use crate::element::{Element, ElementInfo};
@@ -15,17 +16,32 @@ use crate::document::DocumentInfo;
 pub struct ParseEcho {
     pub document_info:  DocumentInfo,
     pub root:           Box<dyn Element>,
-//    pub depth:          usize,
 }
-/// LevelInfo that doesn't track depth or any other information
 
 impl ParseEcho {
     pub fn new(document_info: DocumentInfo, root: Box<dyn Element>) -> Self {
         ParseEcho {
             document_info,
             root,
-//            depth:          0,
         }
+    }
+
+    pub fn parse_path<'b>(
+        path: &'b str,
+        element_level_info: &<ParseEcho as ParseDoc>::LI,
+    ) -> Result<(DocumentInfo, <<<ParseEcho as ParseDoc>::LI as LevelInfo>::AccumulatorType as Accumulator>::Value), XmlDocumentError>
+    {
+        Self::parse_path_base(path, element_level_info)
+    }
+
+    pub fn parse<R>(
+        buf_reader: BufReader<R>,
+        element_level_info: &<ParseEcho as ParseDoc>::LI,
+    ) -> Result<(DocumentInfo, <<<ParseEcho as ParseDoc>::LI as LevelInfo>::AccumulatorType as Accumulator>::Value), XmlDocumentError>
+    where
+        R: Read,
+    {
+        Self::parse_base(buf_reader, element_level_info)
     }
 }
 

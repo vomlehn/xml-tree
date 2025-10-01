@@ -2,6 +2,7 @@
  * Parse XML text input and produce Rust Schema code.
  */
 use std::fmt;
+use std::io::{BufReader, Read};
 use std::ops::{ControlFlow, FromResidual, Try};
 use xml::name::OwnedName;
 use xml::reader::XmlEvent;
@@ -35,6 +36,24 @@ impl<'a> ParseSchema <'a>{
             document_info,
             root,
         }
+    }
+
+    pub fn parse_path<'b>(
+        path: &'b str,
+        element_level_info: &<ParseSchema as ParseDoc>::LI,
+    ) -> Result<(DocumentInfo, <<<ParseSchema<'a> as ParseDoc>::LI as LevelInfo>::AccumulatorType as Accumulator>::Value), XmlDocumentError>
+    {
+        Self::parse_path_base(path, element_level_info)
+    }
+
+    pub fn parse<R>(
+        buf_reader: BufReader<R>,
+        element_level_info: &<ParseSchema as ParseDoc>::LI,
+    ) -> Result<(DocumentInfo, <<<ParseSchema<'a> as ParseDoc>::LI as LevelInfo>::AccumulatorType as Accumulator>::Value), XmlDocumentError>
+    where
+        R: Read,
+    {
+        Self::parse_base(buf_reader, element_level_info)
     }
 }
 

@@ -26,7 +26,7 @@ pub trait ParseDoc {
     type AC: Accumulator;
 
     // FIXME: rename to something like parse_from_path
-    fn parse_path<'b>(
+    fn parse_path_base<'b>(
         path: &'b str,
         element_level_info: &Self::LI,
     ) -> Result<(DocumentInfo, <<Self::LI as LevelInfo>::AccumulatorType as Accumulator>::Value), XmlDocumentError>
@@ -38,14 +38,14 @@ pub trait ParseDoc {
             Ok(f) => f,
         };
         let reader = BufReader::new(file);
-        Self::parse::<File>(reader, element_level_info)
+        Self::parse_base::<File>(reader, element_level_info)
     }
 
     /**
      * Top-level trait for parsing an XML document. The document is
      * provided via a reader built on the Read attribute.
      */
-    fn parse<R>(
+    fn parse_base<R>(
         buf_reader: BufReader<R>,
         element_level_info: &Self::LI,
     ) -> Result<(DocumentInfo, <<Self::LI as LevelInfo>::AccumulatorType as Accumulator>::Value), XmlDocumentError>
