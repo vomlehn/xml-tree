@@ -9,7 +9,7 @@ use xml::reader::XmlEvent;
 
 use crate::banner::print_banner_file;
 use crate::element::{Element, ElementInfo, element_info_display};
-use crate::misc::{indent, nl_indent, owned_name_display, vec_display, XmlDisplay};
+use crate::misc::{nl_indent, owned_name_display, vec_display, XmlDisplay};
 use crate::parse_item::LineNumber;
 pub use crate::xml_document_error::XmlDocumentError;
 use crate::parse_doc::{Accumulator, LevelInfo, ParseDoc};
@@ -51,7 +51,8 @@ impl<'a> ParseSchema {
             schema_name:    "FIXMEschemaname",
         };
 
-        Self::display_start(&params);
+        // FIXME: check for error
+        let _ = Self::display_start(&params);
         let res = Self::parse_path_base(path, element_level_info)?;
         Self::display_end();
         Ok(res)
@@ -70,7 +71,8 @@ impl<'a> ParseSchema {
             schema_name:    "FIXMEschemaname",
         };
 
-        Self::display_start(&params);
+        // FIXME: check for error
+        let _ = Self::display_start(&params);
         let res = Self::parse_base(buf_reader, element_level_info)?;
         Self::display_end();
         Ok(res)
@@ -135,7 +137,7 @@ impl<'a> ParseSchema {
 
     pub fn display_end() {
         // FIXME: check for error
-        Self::back_matter_display(1);
+        let _ = Self::back_matter_display(1);
     }
 
     fn back_matter_display(depth: usize) -> fmt::Result {
@@ -381,7 +383,6 @@ impl SchemaElement {
     fn display_start(&self, f: &mut fmt::Formatter::<'_>, depth: usize) -> fmt::Result {
         let depth0 = TREE_DEPTH + 3 * depth;
         let depth1 = depth0 + 1;
-        let depth2 = depth1 + 1;
 
         // FIXME: return error code
         let _ = write!(f, "{}vec!(Box::new(SchemaElement::new(",
