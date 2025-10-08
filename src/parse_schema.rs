@@ -46,8 +46,8 @@ impl<'a> ParseSchema<'a> {
         &mut self,
         params:             &ParseSchemaParams,
         path:               &'b str,
-        element_level_info: &<ParseSchema<'_> as ParseDoc>::LI,
-    ) -> Result<(DocumentInfo, <<<ParseSchema<'_> as ParseDoc>::LI as LevelInfo<'_>>::AccumulatorType<'_> as Accumulator>::Value), XmlDocumentError>
+        element_level_info: &<ParseSchema<'a> as ParseDoc<'a>>::LI,
+    ) -> Result<(DocumentInfo, <<<ParseSchema<'_> as ParseDoc<'_>>::LI as LevelInfo<'_>>::AccumulatorType as Accumulator>::Value), XmlDocumentError>
     {
         // FIXME: check for error
         let _ = self.display_start(&params);
@@ -56,12 +56,12 @@ impl<'a> ParseSchema<'a> {
         Ok(res)
     }
 
-    pub fn parse<R>(
+    pub fn parse<'b, R>(
         &mut self,
         params:             &ParseSchemaParams,
         buf_reader:         BufReader<R>,
-        element_level_info: &<ParseSchema<'_> as ParseDoc>::LI,
-    ) -> Result<(DocumentInfo, <<<ParseSchema<'_> as ParseDoc>::LI as LevelInfo<'_>>::AccumulatorType<'_> as Accumulator>::Value), XmlDocumentError>
+        element_level_info: &<ParseSchema<'b> as ParseDoc<'b>>::LI,
+    ) -> Result<(DocumentInfo, <<<ParseSchema<'b> as ParseDoc<'b>>::LI as LevelInfo<'b>>::AccumulatorType as Accumulator>::Value), XmlDocumentError>
     where
         R: Read,
     {
@@ -145,7 +145,7 @@ impl<'a> ParseSchema<'a> {
 }
 
 impl<'a> ParseDoc<'a> for ParseSchema<'a> {
-    type LI = SchemaLevelInfo<'a>;
+    type LI = SchemaLevelInfo;
     type AC = SchemaAccumulator;
 }
 
@@ -233,7 +233,8 @@ fn back_matter_display(f: &mut fmt::Formatter, depth: usize) -> fmt::Result {
 
 impl<'a> Try for ParseSchema<'a> 
 {
-    type Output<'b> = <<ParseSchema<'b> as ParseDoc<'a>>::AC as Accumulator>::Value;
+//    type Output<'b> = <<ParseSchema<'b> as ParseDoc<'a>>::AC as Accumulator>::Value;
+    type Output = <<ParseSchema<'a> as ParseDoc<'a>>::AC as Accumulator>::Value;
     type Residual = XmlDocumentError;
     fn from_output(_: <Self as Try>::Output) -> Self
     { todo!() }
@@ -248,25 +249,25 @@ impl<'a> FromResidual for ParseSchema<'a> {
 
 /// LevelInfo<'_> that tracks depth for indented output
 #[derive(Debug, Clone)]
-pub struct SchemaLevelInfo<'a> {
+pub struct SchemaLevelInfo {
     depth: usize,
 }
 
-impl SchemaLevelInfo<'_> {
+impl SchemaLevelInfo {
     pub fn new(_schema: &Box<dyn Element>) -> Self {
         SchemaLevelInfo { depth: 0 }
     }
 }
 
-impl<'a> LevelInfo<'a> for SchemaLevelInfo<'a> {
+impl<'a> LevelInfo<'a> for SchemaLevelInfo {
     type ParseDocType = ParseSchema<'a>;
-    type AccumulatorType = SchemaAccumulator<'a>;
+    type AccumulatorType = SchemaAccumulator;
 
     fn next_level(&self) -> Self {
         SchemaLevelInfo { depth: self.depth + 1 }
     }
 
-    fn create_accumulator(&self, parse_doc: &mut Self::ParseDocType<'_>, element_info: ElementInfo) ->
+    fn create_accumulator(&self, parse_doc: &mut Self::ParseDocType, element_info: ElementInfo) ->
 //    fn create_accumulator(&self, parse_doc: &mut Schema<'_>, element_info: ElementInfo) ->
         Result<SchemaAccumulator, XmlDocumentError>
     {
@@ -494,14 +495,16 @@ for x in self.subelements() {
     /**
      * Return a vector of all subelements.
      */
-    fn subelements<'b>(&'b self) -> &'b Vec<Box<dyn Element + 'b>> {
+//    fn subelements<'b>(&'b self) -> &'b Vec<Box<dyn Element + 'b>> {
+    fn subelements(&self) -> &Vec<Box<dyn Element>> {
         &self.subelements
     }
 
     /**
      * Return a mutable vector of all subelements.
      */
-    fn subelements_mut<'b>(&'b mut self) -> &'b mut Vec<Box<dyn Element + '_>> {
+//    fn subelements_mut<'b>(&'b mut self) -> &'b mut Vec<Box<dyn Element + '_>> {
+    fn subelements_mut(&mut self) -> &mut Vec<Box<dyn Element>> {
         &mut self.subelements
     }
 }

@@ -4,6 +4,7 @@
 
 use std::fmt;
 use std::io::{BufReader, Read};
+use std::marker::PhantomData;
 use std::ops::{ControlFlow, FromResidual, Try};
 
 use crate::element::{Element, ElementInfo};
@@ -16,6 +17,7 @@ use crate::document::DocumentInfo;
 pub struct ParseEcho<'a> {
     pub document_info:  DocumentInfo,
     pub root:           Box<dyn Element>,
+    marker:             PhantomData<&'a ()>,
 }
 
 impl<'a> ParseEcho<'a> {
@@ -23,23 +25,24 @@ impl<'a> ParseEcho<'a> {
         ParseEcho {
             document_info,
             root,
+            marker: PhantomData,
         }
     }
 
-    pub fn parse_path<'b>(
-        &mut self,
+    pub fn parse_path<'r: 'a, 'b>(
+        &'r mut self,
         path: &'b str,
-        element_level_info: &<ParseEcho as ParseDoc>::LI,
-    ) -> Result<(DocumentInfo, <<<ParseEcho as ParseDoc>::LI as LevelInfo>::AccumulatorType<'_> as Accumulator>::Value), XmlDocumentError>
+        element_level_info: &<ParseEcho<'r> as ParseDoc<'r>>::LI,
+    ) -> Result<(DocumentInfo, <<<ParseEcho<'r> as ParseDoc<'r>>::LI as LevelInfo<'r>>::AccumulatorType as Accumulator>::Value), XmlDocumentError>
     {
         self.parse_path_base(path, element_level_info)
     }
 
-    pub fn parse<R>(
-        &mut self,
+    pub fn parse<'r: 'a, R>(
+        &'r mut self,
         buf_reader: BufReader<R>,
-        element_level_info: &<ParseEcho as ParseDoc>::LI,
-    ) -> Result<(DocumentInfo, <<<ParseEcho as ParseDoc>::LI as LevelInfo>::AccumulatorType<'_> as Accumulator>::Value), XmlDocumentError>
+        element_level_info: &<ParseEcho<'r> as ParseDoc<'r>>::LI,
+    ) -> Result<(DocumentInfo, <<<ParseEcho<'r> as ParseDoc<'r>>::LI as LevelInfo<'r>>::AccumulatorType as Accumulator>::Value), XmlDocumentError>
     where
         R: Read,
     {
@@ -52,7 +55,7 @@ impl<'a> ParseDoc<'a> for ParseEcho<'a> {
     type AC = EchoAccumulator;
 }
 
-impl fmt::Display for ParseEcho<'_> {
+impl<'a> fmt::Display for ParseEcho<'a> {
 // FIXME: make this work
     fn fmt(&self, _f: &mut fmt::Formatter<'_>) -> fmt::Result
     {
@@ -61,7 +64,7 @@ impl fmt::Display for ParseEcho<'_> {
     }
 }
 
-impl fmt::Debug for ParseEcho<'_> {
+impl<'a> fmt::Debug for ParseEcho<'a> {
 // FIXME: make this work
     fn fmt(&self, _f: &mut fmt::Formatter<'_>) -> fmt::Result {
         todo!();
@@ -71,7 +74,7 @@ impl fmt::Debug for ParseEcho<'_> {
 
 impl<'a> Try for ParseEcho<'a>
 {
-    type Output<'b> = <<ParseEcho<'b> as ParseDoc<'b>>::AC as Accumulator>::Value;
+    type Output = <<ParseEcho<'a> as ParseDoc<'a>>::AC as Accumulator>::Value;
     type Residual = XmlDocumentError;
     fn from_output(_: <Self as Try>::Output) -> Self
     { todo!() }
@@ -79,7 +82,7 @@ impl<'a> Try for ParseEcho<'a>
     { todo!() }
 }
 
-impl FromResidual for ParseEcho<'_> {
+impl<'a> FromResidual for ParseEcho<'a> {
     fn from_residual(_: <ParseEcho as Try>::Residual) -> Self
     { todo!() }
 }
@@ -88,23 +91,35 @@ impl FromResidual for ParseEcho<'_> {
 #[derive(Debug, Clone)]
 pub struct EchoLevelInfo<'a> {
     depth: usize,
+    marker: PhantomData<&'a ()>,
 }
 
-impl EchoLevelInfo<'_> {
+impl<'a> EchoLevelInfo<'a> {
     pub fn new() -> Self {
-        EchoLevelInfo { depth: 0 }
+        EchoLevelInfo {
+            depth: 0,
+            marker: PhantomData,
+        }
     }
 }
 
-impl<'a> LevelInfo<'_> for EchoLevelInfo<'a> {
+impl<'a> LevelInfo<'a> for EchoLevelInfo<'a> {
     type ParseDocType = ParseEcho<'a>;
-    type AccumulatorType = EchoAccumulator<'a>;
+//    type ParseDocType = <ParseEcho<'a> as ParseDoc<'a>>::ParseDoc;
+//    type AccumulatorType<'c>: Accumulator<DocType<'c>> = Self::ParseDocType;
+//    type AccumulatorType: Accumulator<DocType<'a> = Self::ParseDocType> = ParseAccumulator;
+    type AccumulatorType = EchoAccumulator;
+//    where
+//        Self: 'c;
 
     fn next_level(&self) -> Self {
-        EchoLevelInfo { depth: self.depth + 1 }
+        EchoLevelInfo {
+            depth: self.depth + 1,
+            marker: PhantomData,
+        }
     }
 
-    fn create_accumulator(&self, _parse_doc: &mut Self::ParseDocType<'_>, element_info: ElementInfo) ->
+    fn create_accumulator(&self, _parse_doc: &mut Self::ParseDocType, element_info: ElementInfo) ->
         Result<EchoAccumulator, XmlDocumentError>
     {
         print!("{}<{}>", nl_indent(self.depth), element_info.owned_name.local_name);

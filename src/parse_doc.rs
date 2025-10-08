@@ -25,15 +25,16 @@ pub trait ParseDoc<'a>
 where
     Self::AC:Accumulator<DocType<'a> = Self>,
 {
-    type LI: LevelInfo<'a, ParseDocType<'a> = Self>;
+    type LI: LevelInfo<'a, ParseDocType = Self>;
     type AC: Accumulator;
 
     // FIXME: rename to something like parse_from_path
-    fn parse_path_base<'b>(
-        &mut self,
+    fn parse_path_base<'b, 'r>(
+        &'r mut self,
         path: &'b str,
         element_level_info: &Self::LI,
-    ) -> Result<(DocumentInfo, <<Self::LI as LevelInfo<'_>>::AccumulatorType<'_> as Accumulator>::Value), XmlDocumentError>
+//    ) -> Result<(DocumentInfo, <<Self::LI as LevelInfo<'a>>::AccumulatorType<'r> as Accumulator>::Value), XmlDocumentError>
+    ) -> Result<(DocumentInfo, <<Self::LI as LevelInfo<'a>>::AccumulatorType as Accumulator>::Value), XmlDocumentError>
     {
         let file = match File::open(path) {
             Err(e) => {
@@ -49,11 +50,11 @@ where
      * Top-level trait for parsing an XML document. The document is
      * provided via a reader built on the Read attribute.
      */
-    fn parse_base<R>(
-        &mut self,
+    fn parse_base<'r, R>(
+        &'r mut self,
         buf_reader: BufReader<R>,
         element_level_info: &Self::LI,
-    ) -> Result<(DocumentInfo, <<Self::LI as LevelInfo<'_>>::AccumulatorType<'_> as Accumulator>::Value), XmlDocumentError>
+    ) -> Result<(DocumentInfo, <<Self::LI as LevelInfo<'a>>::AccumulatorType as Accumulator>::Value), XmlDocumentError>
     where
         R: Read,
     {
@@ -76,11 +77,11 @@ where
         Ok(())
     }
 
-    fn parse_document<R>(
-        &mut self,
+    fn parse_document<'r, R>(
+        &'r mut self,
         parse_item: &mut Parser<R>, 
         element_level_info: &Self::LI
-    ) -> Result<(DocumentInfo, <<Self::LI as LevelInfo<'_>>::AccumulatorType<'_> as Accumulator>::Value), XmlDocumentError>
+    ) -> Result<(DocumentInfo, <<Self::LI as LevelInfo<'a>>::AccumulatorType as Accumulator>::Value), XmlDocumentError>
     where
         R: Read,
     {
@@ -146,7 +147,7 @@ where
         parse_item: &mut Parser<R>, 
         element_info: ElementInfo, 
         element_level_info: &Self::LI
-    ) -> Result<<<Self::LI as LevelInfo<'_>>::AccumulatorType<'_> as Accumulator>::Value, XmlDocumentError>
+    ) -> Result<<<Self::LI as LevelInfo<'a>>::AccumulatorType as Accumulator>::Value, XmlDocumentError>
     where
         R: Read,
     {
@@ -242,8 +243,10 @@ where
  */
 pub trait LevelInfo<'a> {
     type ParseDocType: ParseDoc<'a, LI = Self>;
-    type AcumulatorType<'c>: Accumulator<DocType<'c> = Self::ParseDocType>;
-    type AccumulatorType: Accumulator;
+    type AccumulatorType: Accumulator<DocType<'a> = Self::ParseDocType>;
+//    where
+//        Self: 'c;
+//    type AccumulatorType: Accumulator;
 
     /// Create the next level info for subelements
     fn next_level(&self) -> Self;
@@ -251,7 +254,7 @@ pub trait LevelInfo<'a> {
     /// Create an accumulator for processing an element at this level. This is called
     /// when we start the processing.
     fn create_accumulator(&self, parse_doc: &mut Self::ParseDocType, element_info: ElementInfo) -> 
-        Result<Self::AccumulatorType<'_>, XmlDocumentError>;
+        Result<Self::AccumulatorType, XmlDocumentError>;
 }
 
 /**
