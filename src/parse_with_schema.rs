@@ -1,5 +1,5 @@
 /**
- * Parse XML text input and produce Rust Schema code.
+ * Parse XML text input guided by a ParserSchema
  */
 use std::fmt;
 use std::io::{BufReader, Read};
@@ -21,71 +21,67 @@ const TREE_DEPTH: usize = 2;
  * Parse an input stream of XSD code and generate Rust code. That code is
  * then used to guide the parsing of XML code. The XSD is actually XML.
  */
-pub struct ParseSchema<'a> {
+pub struct ParseWithSchema {
     pub document_info:  DocumentInfo,
     pub root:           Box<dyn Element>,
-    pub output:         &'a mut String,
 }
 
-pub struct ParseSchemaParams<'a> {
+pub struct ParseWithSchemaParams<'a> {
     pub const_name:     &'a str,
     pub schema_type:    &'a str,
     pub schema_name:    &'a str,
 }
 
-impl<'a> ParseSchema<'a> {
-    pub fn new(document_info: DocumentInfo, root: Box<dyn Element>, output: &'a mut String) -> ParseSchema<'a> {
-        ParseSchema {
+impl<'a> ParseWithSchema {
+    pub fn new(document_info: DocumentInfo, root: Box<dyn Element>) -> Self {
+        ParseWithSchema {
             document_info,
             root,
-            output,
         }
     }
 
     pub fn parse_path<'b> (
-        &mut self,
-        params:             &ParseSchemaParams,
+        params:             &ParseWithSchemaParams,
         path:               &'b str,
-        element_level_info: &<ParseSchema<'a> as ParseDoc<'a>>::LI,
-    ) -> Result<(DocumentInfo, <<<ParseSchema<'_> as ParseDoc<'_>>::LI as LevelInfo<'_>>::AccumulatorType as Accumulator>::Value), XmlDocumentError>
+        element_level_info: &<ParseWithSchema as ParseDoc>::LI,
+    ) -> Result<(DocumentInfo, <<<ParseWithSchema as ParseDoc>::LI as LevelInfo>::AccumulatorType as Accumulator>::Value), XmlDocumentError>
     {
         // FIXME: check for error
-        let _ = self.display_start(&params);
-        let res = self.parse_path_base(path, element_level_info)?;
-        self.display_end();
+        let _ = Self::display_start(&params);
+        let res = Self::parse_path_base(path, element_level_info)?;
+        Self::display_end();
         Ok(res)
     }
 
-    pub fn parse<'b, R>(
-        &mut self,
-        params:             &ParseSchemaParams,
+    pub fn parse<R>(
+        params:             &ParseWithSchemaParams,
         buf_reader:         BufReader<R>,
-        element_level_info: &<ParseSchema<'b> as ParseDoc<'b>>::LI,
-    ) -> Result<(DocumentInfo, <<<ParseSchema<'b> as ParseDoc<'b>>::LI as LevelInfo<'b>>::AccumulatorType as Accumulator>::Value), XmlDocumentError>
+        element_level_info: &<ParseWithSchema as ParseDoc>::LI,
+    ) -> Result<(DocumentInfo, <<<ParseWithSchema as ParseDoc>::LI as LevelInfo>::AccumulatorType as Accumulator>::Value), XmlDocumentError>
     where
         R: Read,
     {
         // FIXME: check for error
-        let _ = self.display_start(&params);
-        let res = self.parse_base(buf_reader, element_level_info)?;
-        self.display_end();
+        let _ = Self::display_start(&params);
+        let res = Self::parse_base(buf_reader, element_level_info)?;
+        Self::display_end();
         Ok(res)
     }
 
-    fn display_start(&mut self, params: &ParseSchemaParams) -> fmt::Result {
+    fn display_start(params: &ParseWithSchemaParams) -> fmt::Result {
         let depth = 0;
-        self.front_matter_display(depth)?;
+        Self::front_matter_display(depth)?;
 
         let indent_str = nl_indent(depth);
         // FIXME: check for error
         print!("{}lazy_static! {{", indent_str);
 
-        self.static_parse_schema_display(depth + 1, params.const_name, params.schema_type, params.schema_name)?;
+        Self::static_parse_schema_display(depth + 1, params.const_name, params.schema_type, params.schema_name)?;
 
         Ok(())
     }
 
-    fn front_matter_display(&mut self, depth: usize) -> fmt::Result {
+    fn front_matter_display(depth: usize) -> fmt::Result {
         let front_matter: Vec::<&str> = vec!(
             "// FIXME: insert banner",
             "// Auto-generated file",
@@ -98,7 +94,7 @@ impl<'a> ParseSchema<'a> {
             "",
             "use crate::xml_document::TreeElement;", 
             "use crate::parse_tree::{DocumentInfo, ElementInfo};",
-            "use crate::parse_schema::ParseSchema;", 
+            "use crate::parse_schema::ParseWithSchema;", 
             "use crate::XmlTree;",
             "", 
         );
@@ -115,10 +111,10 @@ impl<'a> ParseSchema<'a> {
         Ok(())
     }
 
-    pub fn static_parse_schema_display(&mut self, depth: usize, const_name: &str, schema_type: &str, schema_name: &str) -> fmt::Result {
+    pub fn static_parse_schema_display(depth: usize, const_name: &str, schema_type: &str, schema_name: &str) -> fmt::Result {
         let indent_str = nl_indent(depth);
         // FIXME: check for error
-        print!("{}pub static ref {const_name}: {schema_type}<'_> = {schema_name}::new(", indent_str);
+        print!("{}pub static ref {const_name}: {schema_type}<'static> = {schema_name}::new(", indent_str);
 
         let indent_str = nl_indent(depth + 1);
         for name in [const_name, schema_type, schema_name] {
@@ -129,12 +125,12 @@ impl<'a> ParseSchema<'a> {
         Ok(())
     }
 
-    pub fn display_end(&mut self, ) {
+    pub fn display_end() {
         // FIXME: check for error
-        let _ = self.back_matter_display(1);
+        let _ = Self::back_matter_display(1);
     }
 
-    fn back_matter_display(&mut self, depth: usize) -> fmt::Result {
+    fn back_matter_display(depth: usize) -> fmt::Result {
         // FIXME: check for error
         print!("{});", nl_indent(depth));
         print!("{}}}", nl_indent(depth - 1));
@@ -144,16 +140,16 @@ impl<'a> ParseSchema<'a> {
     }
 }
 
-impl<'a> ParseDoc<'a> for ParseSchema<'a> {
+impl<'a> ParseDoc for ParseWithSchema {
     type LI = SchemaLevelInfo;
     type AC = SchemaAccumulator;
 }
 
 /*
-pub struct ParseSchemaPrint {
+pub struct ParseWithSchemaPrint {
 }
 
-impl fmt::Display for ParseSchema<'_> {
+impl fmt::Display for ParseWithSchema<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let depth = 0;
         front_matter_display(f, depth)?;
@@ -171,7 +167,7 @@ unimplemented!();
     }
 }
 
-impl fmt::Debug for ParseSchema<'_> {
+impl fmt::Debug for ParseWithSchema<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "inner \"{}\" (\"{}\")", self.const_name, self.schema_name)
 //        writeln!(f, "inner \"{}\" (\"{}\")", self.const_name, self.schema_name)?;
@@ -192,7 +188,7 @@ fn front_matter_display(f: &mut fmt::Formatter, depth: usize) -> fmt::Result {
         "",
         "use crate::xml_document::TreeElement;", 
         "use crate::parse_tree::{DocumentInfo, ElementInfo};",
-        "use crate::parse_schema::ParseSchema;", 
+        "use crate::parse_schema::ParseWithSchema;", 
         "use crate::XmlTree;",
         "", 
     );
@@ -210,7 +206,7 @@ fn front_matter_display(f: &mut fmt::Formatter, depth: usize) -> fmt::Result {
 
 fn static_parse_schema_display(f: &mut fmt::Formatter, depth: usize, const_name: &str, schema_type: &str, schema_name: &str) -> fmt::Result {
     let indent_str = nl_indent(depth);
-    write!(f, "{}pub static ref {const_name}: {schema_type}<'_> = {schema_type}::new(", indent_str)?;
+    write!(f, "{}pub static ref {const_name}: {schema_type}<'static> = {schema_type}::new(", indent_str)?;
 
     let indent_str = nl_indent(depth + 1);
     for name in [const_name, schema_type, schema_name] {
@@ -231,10 +227,9 @@ fn back_matter_display(f: &mut fmt::Formatter, depth: usize) -> fmt::Result {
 
 */
 
-impl<'a> Try for ParseSchema<'a> 
+impl<'a> Try for ParseWithSchema 
 {
-//    type Output<'b> = <<ParseSchema<'b> as ParseDoc<'a>>::AC as Accumulator>::Value;
-    type Output = <<ParseSchema<'a> as ParseDoc<'a>>::AC as Accumulator>::Value;
+    type Output = <<ParseWithSchema as ParseDoc>::AC as Accumulator>::Value;
     type Residual = XmlDocumentError;
     fn from_output(_: <Self as Try>::Output) -> Self
     { todo!() }
@@ -242,12 +237,12 @@ impl<'a> Try for ParseSchema<'a>
     { todo!() }
 }
 
-impl<'a> FromResidual for ParseSchema<'a> {
-    fn from_residual(_: <ParseSchema<'a> as Try>::Residual) -> Self
+impl<'a> FromResidual for ParseWithSchema {
+    fn from_residual(_: <ParseWithSchema as Try>::Residual) -> Self
     { todo!() }
 }
 
-/// LevelInfo<'_> that tracks depth for indented output
+/// LevelInfo that tracks depth for indented output
 #[derive(Debug, Clone)]
 pub struct SchemaLevelInfo {
     depth: usize,
@@ -259,18 +254,17 @@ impl SchemaLevelInfo {
     }
 }
 
-impl<'a> LevelInfo<'a> for SchemaLevelInfo {
-    type ParseDocType = ParseSchema<'a>;
+impl LevelInfo for SchemaLevelInfo {
     type AccumulatorType = SchemaAccumulator;
 
     fn next_level(&self) -> Self {
         SchemaLevelInfo { depth: self.depth + 1 }
     }
 
-    fn create_accumulator(&self, parse_doc: &mut Self::ParseDocType, element_info: ElementInfo) ->
+    fn create_accumulator(&self, element_info: ElementInfo) ->
         Result<SchemaAccumulator, XmlDocumentError>
     {
-        Ok(SchemaAccumulator::new(element_info, self.depth, parse_doc))
+        Ok(SchemaAccumulator::new(element_info, self.depth))
     }
 }
 
@@ -284,7 +278,7 @@ pub struct SchemaAccumulator {
 }
 
 impl SchemaAccumulator {
-    pub fn new(element_info: ElementInfo, depth: usize, _parse_doc: &mut ParseSchema<'_>) -> Self {
+    pub fn new(element_info: ElementInfo, depth: usize) -> Self {
         let ei = element_info.clone();
         let element = SchemaElement::new(ei, depth, vec![], vec![], vec![], vec![]);
         print!("{}", element);
@@ -302,33 +296,27 @@ impl SchemaAccumulator {
 
 impl Accumulator for SchemaAccumulator {
     type Value = ();  // Schema doesn't return meaningful data
-    type DocType<'a> = ParseSchema<'a>;
 
     /*
      * Note that we have started a sublement
      */
-    fn start_subelement(&mut self, _parse_doc: &mut ParseSchema<'_>, element_info: &ElementInfo) {
+    fn start_subelement(&mut self, element_info: &ElementInfo) {
         // FIXME: probably needs to be fully qualified
         // FIXME: propagate to other parse_.*() code
         self.current_subelement_name = Some(element_info.owned_name.local_name.clone());
     }
     
-    fn add_subelement(&mut self, _parse_doc: &mut ParseSchema<'_>, _subelement: ()) {
+    fn add_subelement(&mut self, _subelement: ()) {
         // For echo, subelements have already been printed
         // We don't need to do anything with the () value
     }
     
-    fn end_subelement(&mut self, _parse_doc: &mut ParseSchema<'_>) {
+    fn end_subelement(&mut self) {
         // FIXME: what's this for?
         if let Some(_name) = &self.current_subelement_name {
         }
         self.current_subelement_name = None;
         print!(",");
-    }
-    
-    fn finish(self, _parse_doc: &mut ParseSchema<'_>) -> Self::Value {
-        // FIXME: return error
-        let _ = self.element.display_end(self.depth);
     }
     
     fn has_open_subelement(&self) -> bool {
@@ -339,6 +327,11 @@ impl Accumulator for SchemaAccumulator {
         self.current_subelement_name.as_ref()
             .map(|s| s.as_str())
             .unwrap_or("")
+    }
+    
+    fn finish(self) -> () {
+        // FIXME: return error
+        let _ = self.element.display_end(self.depth);
     }
     
     fn element_name(&self) -> &str {
@@ -494,16 +487,14 @@ for x in self.subelements() {
     /**
      * Return a vector of all subelements.
      */
-//    fn subelements<'b>(&'b self) -> &'b Vec<Box<dyn Element + 'b>> {
-    fn subelements(&self) -> &Vec<Box<dyn Element>> {
+    fn subelements<'b>(&'b self) -> &'b Vec<Box<dyn Element + 'static>> {
         &self.subelements
     }
 
     /**
      * Return a mutable vector of all subelements.
      */
-//    fn subelements_mut<'b>(&'b mut self) -> &'b mut Vec<Box<dyn Element + '_>> {
-    fn subelements_mut(&mut self) -> &mut Vec<Box<dyn Element>> {
+    fn subelements_mut<'b>(&'b mut self) -> &'b mut Vec<Box<dyn Element + 'static>> {
         &mut self.subelements
     }
 }

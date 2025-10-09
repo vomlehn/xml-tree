@@ -30,3 +30,4 @@ pub use crate::parse_schema::{ParseSchema, ParseSchemaParams, SchemaElement, Sch
 //pub use crate::parse_xsd::{ParseXsd, XsdAccumulator, XsdLevelInfo};
 pub use crate::xml_document_error::XmlDocumentError;
 //pub use crate::xsd_schema::XSD_SCHEMA;
+pub use crate::misc::{nl_indent, owned_name_display, XmlDisplay};
