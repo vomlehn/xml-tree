@@ -12,7 +12,7 @@ use xml::reader::XmlEvent;
 
 use crate::document::DocumentInfo;
 use crate::element::{ElementInfo};
-use crate::parse_item::{LineNumber, Parser};
+use crate::parse_item::{ParseLoc, Parser};
 pub use crate::xml_document_error::XmlDocumentError;
 
 /**
@@ -103,7 +103,7 @@ where
         // Now verify that the token we just read starts an element.
         let top_element = match parse_element.event {
             XmlEvent::StartElement{name, attributes, namespace} => {
-                let element_info = ElementInfo::new(name, parse_element.lineno, attributes, namespace);
+                let element_info = ElementInfo::new(name, parse_element.parse_loc, attributes, namespace);
                 match self.parse_element(parse_item, element_info, element_level_info) {
                     Err(e) => return Err(e),
                     Ok(top_elem) => top_elem,
@@ -165,7 +165,7 @@ where
 
             match parse_element.event {
                 XmlEvent::StartElement{name, attributes, namespace} => {
-                    let subelement_info = ElementInfo::new(name, parse_element.lineno,
+                    let subelement_info = ElementInfo::new(name, parse_element.parse_loc,
                         attributes, namespace);
                     accumulator.start_subelement(self, &subelement_info);
                     let subelement_result = self.parse_element(parse_item,
@@ -287,5 +287,5 @@ pub trait Accumulator {
     fn element_name(&self) -> &str;
     
     /// Get element line number (for error reporting)
-    fn element_lineno(&self) -> LineNumber;
+    fn parse_loc(&self) -> ParseLoc;
 }

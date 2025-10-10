@@ -13,7 +13,7 @@ use xml::namespace::Namespace;
 // FIXME: split into walk and parse sets of errors
 //use crate::xml_document_error::XmlDocumentError;
 use crate::misc::nl_indent;
-use crate::parse_item::LineNumber;
+use crate::parse_item::ParseLoc;
 
 /*
  * trait making TreeElement and IndirectElement work well together
@@ -33,7 +33,7 @@ pub trait Element: DynClone {
     fn get(&self, name: &str) -> Option<&dyn Element>;
     fn name(&self) -> &str;
     // This is actually available in XmlEvent. Use that.
-    fn lineno(&self) -> LineNumber;
+    fn parse_loc(&self) -> ParseLoc;
     fn subelements(&self) -> &Vec<Box<dyn Element>>;
     fn subelements_mut(&mut self) -> &mut Vec<Box<dyn Element>>;
 }
@@ -41,25 +41,25 @@ pub trait Element: DynClone {
 #[derive(Clone, Debug)]
 pub struct ElementInfo {
     pub owned_name: OwnedName,
-    pub lineno:     LineNumber,
+    pub parse_loc:     ParseLoc,
 }
 
 impl ElementInfo {
     pub fn new(
         owned_name:     OwnedName,
-        lineno:         LineNumber,
+        parse_loc:      ParseLoc,
         _attributes:    Vec<OwnedAttribute>,
         _namespace:     Namespace,
     ) -> ElementInfo {
         ElementInfo {
             owned_name,
-            lineno,
+            parse_loc,
         }
     }
 }
 
 pub fn element_info_display(f: &mut fmt::Formatter<'_>, depth: usize, element_info: &ElementInfo) -> fmt::Result {
-    write!(f, "{}ElementInfo::new({}, vec!(),", nl_indent(depth), element_info.lineno)?;
+    write!(f, "{}ElementInfo::new({}, vec!(),", nl_indent(depth), element_info.parse_loc)?;
     write!(f, "{}Namespace(BTreeMap::<String, String>::new())),", nl_indent(depth + 1))
 }
 

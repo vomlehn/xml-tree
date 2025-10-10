@@ -6,7 +6,7 @@ use std::fmt;
 use std::ops::{ControlFlow, FromResidual, Try};
 
 use crate::element::{Element, ElementInfo};
-use crate::parse_item::LineNumber;
+use crate::parse_item::ParseLoc;
 pub use crate::xml_document_error::XmlDocumentError;
 use crate::parse_xml::{Accumulator, LevelInfo, ParseXml};
 use crate::document::DocumentInfo;
@@ -99,7 +99,7 @@ impl LevelInfo for XsdLevelInfo {
 /// Accumulator that just echoes structure (doesn't build elements)
 pub struct XsdAccumulator {
     element_name: String,
-    element_lineno: LineNumber,
+    parse_loc: ParseLoc,
     depth: usize,
     current_subelement_name: Option<String>,
 }
@@ -108,7 +108,7 @@ impl XsdAccumulator {
     pub fn new(element_info: ElementInfo, depth: usize) -> Self {
         XsdAccumulator {
             element_name: element_info.owned_name.local_name.clone(),
-            element_lineno: element_info.lineno,
+            parse_loc: element_info.parse_loc,
             depth,
             current_subelement_name: None,
         }
@@ -153,7 +153,7 @@ impl Accumulator for XsdAccumulator {
         &self.element_name
     }
     
-    fn element_lineno(&self) -> LineNumber {
-        self.element_lineno
+    fn parse_loc(&self) -> ParseLoc {
+        self.parse_loc
     }
 }

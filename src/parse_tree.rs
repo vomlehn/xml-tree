@@ -10,7 +10,7 @@ use xml::reader::XmlEvent;
 
 use crate::element::{element_info_display, Element, ElementInfo};
 use crate::misc::{nl_indent, owned_name_display, vec_display, XmlDisplay};
-use crate::parse_item::LineNumber;
+use crate::parse_item::ParseLoc;
 pub use crate::xml_document_error::XmlDocumentError;
 use crate::parse_xml::{Accumulator, LevelInfo, ParseXml};
 use crate::document::DocumentInfo;
@@ -159,8 +159,8 @@ impl Accumulator for TreeAccumulator {
         self.element.name()
     }
     
-    fn element_lineno(&self) -> LineNumber {
-        self.element.lineno()
+    fn parse_loc(&self) -> ParseLoc {
+        self.element.parse_loc()
     }
 }
 
@@ -198,7 +198,7 @@ impl Default for TreeElement {
                     namespace:  None,
                     prefix:     None
                 },
-                lineno:     0,
+                parse_loc:     ParseLoc("", 0),
             },
             subelements: vec!(),
             before_element: vec!(),
@@ -234,7 +234,7 @@ impl Element for TreeElement {
         owned_name_display(f, depth + 1, &owned_name)?;
 
         let element_info = ElementInfo {
-            lineno:     0,
+            parse_loc:     ParseLoc("", 0),
             owned_name: owned_name,
         };
         element_info_display(f, depth + 1, &element_info)?;
@@ -278,8 +278,8 @@ for x in self.subelements() {
         &self.element_info.owned_name.local_name
     }
 
-    fn lineno(&self) -> LineNumber {
-        self.element_info.lineno
+    fn parse_loc(&self) -> ParseLoc {
+        self.element_info.parse_loc
     }
 
     /**
@@ -304,7 +304,7 @@ impl XmlDisplay for TreeElement {
             .expect("Unable to write Box::new");
 
         let element_info = ElementInfo {
-            lineno: 0,
+            parse_loc: ParseLoc("", 0),
             owned_name: OwnedName {
                         local_name: self.name().to_string(),
                         namespace:  None,

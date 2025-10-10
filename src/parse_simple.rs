@@ -55,7 +55,7 @@ impl LevelInfo for SimpleLevelInfo {
 /// Simple accumulator that just validates structure
 pub struct SimpleAccumulator {
     element_name: String,
-    element_lineno: LineNumber,
+    parse_loc: ParseLoc("", 0),
     has_subelement: bool,
 }
 
@@ -63,7 +63,7 @@ impl SimpleAccumulator {
     pub fn new(element_info: ElementInfo) -> Self {
         SimpleAccumulator {
             element_name: element_info.owned_name.local_name.clone(),
-            element_lineno: element_info.lineno,
+            parse_loc: element_info.parse_loc,
             has_subelement: false,
         }
     }
@@ -100,7 +100,7 @@ impl Accumulator for SimpleAccumulator {
         &self.element_name
     }
     
-    fn element_lineno(&self) -> LineNumber {
-        self.element_lineno
+    fn parse_loc(&self) -> ParseLoc {
+        self.parse_loc
     }
 }

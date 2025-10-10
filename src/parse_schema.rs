@@ -10,7 +10,7 @@ use xml::reader::XmlEvent;
 use crate::banner::print_banner_file;
 use crate::element::{Element, ElementInfo, element_info_display};
 use crate::misc::{nl_indent, owned_name_display, vec_display, XmlDisplay};
-use crate::parse_item::LineNumber;
+use crate::parse_item::ParseLoc;
 pub use crate::xml_document_error::XmlDocumentError;
 use crate::parse_xml::{Accumulator, LevelInfo, ParseXml};
 use crate::document::DocumentInfo;
@@ -278,7 +278,7 @@ impl<'a> LevelInfo<'a> for SchemaLevelInfo {
 pub struct SchemaAccumulator {
     element: SchemaElement,
     element_name: String,
-    element_lineno: LineNumber,
+    parse_loc: ParseLoc,
     depth: usize,
     current_subelement_name: Option<String>,
 }
@@ -293,7 +293,7 @@ impl SchemaAccumulator {
             element,
             // FIXME: should use element.name()
             element_name: element_info.owned_name.local_name.clone(),
-            element_lineno: element_info.lineno,
+            parse_loc: element_info.parse_loc,
             depth: depth,
             current_subelement_name: None,
         }
@@ -345,8 +345,8 @@ impl Accumulator for SchemaAccumulator {
         &self.element_name
     }
     
-    fn element_lineno(&self) -> LineNumber {
-        self.element_lineno
+    fn parse_loc(&self) -> ParseLoc {
+        self.parse_loc.clone()
     }
 }
 
@@ -393,7 +393,7 @@ impl SchemaElement {
         owned_name_display(f, depth1, &owned_name)?;
 
         let element_info = ElementInfo {
-            lineno:     0,
+            parse_loc:     ParseLoc::new("".to_string(), 0),
             owned_name: owned_name,
         };
         element_info_display(f, depth1, &element_info)?;
@@ -429,7 +429,7 @@ impl Default for SchemaElement {
                     namespace:  None,
                     prefix:     None
                 },
-                lineno:     0,
+                parse_loc:     ParseLoc::new("".to_string(), 0),
             },
             depth: 0,
             subelements: vec!(),
@@ -487,8 +487,8 @@ for x in self.subelements() {
         &self.element_info.owned_name.local_name
     }
 
-    fn lineno(&self) -> LineNumber {
-        self.element_info.lineno
+    fn parse_loc(&self) -> ParseLoc {
+        self.element_info.parse_loc.clone()
     }
 
     /**
@@ -515,7 +515,7 @@ impl XmlDisplay for SchemaElement {
             .expect("Unable to write Box::new");
 
         let element_info = ElementInfo {
-            lineno: 0,
+            parse_loc: ParseLoc::new("".to_string(), 0),
             owned_name: OwnedName {
                         local_name: self.name().to_string(),
                         namespace:  None,

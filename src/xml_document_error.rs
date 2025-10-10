@@ -3,7 +3,7 @@ use std::sync::Arc;
 use thiserror::Error;
 use xml::reader::XmlEvent;
 
-use crate::parse_item::LineNumber;
+use crate::parse_item::ParseLoc;
 
 #[derive(Clone, Debug, Error)]
 pub enum XmlDocumentError {
@@ -24,10 +24,10 @@ pub enum XmlDocumentError {
     Error(Arc<dyn std::error::Error>),
 
     #[error("Line {0}: Internal error: {1}")]
-    InternalError(LineNumber, String),
+    InternalError(ParseLoc, String),
 
     #[error("line {0}: Misplaced element end: {1}, found {2}")]
-    MisplacedElementEnd(LineNumber, String, String),
+    MisplacedElementEnd(ParseLoc, String, String),
 
     // FIXME: need to fix this
     #[error("No end element in input")]
@@ -53,7 +53,7 @@ pub enum XmlDocumentError {
     UnresolvedRef(String),
 
     #[error("line {0}: StartDocument after StartDocument")]
-    StartAfterStart(LineNumber),
+    StartAfterStart(ParseLoc),
 
     #[error("ElementDef name \"{0}\" not in ElementDescs")]
     ElementDefNotInElementDescs(String),
@@ -69,14 +69,14 @@ pub enum XmlDocumentError {
 
     // FIXME: this is temporary and should eventually be deleted
     #[error("Line {0}: Unknown XTCE parsing error")]
-    Unknown(LineNumber),
+    Unknown(ParseLoc),
 
     #[error("line {0}: Unknown or misplaced element: <{1}> in <{2}>")]
-    UnknownElement(LineNumber, String, String),
+    UnknownElement(ParseLoc, String, String),
 
     // FIXME: get line number from the XmlEvent
     #[error("Line {0}: XML error: {1}")]
-    XmlError(LineNumber, xml::reader::Error),
+    XmlError(ParseLoc, xml::reader::Error),
 
     #[error("No elements defined")]
     XmlNoElementDefined(),

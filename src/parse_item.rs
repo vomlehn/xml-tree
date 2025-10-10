@@ -3,36 +3,61 @@
  * numbers.
  */
 
-//use std::borrow::Borrow;
-use std::cell::RefCell;
 use std::fmt;
 use std::io::Read;
-use std::rc::Rc;
-//use xml::attribute::OwnedAttribute;
-//use xml::common::XmlVersion;
-//use xml::name::OwnedName;
-//use xml::namespace::Namespace;
 use xml::reader::{EventReader, XmlEvent};
 
 use crate::xml_document_error::XmlDocumentError;
 
+/* Parsing location */
 pub type LineNumber = usize;
+
+#[derive(Clone)]
+pub struct ParseLoc {
+    path:   String,
+    lineno: usize,
+}
+
+impl ParseLoc {
+    pub fn new(path: String, lineno: usize) -> ParseLoc {
+        ParseLoc {
+            path,
+            lineno,
+        }
+    }
+
+    pub fn display(&self) -> String {
+        self.path.clone() + ":" + &self.lineno.to_string()
+    }
+}
+
+impl fmt::Display for ParseLoc {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.display())
+    }
+}
+
+impl fmt::Debug for ParseLoc {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.display())
+    }
+}
 
 /**
  * An XML element
- * lineno:  Line number of the start of this element
- * event:   XmlEvent returned by the XML low level parse_item
+ * parse_loc:   Location of the start of this element
+ * event:       XmlEvent returned by the XML low level parse_item
  */
 #[derive(Clone, Debug)]
 pub struct TreeElement {
-    pub lineno: LineNumber,
-    pub event: XmlEvent,
+    pub parse_loc:  ParseLoc,
+    pub event:      XmlEvent,
 }
 
 impl TreeElement {
-    fn new(lineno: LineNumber, event: XmlEvent) -> TreeElement {
+    fn new(parse_loc: ParseLoc, event: XmlEvent) -> TreeElement {
         TreeElement {
-            lineno,
+            parse_loc,
             event,
         }
     }
@@ -55,26 +80,26 @@ impl TreeElement {
 
 /**
  * Parser
- * lineno_ref:      Reference counted reference to current line number
+ * parse_loc:       Reference counted reference to current parse location
  *                  FIXME: check that this is appropriate
  * pending:         If None, we don't have a lookahead token. Otherwise,
  *                  this is the lookahead token wrapped in Some()
  * event_reader:    Object for reading the next XmlEvent
  */
 pub struct Parser<R: Read> {
-    lineno_ref: Rc<RefCell<LineNumber>>,
-    pending: Option<Result<TreeElement, XmlDocumentError>>,
-    event_reader: EventReader<LinenoReader<R>>,
+    parse_loc:      ParseLoc,
+    pending:        Option<Result<TreeElement, XmlDocumentError>>,
+    event_reader:   EventReader<LinenoReader<R>>,
 }
 
 impl<R: Read> Parser<R> {
     pub fn new(reader: R) -> Self {
         let line_reader = LinenoReader::new(reader);
-        let lineno_ref = line_reader.lineno_ref();
+        let parse_loc = ParseLoc::new("".to_string(), line_reader.lineno);
         let event_reader = EventReader::new(line_reader);
 
         Parser {
-            lineno_ref,
+            parse_loc,
             pending: None,
             event_reader,
         }
@@ -128,7 +153,7 @@ impl<R: Read> Parser<R> {
         // If we don't have any lookahead token, read another token to be
         // the lookahead token.
         if self.pending.is_none() {
-            let lineno = *self.lineno_ref.borrow();
+            let parse_loc = self.parse_loc.clone();
             let evt = self.event_reader.next();
 
             // We tried to read another lookahead token, but we might have
@@ -137,14 +162,14 @@ impl<R: Read> Parser<R> {
                 Err(e) => {
                     // Indicate we have something, but that the something
                     // we have is an error
-                    let error = XmlDocumentError::XmlError(lineno, e);
+                    let error = XmlDocumentError::XmlError(parse_loc, e);
                     let err = Err(error.clone());
                     let pending_err = Some(Err(error));
                     self.pending = pending_err;
                     err
                 },
                 Ok(xml_event) => {
-                    let element = TreeElement::new(lineno, xml_event);
+                    let element = TreeElement::new(parse_loc, xml_event);
 //println!("(lookahead {})", element.name());
                     let ok = Ok(element.clone());
                     let pending_ok = Some(Ok(element));
@@ -158,7 +183,7 @@ impl<R: Read> Parser<R> {
 let e = {
             match self.pending.take() {
                 None => Err(XmlDocumentError::InternalError(
-                    *self.lineno_ref.borrow(),
+                    self.parse_loc.clone(),
                     "self.pending is None when it must be Some".to_string(),
                 )),
                 Some(element) => element,
@@ -172,7 +197,7 @@ e
 
 impl<R: Read> fmt::Debug for Parser<R> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Parser: lineno: {}", *self.lineno_ref.borrow())
+        write!(f, "Parser: {:?} {:?}", self.parse_loc, self.pending)
     }
 }
 
@@ -182,27 +207,30 @@ impl<R: Read> fmt::Debug for Parser<R> {
  */
 pub struct LinenoReader<R: Read> {
     inner: R,
-    lineno: Rc<RefCell<LineNumber>>,
+    lineno: LineNumber,
 }
 
 impl<R: Read> LinenoReader<R> {
     pub fn new(inner: R) -> Self {
         LinenoReader {
             inner,
-            lineno: Rc::new(RefCell::new(1)),
+            lineno: 1,
         }
     }
 
-    pub fn lineno_ref(&self) -> Rc<RefCell<LineNumber>> {
-        self.lineno.clone()
+    pub fn lineno_ref(&self) -> LineNumber {
+        self.lineno
     }
 }
 
 impl<R: Read> Read for LinenoReader<R> {
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
         let bytes_read = self.inner.read(buf)?;
+/*
         let mut lineno = self.lineno.borrow_mut();
         *lineno += buf[..bytes_read].iter().filter(|&&c| c == b'\n').count();
+*/
+        self.lineno += buf[..bytes_read].iter().filter(|&&c| c == b'\n').count();
         Ok(bytes_read)
     }
 }
