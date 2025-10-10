@@ -1,6 +1,7 @@
 /**
  * Parse XML text input guided by a ParserSchema
  */
+/*
 use std::fmt;
 use std::io::{BufReader, Read};
 use std::ops::{ControlFlow, FromResidual, Try};
@@ -521,3 +522,4 @@ impl XmlDisplay for SchemaElement {
         write!(f, "{}vec!(", nl_indent(depth + 1))
     }
 }
+*/
