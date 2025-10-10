@@ -12,7 +12,7 @@ use crate::element::{Element, ElementInfo, element_info_display};
 use crate::misc::{nl_indent, owned_name_display, vec_display, XmlDisplay};
 use crate::parse_item::LineNumber;
 pub use crate::xml_document_error::XmlDocumentError;
-use crate::parse_doc::{Accumulator, LevelInfo, ParseDoc};
+use crate::parse_xml::{Accumulator, LevelInfo, ParseXml};
 use crate::document::DocumentInfo;
 
 const TREE_DEPTH: usize = 2;
@@ -46,8 +46,8 @@ impl<'a> ParseSchema<'a> {
         &mut self,
         params:             &ParseSchemaParams,
         path:               &'b str,
-        element_level_info: &<ParseSchema<'a> as ParseDoc<'a>>::LI,
-    ) -> Result<(DocumentInfo, <<<ParseSchema<'_> as ParseDoc<'_>>::LI as LevelInfo<'_>>::AccumulatorType as Accumulator>::Value), XmlDocumentError>
+        element_level_info: &<ParseSchema<'a> as ParseXml<'a>>::LI,
+    ) -> Result<(DocumentInfo, <<<ParseSchema<'_> as ParseXml<'_>>::LI as LevelInfo<'_>>::AccumulatorType as Accumulator>::Value), XmlDocumentError>
     {
         // FIXME: check for error
         let _ = self.display_start(&params);
@@ -60,8 +60,8 @@ impl<'a> ParseSchema<'a> {
         &mut self,
         params:             &ParseSchemaParams,
         buf_reader:         BufReader<R>,
-        element_level_info: &<ParseSchema<'b> as ParseDoc<'b>>::LI,
-    ) -> Result<(DocumentInfo, <<<ParseSchema<'b> as ParseDoc<'b>>::LI as LevelInfo<'b>>::AccumulatorType as Accumulator>::Value), XmlDocumentError>
+        element_level_info: &<ParseSchema<'b> as ParseXml<'b>>::LI,
+    ) -> Result<(DocumentInfo, <<<ParseSchema<'b> as ParseXml<'b>>::LI as LevelInfo<'b>>::AccumulatorType as Accumulator>::Value), XmlDocumentError>
     where
         R: Read,
     {
@@ -144,7 +144,7 @@ impl<'a> ParseSchema<'a> {
     }
 }
 
-impl<'a> ParseDoc<'a> for ParseSchema<'a> {
+impl<'a> ParseXml<'a> for ParseSchema<'a> {
     type LI = SchemaLevelInfo;
     type AC = SchemaAccumulator;
 }
@@ -233,8 +233,8 @@ fn back_matter_display(f: &mut fmt::Formatter, depth: usize) -> fmt::Result {
 
 impl<'a> Try for ParseSchema<'a> 
 {
-//    type Output<'b> = <<ParseSchema<'b> as ParseDoc<'a>>::AC as Accumulator>::Value;
-    type Output = <<ParseSchema<'a> as ParseDoc<'a>>::AC as Accumulator>::Value;
+//    type Output<'b> = <<ParseSchema<'b> as ParseXml<'a>>::AC as Accumulator>::Value;
+    type Output = <<ParseSchema<'a> as ParseXml<'a>>::AC as Accumulator>::Value;
     type Residual = XmlDocumentError;
     fn from_output(_: <Self as Try>::Output) -> Self
     { todo!() }
@@ -260,17 +260,17 @@ impl SchemaLevelInfo {
 }
 
 impl<'a> LevelInfo<'a> for SchemaLevelInfo {
-    type ParseDocType = ParseSchema<'a>;
+    type ParseXmlType = ParseSchema<'a>;
     type AccumulatorType = SchemaAccumulator;
 
     fn next_level(&self) -> Self {
         SchemaLevelInfo { depth: self.depth + 1 }
     }
 
-    fn create_accumulator(&self, parse_doc: &mut Self::ParseDocType, element_info: ElementInfo) ->
+    fn create_accumulator(&self, parse_xml: &mut Self::ParseXmlType, element_info: ElementInfo) ->
         Result<SchemaAccumulator, XmlDocumentError>
     {
-        Ok(SchemaAccumulator::new(element_info, self.depth, parse_doc))
+        Ok(SchemaAccumulator::new(element_info, self.depth, parse_xml))
     }
 }
 
@@ -284,7 +284,7 @@ pub struct SchemaAccumulator {
 }
 
 impl SchemaAccumulator {
-    pub fn new(element_info: ElementInfo, depth: usize, _parse_doc: &mut ParseSchema<'_>) -> Self {
+    pub fn new(element_info: ElementInfo, depth: usize, _parse_xml: &mut ParseSchema<'_>) -> Self {
         let ei = element_info.clone();
         let element = SchemaElement::new(ei, depth, vec![], vec![], vec![], vec![]);
         print!("{}", element);
@@ -307,18 +307,18 @@ impl Accumulator for SchemaAccumulator {
     /*
      * Note that we have started a sublement
      */
-    fn start_subelement(&mut self, _parse_doc: &mut ParseSchema<'_>, element_info: &ElementInfo) {
+    fn start_subelement(&mut self, _parse_xml: &mut ParseSchema<'_>, element_info: &ElementInfo) {
         // FIXME: probably needs to be fully qualified
         // FIXME: propagate to other parse_.*() code
         self.current_subelement_name = Some(element_info.owned_name.local_name.clone());
     }
     
-    fn add_subelement(&mut self, _parse_doc: &mut ParseSchema<'_>, _subelement: ()) {
+    fn add_subelement(&mut self, _parse_xml: &mut ParseSchema<'_>, _subelement: ()) {
         // For echo, subelements have already been printed
         // We don't need to do anything with the () value
     }
     
-    fn end_subelement(&mut self, _parse_doc: &mut ParseSchema<'_>) {
+    fn end_subelement(&mut self, _parse_xml: &mut ParseSchema<'_>) {
         // FIXME: what's this for?
         if let Some(_name) = &self.current_subelement_name {
         }
@@ -326,7 +326,7 @@ impl Accumulator for SchemaAccumulator {
         print!(",");
     }
     
-    fn finish(self, _parse_doc: &mut ParseSchema<'_>) -> Self::Value {
+    fn finish(self, _parse_xml: &mut ParseSchema<'_>) -> Self::Value {
         // FIXME: return error
         let _ = self.element.display_end(self.depth);
     }

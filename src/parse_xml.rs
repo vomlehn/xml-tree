@@ -16,16 +16,16 @@ use crate::parse_item::{LineNumber, Parser};
 pub use crate::xml_document_error::XmlDocumentError;
 
 /**
- * ParseDoc - Parses an entire XML document
+ * ParseXml - Parses an entire XML document
  * LI   Information passed top down during the parse which is specific to each
  *      level. This could be nothing, something simple like a depth of the tree
  *      being parsed, or a reference to one level of the tree being parsed.
  */
-pub trait ParseDoc<'a>
+pub trait ParseXml<'a>
 where
     Self::AC:Accumulator<DocType<'a> = Self>,
 {
-    type LI: LevelInfo<'a, ParseDocType = Self>;
+    type LI: LevelInfo<'a, ParseXmlType = Self>;
     type AC: Accumulator;
 
     // FIXME: rename to something like parse_from_path
@@ -60,7 +60,7 @@ where
     {
         // Create the factory using the reader and XML definition
         let mut parse_item = Parser::new(buf_reader);
-        self.parse_document(&mut parse_item, &element_level_info)
+        self.parse_xmlument(&mut parse_item, &element_level_info)
     }
 
     fn _display_piece(&self, f: &mut fmt::Formatter<'_>, pieces: &Vec<XmlEvent>) -> fmt::Result {
@@ -77,7 +77,7 @@ where
         Ok(())
     }
 
-    fn parse_document<'r, R>(
+    fn parse_xmlument<'r, R>(
         &'r mut self,
         parse_item: &mut Parser<R>, 
         element_level_info: &Self::LI
@@ -85,7 +85,7 @@ where
     where
         R: Read,
     {
-//println!("---> entering parse_document");
+//println!("---> entering parse_xmlument");
         let document_info = match self.parse_start_document(parse_item) {
             Err(e) => return Err(e),
             Ok(doc_info) => doc_info,
@@ -242,8 +242,8 @@ where
  * LevelInfo<'_> trait - tracks nesting information passed down to subelements
  */
 pub trait LevelInfo<'a> {
-    type ParseDocType: ParseDoc<'a, LI = Self>;
-    type AccumulatorType: Accumulator<DocType<'a> = Self::ParseDocType>;
+    type ParseXmlType: ParseXml<'a, LI = Self>;
+    type AccumulatorType: Accumulator<DocType<'a> = Self::ParseXmlType>;
 //    where
 //        Self: 'c;
 //    type AccumulatorType: Accumulator;
@@ -253,7 +253,7 @@ pub trait LevelInfo<'a> {
     
     /// Create an accumulator for processing an element at this level. This is called
     /// when we start the processing.
-    fn create_accumulator(&self, parse_doc: &mut Self::ParseDocType, element_info: ElementInfo) -> 
+    fn create_accumulator(&self, parse_xml: &mut Self::ParseXmlType, element_info: ElementInfo) -> 
         Result<Self::AccumulatorType, XmlDocumentError>;
 }
 
@@ -262,19 +262,19 @@ pub trait LevelInfo<'a> {
  */
 pub trait Accumulator {
     type Value;
-    type DocType<'a>: ParseDoc<'a> + ?Sized;
+    type DocType<'a>: ParseXml<'a> + ?Sized;
 
     /// Called when starting to process a subelement
-    fn start_subelement(&mut self, parse_doc: &mut Self::DocType<'_>, element_info: &ElementInfo);
+    fn start_subelement(&mut self, parse_xml: &mut Self::DocType<'_>, element_info: &ElementInfo);
     
     /// Called when finishing processing a subelement
-    fn end_subelement(&mut self, parse_doc: &mut Self::DocType<'_>);
+    fn end_subelement(&mut self, parse_xml: &mut Self::DocType<'_>);
     
     /// Add a completed subelement to this accumulator
-    fn add_subelement(&mut self, parse_doc: &mut Self::DocType<'_>, subelement: Self::Value);
+    fn add_subelement(&mut self, parse_xml: &mut Self::DocType<'_>, subelement: Self::Value);
     
     /// Return and consume the final result for this element
-    fn finish(self, parse_doc: &mut Self::DocType<'_>) -> Self::Value;
+    fn finish(self, parse_xml: &mut Self::DocType<'_>) -> Self::Value;
     
     /// Determine whether we're currently processing a subelement
     /// Returns: true if we are nested in a subelement, false otherwise

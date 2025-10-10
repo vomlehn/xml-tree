@@ -8,7 +8,7 @@ use std::ops::{ControlFlow, FromResidual, Try};
 use crate::element::{Element, ElementInfo};
 use crate::parse_item::LineNumber;
 pub use crate::xml_document_error::XmlDocumentError;
-use crate::parse_doc::{Accumulator, LevelInfo, ParseDoc};
+use crate::parse_xml::{Accumulator, LevelInfo, ParseXml};
 use crate::document::DocumentInfo;
 
 pub struct ParseXsd {
@@ -25,7 +25,7 @@ impl ParseXsd {
     }
 }
 
-impl ParseDoc for ParseXsd {
+impl ParseXml for ParseXsd {
     type LI = XsdLevelInfo;
     type AC = XsdAccumulator;
 }
@@ -49,7 +49,7 @@ impl fmt::Debug for ParseXsd {
 
 impl Try for ParseXsd
 {
-    type Output = <<ParseXsd as ParseDoc>::AC as Accumulator>::Value;
+    type Output = <<ParseXsd as ParseXml>::AC as Accumulator>::Value;
     type Residual = XmlDocumentError;
     fn from_output(_: <Self as Try>::Output) -> Self
     { todo!() }

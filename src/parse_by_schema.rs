@@ -13,7 +13,7 @@ use crate::element::{Element, ElementInfo, element_info_display};
 use crate::misc::{nl_indent, owned_name_display, vec_display, XmlDisplay};
 use crate::parse_item::LineNumber;
 pub use crate::xml_document_error::XmlDocumentError;
-use crate::parse_doc::{Accumulator, LevelInfo, ParseDoc};
+use crate::parse_xml::{Accumulator, LevelInfo, ParseXml};
 use crate::document::DocumentInfo;
 
 const TREE_DEPTH: usize = 2;
@@ -44,8 +44,8 @@ impl<'a> ParseWithSchema {
     pub fn parse_path<'b> (
         params:             &ParseWithSchemaParams,
         path:               &'b str,
-        element_level_info: &<ParseWithSchema as ParseDoc>::LI,
-    ) -> Result<(DocumentInfo, <<<ParseWithSchema as ParseDoc>::LI as LevelInfo>::AccumulatorType as Accumulator>::Value), XmlDocumentError>
+        element_level_info: &<ParseWithSchema as ParseXml>::LI,
+    ) -> Result<(DocumentInfo, <<<ParseWithSchema as ParseXml>::LI as LevelInfo>::AccumulatorType as Accumulator>::Value), XmlDocumentError>
     {
         // FIXME: check for error
         let _ = Self::display_start(&params);
@@ -57,8 +57,8 @@ impl<'a> ParseWithSchema {
     pub fn parse<R>(
         params:             &ParseWithSchemaParams,
         buf_reader:         BufReader<R>,
-        element_level_info: &<ParseWithSchema as ParseDoc>::LI,
-    ) -> Result<(DocumentInfo, <<<ParseWithSchema as ParseDoc>::LI as LevelInfo>::AccumulatorType as Accumulator>::Value), XmlDocumentError>
+        element_level_info: &<ParseWithSchema as ParseXml>::LI,
+    ) -> Result<(DocumentInfo, <<<ParseWithSchema as ParseXml>::LI as LevelInfo>::AccumulatorType as Accumulator>::Value), XmlDocumentError>
     where
         R: Read,
     {
@@ -141,7 +141,7 @@ impl<'a> ParseWithSchema {
     }
 }
 
-impl<'a> ParseDoc for ParseWithSchema {
+impl<'a> ParseXml for ParseWithSchema {
     type LI = SchemaLevelInfo;
     type AC = SchemaAccumulator;
 }
@@ -230,7 +230,7 @@ fn back_matter_display(f: &mut fmt::Formatter, depth: usize) -> fmt::Result {
 
 impl<'a> Try for ParseWithSchema 
 {
-    type Output = <<ParseWithSchema as ParseDoc>::AC as Accumulator>::Value;
+    type Output = <<ParseWithSchema as ParseXml>::AC as Accumulator>::Value;
     type Residual = XmlDocumentError;
     fn from_output(_: <Self as Try>::Output) -> Self
     { todo!() }

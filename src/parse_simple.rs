@@ -11,16 +11,16 @@ impl ParseSimple {
 
     pub fn parse_path<'b>(
         path: &'b str,
-        element_level_info: &<ParseSimple as ParseDoc>::LI,
-    ) -> Result<(DocumentInfo, <<<ParseSimple as ParseDoc>::LI as LevelInfo>::AccumulatorType as Accumulator>::Value), XmlDocumentError>
+        element_level_info: &<ParseSimple as ParseXml>::LI,
+    ) -> Result<(DocumentInfo, <<<ParseSimple as ParseXml>::LI as LevelInfo>::AccumulatorType as Accumulator>::Value), XmlDocumentError>
     {
         Self::parse_path_base(path, element_level_info)
     }
 
     pub fn parse<R>(
         buf_reader: BufReader<R>,
-        element_level_info: &<ParseSimple as ParseDoc>::LI,
-    ) -> Result<(DocumentInfo, <<<ParseSimple as ParseDoc>::LI as LevelInfo>::AccumulatorType as Accumulator>::Value), XmlDocumentError>
+        element_level_info: &<ParseSimple as ParseXml>::LI,
+    ) -> Result<(DocumentInfo, <<<ParseSimple as ParseXml>::LI as LevelInfo>::AccumulatorType as Accumulator>::Value), XmlDocumentError>
     where
         R: Read,
     {

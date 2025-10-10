@@ -11,7 +11,7 @@ use crate::element::{Element, ElementInfo};
 use crate::misc::nl_indent;
 use crate::parse_item::LineNumber;
 pub use crate::xml_document_error::XmlDocumentError;
-use crate::parse_doc::{Accumulator, LevelInfo, ParseDoc};
+use crate::parse_xml::{Accumulator, LevelInfo, ParseXml};
 use crate::document::DocumentInfo;
 
 pub struct ParseEcho<'a> {
@@ -32,8 +32,8 @@ impl<'a> ParseEcho<'a> {
     pub fn parse_path<'r: 'a, 'b>(
         &'r mut self,
         path: &'b str,
-        element_level_info: &<ParseEcho<'r> as ParseDoc<'r>>::LI,
-    ) -> Result<(DocumentInfo, <<<ParseEcho<'r> as ParseDoc<'r>>::LI as LevelInfo<'r>>::AccumulatorType as Accumulator>::Value), XmlDocumentError>
+        element_level_info: &<ParseEcho<'r> as ParseXml<'r>>::LI,
+    ) -> Result<(DocumentInfo, <<<ParseEcho<'r> as ParseXml<'r>>::LI as LevelInfo<'r>>::AccumulatorType as Accumulator>::Value), XmlDocumentError>
     {
         self.parse_path_base(path, element_level_info)
     }
@@ -41,8 +41,8 @@ impl<'a> ParseEcho<'a> {
     pub fn parse<'r: 'a, R>(
         &'r mut self,
         buf_reader: BufReader<R>,
-        element_level_info: &<ParseEcho<'r> as ParseDoc<'r>>::LI,
-    ) -> Result<(DocumentInfo, <<<ParseEcho<'r> as ParseDoc<'r>>::LI as LevelInfo<'r>>::AccumulatorType as Accumulator>::Value), XmlDocumentError>
+        element_level_info: &<ParseEcho<'r> as ParseXml<'r>>::LI,
+    ) -> Result<(DocumentInfo, <<<ParseEcho<'r> as ParseXml<'r>>::LI as LevelInfo<'r>>::AccumulatorType as Accumulator>::Value), XmlDocumentError>
     where
         R: Read,
     {
@@ -50,7 +50,7 @@ impl<'a> ParseEcho<'a> {
     }
 }
 
-impl<'a> ParseDoc<'a> for ParseEcho<'a> {
+impl<'a> ParseXml<'a> for ParseEcho<'a> {
     type LI = EchoLevelInfo<'a>;
     type AC = EchoAccumulator;
 }
@@ -74,7 +74,7 @@ impl<'a> fmt::Debug for ParseEcho<'a> {
 
 impl<'a> Try for ParseEcho<'a>
 {
-    type Output = <<ParseEcho<'a> as ParseDoc<'a>>::AC as Accumulator>::Value;
+    type Output = <<ParseEcho<'a> as ParseXml<'a>>::AC as Accumulator>::Value;
     type Residual = XmlDocumentError;
     fn from_output(_: <Self as Try>::Output) -> Self
     { todo!() }
@@ -104,10 +104,10 @@ impl<'a> EchoLevelInfo<'a> {
 }
 
 impl<'a> LevelInfo<'a> for EchoLevelInfo<'a> {
-    type ParseDocType = ParseEcho<'a>;
-//    type ParseDocType = <ParseEcho<'a> as ParseDoc<'a>>::ParseDoc;
-//    type AccumulatorType<'c>: Accumulator<DocType<'c>> = Self::ParseDocType;
-//    type AccumulatorType: Accumulator<DocType<'a> = Self::ParseDocType> = ParseAccumulator;
+    type ParseXmlType = ParseEcho<'a>;
+//    type ParseXmlType = <ParseEcho<'a> as ParseXml<'a>>::ParseXml;
+//    type AccumulatorType<'c>: Accumulator<DocType<'c>> = Self::ParseXmlType;
+//    type AccumulatorType: Accumulator<DocType<'a> = Self::ParseXmlType> = ParseAccumulator;
     type AccumulatorType = EchoAccumulator;
 //    where
 //        Self: 'c;
@@ -119,7 +119,7 @@ impl<'a> LevelInfo<'a> for EchoLevelInfo<'a> {
         }
     }
 
-    fn create_accumulator(&self, _parse_doc: &mut Self::ParseDocType, element_info: ElementInfo) ->
+    fn create_accumulator(&self, _parse_xml: &mut Self::ParseXmlType, element_info: ElementInfo) ->
         Result<EchoAccumulator, XmlDocumentError>
     {
         print!("{}<{}>", nl_indent(self.depth), element_info.owned_name.local_name);
@@ -150,23 +150,23 @@ impl Accumulator for EchoAccumulator {
     type Value = ();  // Echo doesn't return meaningful data
      type DocType<'a> = ParseEcho<'a>;
 
-    fn start_subelement(&mut self, _parse_doc: &mut ParseEcho, _element_info: &ElementInfo) {
+    fn start_subelement(&mut self, _parse_xml: &mut ParseEcho, _element_info: &ElementInfo) {
         // Nothing special needed
     }
     
-    fn add_subelement(&mut self, _parse_doc: &mut ParseEcho, _subelement: ()) {
+    fn add_subelement(&mut self, _parse_xml: &mut ParseEcho, _subelement: ()) {
         // For echo, subelements have already been printed
         // We don't need to do anything with the () value
     }
     
-    fn end_subelement(&mut self, _parse_doc: &mut ParseEcho) {
+    fn end_subelement(&mut self, _parse_xml: &mut ParseEcho) {
         if let Some(name) = &self.current_subelement_name {
             print!("{}</{}>", nl_indent(self.depth + 1), name);
         }
         self.current_subelement_name = None;
     }
     
-    fn finish(self, _parse_doc: &mut ParseEcho) -> () {
+    fn finish(self, _parse_xml: &mut ParseEcho) -> () {
         print!("{}</{}>", nl_indent(self.depth), self.element_name);
         ()
     }
@@ -195,7 +195,7 @@ mod tests {
     use stdext::function_name;
     use std::io::{BufReader, Cursor};
 
-    use crate::parse_doc::ParseDoc;
+    use crate::parse_xml::ParseXml;
 
     use super::{EchoLevelInfo, ParseEcho};
 

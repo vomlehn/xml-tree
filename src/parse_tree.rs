@@ -12,7 +12,7 @@ use crate::element::{element_info_display, Element, ElementInfo};
 use crate::misc::{nl_indent, owned_name_display, vec_display, XmlDisplay};
 use crate::parse_item::LineNumber;
 pub use crate::xml_document_error::XmlDocumentError;
-use crate::parse_doc::{Accumulator, LevelInfo, ParseDoc};
+use crate::parse_xml::{Accumulator, LevelInfo, ParseXml};
 use crate::document::DocumentInfo;
 
 pub struct ParseTree {
@@ -30,16 +30,16 @@ impl ParseTree {
 
     pub fn parse_path<'b>(
         path: &'b str,
-        element_level_info: &<ParseTree as ParseDoc>::LI,
-    ) -> Result<(DocumentInfo, <<<ParseTree as ParseDoc>::LI as LevelInfo>::AccumulatorType as Accumulator>::Value), XmlDocumentError>
+        element_level_info: &<ParseTree as ParseXml>::LI,
+    ) -> Result<(DocumentInfo, <<<ParseTree as ParseXml>::LI as LevelInfo>::AccumulatorType as Accumulator>::Value), XmlDocumentError>
     {
         Self::parse_path_base(path, element_level_info)
     }
 
     pub fn parse<R>(
         buf_reader: BufReader<R>,
-        element_level_info: &<ParseTree as ParseDoc>::LI,
-    ) -> Result<(DocumentInfo, <<<ParseTree as ParseDoc>::LI as LevelInfo>::AccumulatorType as Accumulator>::Value), XmlDocumentError>
+        element_level_info: &<ParseTree as ParseXml>::LI,
+    ) -> Result<(DocumentInfo, <<<ParseTree as ParseXml>::LI as LevelInfo>::AccumulatorType as Accumulator>::Value), XmlDocumentError>
     where
         R: Read,
     {
@@ -47,7 +47,7 @@ impl ParseTree {
     }
 }
 
-impl ParseDoc for ParseTree {
+impl ParseXml for ParseTree {
     type LI = TreeLevelInfo;
     type AC = TreeAccumulator;
     // No AC type needed anymore
@@ -84,7 +84,7 @@ impl fmt::Debug for ParseTree {
 
 impl Try for ParseTree
 {
-    type Output = <<ParseTree as ParseDoc>::AC as Accumulator>::Value;
+    type Output = <<ParseTree as ParseXml>::AC as Accumulator>::Value;
     type Residual = XmlDocumentError;
     fn from_output(_: <Self as Try>::Output) -> Self
     { todo!() }

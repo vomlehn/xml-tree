@@ -10,7 +10,7 @@ pub mod document;
 pub mod element;
 mod misc;
 pub mod multiterator; // FIXME: toss this
-pub mod parse_doc;
+pub mod parse_xml;
 pub mod parse_echo;
 pub mod parse_item;
 pub mod parse_schema;
@@ -23,7 +23,7 @@ pub mod walk_tree;
 pub use crate::banner::set_banner_file_name;
 pub use crate::document::DocumentInfo;
 pub use crate::element::{Element, ElementInfo};
-pub use crate::parse_doc::{Accumulator, ParseDoc};
+pub use crate::parse_xml::{Accumulator, ParseXml};
 pub use crate::parse_echo::{EchoAccumulator, EchoLevelInfo, ParseEcho};
 pub use crate::parse_schema::{ParseSchema, ParseSchemaParams, SchemaElement, SchemaAccumulator, SchemaLevelInfo};
 //pub use crate::parse_tree::{ParseTree, TreeElement, TreeAccumulator, TreeLevelInfo};
