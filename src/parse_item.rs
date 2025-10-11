@@ -9,6 +9,8 @@ use xml::reader::{EventReader, XmlEvent};
 
 use crate::xml_document_error::XmlDocumentError;
 
+const VERBOSE: bool = true;
+
 /* Parsing location */
 pub type LineNumber = usize;
 
@@ -122,7 +124,9 @@ impl<R: Read> Parser<R> {
             return Err(e);
         }
 */
-//        print!("(next {})", result.name());
+        if VERBOSE {
+            print!("(next {})", result.name());
+        }
 
         self.skip();
         Ok(result)
@@ -135,7 +139,10 @@ impl<R: Read> Parser<R> {
      * self:    &mut Parser
      */
     pub fn skip(&mut self) {
-//        print!("(skip)");
+        if VERBOSE {
+            print!("(skip)");
+        }
+
         self.pending = None;
     }
 
@@ -170,7 +177,11 @@ impl<R: Read> Parser<R> {
                 },
                 Ok(xml_event) => {
                     let element = TreeElement::new(parse_loc, xml_event);
-//println!("(lookahead {})", element.name());
+
+                    if VERBOSE {
+                        println!("(lookahead {})", element.name());
+                    }
+
                     let ok = Ok(element.clone());
                     let pending_ok = Some(Ok(element));
                     self.pending = pending_ok;
@@ -189,7 +200,10 @@ let e = {
                 Some(element) => element,
             }
 };
-//println!("(lookahead {})", e.clone().unwrap().name());
+
+            if VERBOSE {
+                println!("(lookahead {})", e.clone().unwrap().name());
+            }
 e
         }
     }
