@@ -7,12 +7,15 @@ use std::io::{BufReader, Read};
 use std::marker::PhantomData;
 use std::ops::{ControlFlow, FromResidual, Try};
 
-use crate::element::{Element, ElementInfo};
+use crate::{Element, ElementInfo};
 use crate::misc::nl_indent;
 use crate::parse_item::ParseLoc;
 pub use crate::xml_document_error::XmlDocumentError;
 use crate::parse_xml::{Accumulator, LevelInfo, ParseXml};
 use crate::document::DocumentInfo;
+
+pub struct ParseEchoParams {
+}
 
 pub struct ParseEcho<'a> {
     pub document_info:  DocumentInfo,
@@ -192,12 +195,22 @@ impl Accumulator for EchoAccumulator {
 
 #[cfg(test)]
 mod tests {
+    use std::fmt;
     use stdext::function_name;
     use std::io::{BufReader, Cursor};
+    use xml::common::XmlVersion;
+    use xml::name::OwnedName;
+    use xml::namespace::Namespace;
+    use xml::reader::XmlEvent;
 
-    use crate::parse_xml::ParseXml;
+    use crate::{DocumentInfo, Element, ElementInfo,
+        nl_indent, owned_name_display, ParseLoc, XmlDisplay};
+    use crate::misc::vec_display;
+    use crate::element::element_info_display;
 
     use super::{EchoLevelInfo, ParseEcho};
+
+//    const TREE_DEPTH: usize = 0;
 
     #[test]
     fn testit() {
@@ -222,13 +235,208 @@ mod tests {
             println!("{} {}", lineno, line);
         }
 
+        let owned_name = OwnedName {
+            local_name: "schema".to_string(),
+            namespace:  None,
+            prefix:     None,
+        };
+        let namespace = Namespace::empty();
+        let element_info = ElementInfo::new(owned_name, ParseLoc::new("".to_string(), 0), vec!(), namespace);
+        let element = EchoElement::new(element_info, 0, vec!(), vec!(), vec!(), vec!());
         let cursor = Cursor::new((&input_str).as_bytes());
         let reader = BufReader::new(cursor);
+        let root: Box<dyn Element> = Box::new(element);
+
+        let document_info = DocumentInfo::new(XmlVersion::Version10, "encoding".to_string(), None);
 
         let echo_level_info = EchoLevelInfo::new();
 
+        let mut parse_echo = ParseEcho::new(document_info, root);
         // FIXME: Handle returned error
-        let _ = ParseEcho::parse(reader, &echo_level_info);
+        let _ = parse_echo.parse(reader, &echo_level_info);
         println!();
     }
+
+#[derive(Clone)]
+pub struct EchoElement {
+    pub element_info:   ElementInfo,
+    pub depth:          usize,
+    pub before_element: Vec<XmlEvent>,
+    pub content:        Vec<XmlEvent>,
+    pub after_element:  Vec<XmlEvent>,
+    pub subelements:    Vec<Box<dyn Element>>,
+}
+
+impl EchoElement {
+    pub fn new(element_info: ElementInfo,
+        depth:          usize,
+        before_element: Vec::<XmlEvent>,
+        content: Vec::<XmlEvent>,
+        after_element: Vec::<XmlEvent>,
+        subelements: Vec<Box<dyn Element>>) -> EchoElement {
+        EchoElement {
+            element_info,
+            depth,
+            subelements,
+            before_element,
+            content,
+            after_element,
+        }
+    }
+
+    fn display_start(&self, f: &mut fmt::Formatter::<'_>, depth: usize) -> fmt::Result {
+        let depth0 = 3 * depth;
+        let depth1 = depth0 + 1;
+
+        // FIXME: return error code
+        let _ = write!(f, "{}vec!(Box::new(EchoElement::new(",
+            nl_indent(depth0));
+
+        let owned_name = OwnedName {
+            local_name: self.name().to_string(),
+            namespace:  None,
+            prefix:     None,
+        };
+        owned_name_display(f, depth1, &owned_name)?;
+
+        let element_info = ElementInfo {
+            parse_loc:     ParseLoc::new("".to_string(), 0),
+            owned_name: owned_name,
+        };
+        element_info_display(f, depth1, &element_info)?;
+        write!(f, "{}", nl_indent(depth1))?;
+        vec_display::<XmlEvent>(f, depth1, &self.before_element)?;
+        write!(f, ", ")?;
+        vec_display::<XmlEvent>(f, depth1, &self.content)?;
+        write!(f, ", ")?;
+        vec_display::<XmlEvent>(f, depth1, &self.after_element)?;
+        write!(f, ",")?;
+        write!(f, "{}vec!(", nl_indent(depth1 + 1))
+    }
+
+/*
+    fn display_end(&self, depth: usize) -> fmt::Result {
+        let depth0 = TREE_DEPTH + 3 * depth;
+        let depth1 = depth0 + 1;
+        let depth2 = depth1 + 2;
+
+        print!("{})", nl_indent(depth2));
+        print!("{})", nl_indent(depth1));
+        print!("{})", nl_indent(depth0));
+            // FIXME: return error
+        Ok(())
+    }
+*/
+}
+
+impl Default for EchoElement {
+    fn default() -> EchoElement {
+        EchoElement {
+            element_info: ElementInfo {
+                owned_name: OwnedName {
+                    local_name: "".to_string(),
+                    namespace:  None,
+                    prefix:     None
+                },
+                parse_loc:     ParseLoc::new("".to_string(), 0),
+            },
+            depth: 0,
+            subelements: vec!(),
+            before_element: vec!(),
+            content: vec!(),
+            after_element: vec!(),
+        }
+    }
+}
+
+impl fmt::Display for EchoElement {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.display(f, self.depth)
+    }
+}
+
+impl fmt::Debug for EchoElement {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.debug(f, self.depth)
+    }
+}
+
+impl Element for EchoElement {
+    fn display(&self, f: &mut fmt::Formatter<'_>, depth: usize) -> fmt::Result {
+        self.display_start(f, depth)
+    }
+
+    fn debug(&self, f: &mut fmt::Formatter<'_>, depth: usize) -> fmt::Result {
+        self.display(f, depth)
+    }
+
+    /**
+     * Find a subelement (one level deeper) with the given name
+     */
+    fn get(&self, name: &str) -> Option<&dyn Element> {
+println!("get: looking for {} in {}", name, self.name());
+println!("...");
+for x in self.subelements() {
+    println!(" {}", x);
+}
+        self.subelements()
+            .iter()
+            .find(|&x| {
+                println!("get: is {} == {}", x.name(), name);
+                x.name() == name
+            })
+            .map(|v| &**v)
+    }
+
+    /*
+     * Return the element name
+     */
+    // FIXME: maybe remove this from Element
+    fn name(&self) -> &str {
+        &self.element_info.owned_name.local_name
+    }
+
+    fn parse_loc(&self) -> ParseLoc {
+        self.element_info.parse_loc.clone()
+    }
+
+    /**
+     * Return a vector of all subelements.
+     */
+//    fn subelements<'b>(&'b self) -> &'b Vec<Box<dyn Element + 'b>> {
+    fn subelements(&self) -> &Vec<Box<dyn Element>> {
+        &self.subelements
+    }
+
+    /**
+     * Return a mutable vector of all subelements.
+     */
+//    fn subelements_mut<'b>(&'b mut self) -> &'b mut Vec<Box<dyn Element + '_>> {
+    fn subelements_mut(&mut self) -> &mut Vec<Box<dyn Element>> {
+        &mut self.subelements
+    }
+}
+
+impl XmlDisplay for EchoElement {
+    fn print(&self, f: &mut fmt::Formatter<'_>, depth: usize) -> fmt::Result {
+
+        write!(f, "{}Box::new(EchoElement::new(", nl_indent(depth))
+            .expect("Unable to write Box::new");
+
+        let element_info = ElementInfo {
+            parse_loc: ParseLoc::new("".to_string(), 0),
+            owned_name: OwnedName {
+                        local_name: self.name().to_string(),
+                        namespace:  None,
+                        prefix:     None,
+            },
+        };
+
+        owned_name_display(f, depth + 1, &element_info.owned_name)?;
+        element_info_display(f, depth + 1, &element_info)?;
+        write!(f, "{}vec!(), vec!(), vec!(),", nl_indent(depth + 1))?;
+
+        write!(f, "{}vec!(", nl_indent(depth + 1))
+    }
+}
 }
