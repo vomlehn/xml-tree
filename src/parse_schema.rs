@@ -307,18 +307,18 @@ impl Accumulator for SchemaAccumulator {
     /*
      * Note that we have started a sublement
      */
-    fn start_subelement(&mut self, _parse_xml: &mut ParseSchema<'_>, element_info: &ElementInfo) {
+    fn start_subelement(&mut self, _parse_schema: &mut ParseSchema<'_>, element_info: &ElementInfo) {
         // FIXME: probably needs to be fully qualified
         // FIXME: propagate to other parse_.*() code
         self.current_subelement_name = Some(element_info.owned_name.local_name.clone());
     }
     
-    fn add_subelement(&mut self, _parse_xml: &mut ParseSchema<'_>, _subelement: ()) {
+    fn add_subelement(&mut self, _parse_schema: &mut ParseSchema<'_>, _subelement: ()) {
         // For echo, subelements have already been printed
         // We don't need to do anything with the () value
     }
     
-    fn end_subelement(&mut self, _parse_xml: &mut ParseSchema<'_>) {
+    fn end_subelement(&mut self, _parse_schema: &mut ParseSchema<'_>) {
         // FIXME: what's this for?
         if let Some(_name) = &self.current_subelement_name {
         }
@@ -326,7 +326,7 @@ impl Accumulator for SchemaAccumulator {
         print!(",");
     }
     
-    fn finish(self, _parse_xml: &mut ParseSchema<'_>) -> Self::Value {
+    fn finish(self, _parse_schema: &mut ParseSchema<'_>) -> Self::Value {
         // FIXME: return error
         let _ = self.element.display_end(self.depth);
     }
