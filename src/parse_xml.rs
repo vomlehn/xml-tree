@@ -176,7 +176,6 @@ where
 
                 XmlEvent::EndElement{name} => {
                     // We have an element open at this level, process it
-println!("process element {} at level", name.local_name);
                     parse_item.skip();
                     
                     if name.local_name != element_name.local_name {
@@ -583,7 +582,6 @@ mod tests {
         fn create_accumulator(&self, parse_xml: &mut Self::ParseXmlType, element_info: ElementInfo) ->
             Result<TestAccumulator, XmlDocumentError>
         {
-println!("create_accumulator: depth {}", self.depth);
             Ok(TestAccumulator::new(element_info, self.depth, parse_xml))
         }
     }

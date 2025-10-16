@@ -9,7 +9,7 @@ use xml::reader::{EventReader, XmlEvent};
 
 use crate::xml_document_error::XmlDocumentError;
 
-const VERBOSE: bool = true;
+const VERBOSE: bool = false;
 
 /* Parsing location */
 pub type LineNumber = usize;
