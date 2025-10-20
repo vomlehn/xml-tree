@@ -3,11 +3,14 @@
  */
 
 use std::fmt;
+use std::io::Write;
 use xml::name::OwnedName;
 
-pub fn owned_name_display(f: &mut fmt::Formatter<'_>, depth: usize, owned_name: &OwnedName) -> fmt::Result {
-    write!(f, "{}OwnedName{{local_name: \"{}\".to_string(),", nl_indent(depth), owned_name.local_name)?;
-    write!(f, "{}namespace: {:?}, prefix: {:?}}},", nl_indent(depth + 1), owned_name.namespace, owned_name.prefix)
+pub fn owned_name_display(output: &mut dyn Write, depth: usize, owned_name: &OwnedName) -> fmt::Result {
+    // FIXME: check for errors
+    let _ = write!(output, "{}OwnedName{{local_name: \"{}\".to_string(),", nl_indent(depth), owned_name.local_name);
+    let _ = write!(output, "{}namespace: {:?}, prefix: {:?}}},", nl_indent(depth + 1), owned_name.namespace, owned_name.prefix);
+    Ok(())
 }
 
 const INDENT: &str = "    ";
@@ -21,29 +24,34 @@ pub fn indent(n: usize) -> String {
 }
 
 /**
- * Print a descriptor of the given type.
+ * Print a vector of elements of the given type
+ * T:       Type of vector elements
  * f:       Formatter
  * depth:   Indentation
  */
 // FIXME: uses of this need to be cleaned up and consolidated
-pub fn vec_display<T>(f: &mut fmt::Formatter, depth: usize, vec: &Vec<T>) -> fmt::Result
-where
-    T:  XmlDisplay
+pub fn vec_display<T: fmt::Debug>(output: &mut dyn Write, depth: usize, vec: &Vec<T>) -> fmt::Result
 {
+    // FIXME: check for errors
     if vec.is_empty() {
-        write!(f, "vec!()")?;
+        let _ = write!(output, "vec!()");
     } else {
-        write!(f, "{}vec!(", nl_indent(depth + 1))?;
+        let _ = write!(output, "{}vec!(", nl_indent(depth + 1));
         for elem in vec {
-                elem.print(f, depth)?;
+//            let e: String = format!("{}{}", indent(depth), elem);
+//                elem.print(output, depth);
+            let e = format_args!("{:?}", elem);
+            let _ = writeln!(output, "{}{}", indent(depth), e);
         }
-        write!(f, "{})", nl_indent(depth))?;
+        let _ = write!(output, "{})", nl_indent(depth));
     }
 
     Ok(())
 }
 
+/*
 pub trait XmlDisplay
 {
-    fn print(&self, f: &mut fmt::Formatter<'_>, depth: usize) -> fmt::Result;
+    fn print(&self, output: &mut dyn Write, depth: usize) -> fmt::Result;
 }
+*/

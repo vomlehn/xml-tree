@@ -1,4 +1,5 @@
 use lazy_static::lazy_static;
+use std::io::Write;
 use std::fs;
 use std::fmt;
 use std::sync::Mutex;
@@ -31,14 +32,15 @@ pub fn set_banner_file_name(name: Option<String>) {
 }
 
 // FIXME: consolidate this and print_banner_file
-pub fn write_banner_file(f: &mut fmt::Formatter<'_>) -> fmt::Result {
+pub fn write_banner_file(output: &mut dyn Write) -> fmt::Result {
     let banner_file_name = BANNER_FILE_NAME.lock().unwrap().clone();
 
     if let Some(name) = banner_file_name {
-        match fs::read_to_string(&name) {
-            Ok(contents) => write!(f, "{}", contents)?,
-            Err(e) => write!(f, "Error reading file '{}': {}", &name, e)?,
-        }
+        // FIXME: return error
+        let _ = match fs::read_to_string(&name) {
+            Ok(contents) => write!(output, "{}", contents),
+            Err(e) => write!(output, "Error reading file '{}': {}", &name, e),
+        };
     }
 
     Ok(())

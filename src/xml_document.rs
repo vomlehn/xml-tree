@@ -4,12 +4,12 @@
  * generate an XmlTree
  */
 
-use std::fmt;
-use xml::reader::XmlEvent;
+//use std::fmt;
+//use xml::reader::XmlEvent;
 
-use crate::element::Element;
-use crate::misc::nl_indent;
-use crate::misc::XmlDisplay;
+//use crate::element::Element;
+//use crate::misc::nl_indent;
+//use crate::misc::XmlDisplay;
 /*
 
 #[cfg(test)]
@@ -279,6 +279,7 @@ pub trait Accumulator<'a, BL, ED, WD, WR> {
 */
 */
 
+/*
 impl XmlDisplay for XmlEvent {
     fn print(&self, f: &mut fmt::Formatter<'_>, depth: usize) -> fmt::Result {
         write!(f, "{}{:?}", nl_indent(depth), self)
@@ -290,3 +291,4 @@ impl XmlDisplay for Box<dyn Element> {
         write!(f, "{}{:?}", nl_indent(depth), self)
     }
 }
+*/

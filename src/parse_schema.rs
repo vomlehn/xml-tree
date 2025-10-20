@@ -2,14 +2,14 @@
  * Parse XML text input and produce Rust Schema code.
  */
 use std::fmt;
-use std::io::{BufReader, Read};
+use std::io::{BufReader, Read, Write};
 use std::ops::{ControlFlow, FromResidual, Try};
 use xml::name::OwnedName;
 use xml::reader::XmlEvent;
 
-use crate::banner::print_banner_file;
+use crate::banner::write_banner_file;
 use crate::element::{Element, ElementInfo, element_info_display};
-use crate::misc::{nl_indent, owned_name_display, vec_display, XmlDisplay};
+use crate::misc::{nl_indent, owned_name_display, vec_display/*, XmlDisplay*/};
 use crate::parse_item::ParseLoc;
 pub use crate::xml_document_error::XmlDocumentError;
 use crate::parse_xml::{Accumulator, LevelInfo, ParseXml};
@@ -24,7 +24,8 @@ const TREE_DEPTH: usize = 2;
 pub struct ParseSchema<'a> {
     pub document_info:  DocumentInfo,
     pub root:           Box<dyn Element>,
-    pub output:         &'a mut String,
+//    pub output:         &'a mut String,
+    pub output:         &'a mut dyn Write
 }
 
 pub struct ParseSchemaParams<'a> {
@@ -34,7 +35,7 @@ pub struct ParseSchemaParams<'a> {
 }
 
 impl<'a> ParseSchema<'a> {
-    pub fn new(document_info: DocumentInfo, root: Box<dyn Element>, output: &'a mut String) -> ParseSchema<'a> {
+    pub fn new(document_info: DocumentInfo, root: Box<dyn Element>, output: &'a mut (dyn Write + 'a)) -> ParseSchema<'a> {
         ParseSchema {
             document_info,
             root,
@@ -49,6 +50,7 @@ impl<'a> ParseSchema<'a> {
         element_level_info: &<ParseSchema<'a> as ParseXml<'a>>::LI,
     ) -> Result<(DocumentInfo, <<<ParseSchema<'_> as ParseXml<'_>>::LI as LevelInfo<'_>>::AccumulatorType as Accumulator>::Value), XmlDocumentError>
     {
+        let _ = writeln!(self.output, "<-- In parse_path -->");
         // FIXME: check for error
         let _ = self.display_start(&params);
         let res = self.parse_path_base(path, element_level_info)?;
@@ -65,6 +67,7 @@ impl<'a> ParseSchema<'a> {
     where
         R: Read,
     {
+        println!("<-- In parse -->");
         // FIXME: check for error
         let _ = self.display_start(&params);
         let res = self.parse_base(buf_reader, element_level_info)?;
@@ -78,7 +81,7 @@ impl<'a> ParseSchema<'a> {
 
         let indent_str = nl_indent(depth);
         // FIXME: check for error
-        print!("{}lazy_static! {{", indent_str);
+        let _ = write!(self.output, "{}lazy_static! {{", indent_str);
 
         self.static_parse_schema_display(depth + 1, params.const_name, params.schema_type, params.schema_name)?;
 
@@ -103,13 +106,13 @@ impl<'a> ParseSchema<'a> {
             "", 
         );
 
-        print_banner_file()?;
+        write_banner_file(self.output)?;
 
         let indent_str = nl_indent(depth);
 
         for front in front_matter {
             // FIXME: check for error
-            print!("{}{}", indent_str, front);
+            let _ = write!(self.output, "{}{}", indent_str, front);
         }
 
         Ok(())
@@ -118,12 +121,12 @@ impl<'a> ParseSchema<'a> {
     pub fn static_parse_schema_display(&mut self, depth: usize, const_name: &str, schema_type: &str, schema_name: &str) -> fmt::Result {
         let indent_str = nl_indent(depth);
         // FIXME: check for error
-        print!("{}pub static ref {const_name}: {schema_type}<'_> = {schema_name}::new(", indent_str);
+        let _ = write!(self.output, "{}pub static ref {const_name}: {schema_type}<'_> = {schema_name}::new(", indent_str);
 
         let indent_str = nl_indent(depth + 1);
         for name in [const_name, schema_type, schema_name] {
         // FIXME: check for error
-            print!("{}\"{}\",", indent_str, name);
+            let _ = write!(self.output, "{}\"{}\",", indent_str, name);
         }
 
         Ok(())
@@ -136,11 +139,11 @@ impl<'a> ParseSchema<'a> {
 
     fn back_matter_display(&mut self, depth: usize) -> fmt::Result {
         // FIXME: check for error
-        print!("{});", nl_indent(depth));
-        print!("{}}}", nl_indent(depth - 1));
+        let _ = write!(self.output, "{});", nl_indent(depth));
+        let _ = write!(self.output, "{}}}", nl_indent(depth - 1));
+        let _ = write!(self.output, "\n");
+        let _ = writeln!(self.output, "<!-- back matter display");
         Ok(())
-    // FIXME: is this needed?
-    // write!(f, "\n")
     }
 }
 
@@ -148,88 +151,6 @@ impl<'a> ParseXml<'a> for ParseSchema<'a> {
     type LI = SchemaLevelInfo;
     type AC = SchemaAccumulator;
 }
-
-/*
-pub struct ParseSchemaPrint {
-}
-
-impl fmt::Display for ParseSchema<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let depth = 0;
-        front_matter_display(f, depth)?;
-
-        let indent_str = nl_indent(depth);
-        write!(f, "{}lazy_static! {{", indent_str)?;
-
-        static_parse_schema_display(f, depth + 1, self.const_name, self.schema_type, self.schema_name)?;
-
-unimplemented!();
-//        print_walk(f, depth + 2, &self.xml_document)?;
-
-//        back_matter_display(f, 1)?;
-//        Ok(())
-    }
-}
-
-impl fmt::Debug for ParseSchema<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f, "inner \"{}\" (\"{}\")", self.const_name, self.schema_name)
-//        writeln!(f, "inner \"{}\" (\"{}\")", self.const_name, self.schema_name)?;
-//        writeln!(f, "xml_document {:?}", self.xml_document)
-    }
-}
-
-fn front_matter_display(f: &mut fmt::Formatter, depth: usize) -> fmt::Result {
-    let front_matter: Vec::<&str> = vec!(
-        "// FIXME: insert banner",
-        "// Auto-generated file",
-        "use lazy_static::lazy_static;", 
-        "use std::collections::BTreeMap;",
-        "", 
-        "use xml::common::XmlVersion;",
-        "use xml::name::OwnedName;",
-        "use xml::namespace::Namespace;",
-        "",
-        "use crate::xml_document::TreeElement;", 
-        "use crate::parse_tree::{DocumentInfo, ElementInfo};",
-        "use crate::parse_schema::ParseSchema;", 
-        "use crate::XmlTree;",
-        "", 
-    );
-
-    write_banner_file(f)?;
-
-    let indent_str = nl_indent(depth);
-
-    for front in front_matter {
-        write!(f, "{}{}", indent_str, front)?;
-    }
-
-    Ok(())
-}
-
-fn static_parse_schema_display(f: &mut fmt::Formatter, depth: usize, const_name: &str, schema_type: &str, schema_name: &str) -> fmt::Result {
-    let indent_str = nl_indent(depth);
-    write!(f, "{}pub static ref {const_name}: {schema_type}<'_> = {schema_type}::new(", indent_str)?;
-
-    let indent_str = nl_indent(depth + 1);
-    for name in [const_name, schema_type, schema_name] {
-        write!(f, "{}\"{}\",", indent_str, name)?;
-    }
-
-    Ok(())
-}
-*/
-
-/*
-fn back_matter_display(f: &mut fmt::Formatter, depth: usize) -> fmt::Result {
-    write!(f, "{});", nl_indent(depth))?;
-    write!(f, "{}}}", nl_indent(depth - 1))
-// FIXME: is this needed?
-// write!(f, "\n")
-}
-
-*/
 
 impl<'a> Try for ParseSchema<'a> 
 {
@@ -284,10 +205,13 @@ pub struct SchemaAccumulator {
 }
 
 impl SchemaAccumulator {
-    pub fn new(element_info: ElementInfo, depth: usize, _parse_xml: &mut ParseSchema<'_>) -> Self {
+    pub fn new(element_info: ElementInfo, depth: usize, parse_schema: &mut ParseSchema<'_>) -> Self {
         let ei = element_info.clone();
         let element = SchemaElement::new(ei, depth, vec![], vec![], vec![], vec![]);
-        print!("{}", element);
+        // FIXME: check for errors
+        let _ = element.display_start(parse_schema.output, depth);
+//        parse_schema.display_start(depth);
+//        write!(parse_schema.output, "{}", element);
 
         SchemaAccumulator {
             element,
@@ -318,17 +242,17 @@ impl Accumulator for SchemaAccumulator {
         // We don't need to do anything with the () value
     }
     
-    fn end_subelement(&mut self, _parse_schema: &mut ParseSchema<'_>) {
+    fn end_subelement(&mut self, parse_schema: &mut ParseSchema<'_>) {
         // FIXME: what's this for?
         if let Some(_name) = &self.current_subelement_name {
         }
         self.current_subelement_name = None;
-        print!(",");
+        let _ = write!(parse_schema.output, ",");
     }
     
-    fn finish(self, _parse_schema: &mut ParseSchema<'_>) -> Self::Value {
+    fn finish(self, parse_schema: &mut ParseSchema<'_>) -> Self::Value {
         // FIXME: return error
-        let _ = self.element.display_end(self.depth);
+        let _ = self.element.display_end(parse_schema.output, self.depth);
     }
     
     fn has_open_subelement(&self) -> bool {
@@ -377,12 +301,13 @@ impl SchemaElement {
         }
     }
 
-    fn display_start(&self, f: &mut fmt::Formatter::<'_>, depth: usize) -> fmt::Result {
+    fn display_start(&self, output: &mut dyn Write, depth: usize) -> fmt::Result {
+        let _ = writeln!(output, "<!-- in display start -->");
         let depth0 = TREE_DEPTH + 3 * depth;
         let depth1 = depth0 + 1;
 
         // FIXME: return error code
-        let _ = write!(f, "{}vec!(Box::new(SchemaElement::new(",
+        let _ = write!(output, "{}vec!(Box::new(SchemaElement::new(",
             nl_indent(depth0));
 
         let owned_name = OwnedName {
@@ -390,31 +315,35 @@ impl SchemaElement {
             namespace:  None,
             prefix:     None,
         };
-        owned_name_display(f, depth1, &owned_name)?;
+        owned_name_display(output, depth1, &owned_name)?;
 
         let element_info = ElementInfo {
             parse_loc:     ParseLoc::new("".to_string(), 0),
             owned_name: owned_name,
         };
-        element_info_display(f, depth1, &element_info)?;
-        write!(f, "{}", nl_indent(depth1))?;
-        vec_display::<XmlEvent>(f, depth1, &self.before_element)?;
-        write!(f, ", ")?;
-        vec_display::<XmlEvent>(f, depth1, &self.content)?;
-        write!(f, ", ")?;
-        vec_display::<XmlEvent>(f, depth1, &self.after_element)?;
-        write!(f, ",")?;
-        write!(f, "{}vec!(", nl_indent(depth1 + 1))
+        // FIXME: check for errors
+        let _ = element_info_display(output, depth1, &element_info);
+        let _ = write!(output, "{}", nl_indent(depth1));
+        let _ = vec_display::<XmlEvent>(output, depth1, &self.before_element);
+        let _ = write!(output, ", ");
+        let _ = vec_display::<XmlEvent>(output, depth1, &self.content);
+        let _ = write!(output, ", ");
+        let _ = vec_display::<XmlEvent>(output, depth1, &self.after_element);
+        let _ = write!(output, ",");
+        let _ = write!(output, "{}vec!(", nl_indent(depth1 + 1));
+        Ok(())
     }
 
-    fn display_end(&self, depth: usize) -> fmt::Result {
+    fn display_end(&self, output: &mut dyn Write, depth: usize) -> fmt::Result {
+        let _ = println!("<!-- in display_end -->");
         let depth0 = TREE_DEPTH + 3 * depth;
         let depth1 = depth0 + 1;
         let depth2 = depth1 + 2;
 
-        print!("{})", nl_indent(depth2));
-        print!("{})", nl_indent(depth1));
-        print!("{})", nl_indent(depth0));
+        // FIXME: check for errors
+        let _ = write!(output, "{})", nl_indent(depth2));
+        let _ = write!(output, "{})", nl_indent(depth1));
+        let _ = write!(output, "{})", nl_indent(depth0));
             // FIXME: return error
         Ok(())
     }
@@ -440,9 +369,10 @@ impl Default for SchemaElement {
     }
 }
 
+/*
 impl fmt::Display for SchemaElement {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.display(f, self.depth)
+        self.display(self.depth)
     }
 }
 
@@ -451,25 +381,33 @@ impl fmt::Debug for SchemaElement {
         self.debug(f, self.depth)
     }
 }
+*/
 
 impl Element for SchemaElement {
-    fn display(&self, f: &mut fmt::Formatter<'_>, depth: usize) -> fmt::Result {
-        self.display_start(f, depth)
+/*
+    fn display(&self, depth: usize) -> fmt::Result {
+        let _ = writeln!(self.output, "<-- In Element for SchemaElement -->");
+        let _ = self.display_start(depth);
+        let _ = writeln!(self.output, "<-- In Element for SchemaElement, calling display_end -->");
+        self.display_end(depth)
     }
 
     fn debug(&self, f: &mut fmt::Formatter<'_>, depth: usize) -> fmt::Result {
         self.display(f, depth)
     }
+*/
 
     /**
      * Find a subelement (one level deeper) with the given name
      */
     fn get(&self, name: &str) -> Option<&dyn Element> {
+/*
 println!("get: looking for {} in {}", name, self.name());
 println!("...");
 for x in self.subelements() {
     println!(" {}", x);
 }
+*/
         self.subelements()
             .iter()
             .find(|&x| {
@@ -508,10 +446,13 @@ for x in self.subelements() {
     }
 }
 
+/*
 impl XmlDisplay for SchemaElement {
-    fn print(&self, f: &mut fmt::Formatter<'_>, depth: usize) -> fmt::Result {
+    fn print(&self, output: &mut dyn Write, depth: usize) -> fmt::Result {
+        // FIXME: check for errors
+        let _ = writeln!(output, "<!-- in XmlDisplay for SchemaElement start -->");
 
-        write!(f, "{}Box::new(SchemaElement::new(", nl_indent(depth))
+        let _ = write!(output, "{}Box::new(SchemaElement::new(", nl_indent(depth))
             .expect("Unable to write Box::new");
 
         let element_info = ElementInfo {
@@ -523,10 +464,12 @@ impl XmlDisplay for SchemaElement {
             },
         };
 
-        owned_name_display(f, depth + 1, &element_info.owned_name)?;
-        element_info_display(f, depth + 1, &element_info)?;
-        write!(f, "{}vec!(), vec!(), vec!(),", nl_indent(depth + 1))?;
+        let _ = owned_name_display(output, depth + 1, &element_info.owned_name);
+        let _ = element_info_display(output, depth + 1, &element_info);
+        let _ = write!(output, "{}vec!(), vec!(), vec!(),", nl_indent(depth + 1));
 
-        write!(f, "{}vec!(", nl_indent(depth + 1))
+        let _ = write!(output, "{}vec!(", nl_indent(depth + 1));
+        Ok(())
     }
 }
+*/

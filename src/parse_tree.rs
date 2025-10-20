@@ -9,7 +9,7 @@ use xml::name::OwnedName;
 use xml::reader::XmlEvent;
 
 use crate::element::{element_info_display, Element, ElementInfo};
-use crate::misc::{nl_indent, owned_name_display, vec_display, XmlDisplay};
+use crate::misc::{nl_indent, owned_name_display, vec_display/*, XmlDisplay*/};
 use crate::parse_item::ParseLoc;
 pub use crate::xml_document_error::XmlDocumentError;
 use crate::parse_xml::{Accumulator, LevelInfo, ParseXml};
@@ -297,6 +297,7 @@ for x in self.subelements() {
     }
 }
 
+/*
 impl XmlDisplay for TreeElement {
     fn print(&self, f: &mut fmt::Formatter<'_>, depth: usize) -> fmt::Result {
 
@@ -319,3 +320,4 @@ impl XmlDisplay for TreeElement {
         write!(f, "{}vec!(", nl_indent(depth + 1))
     }
 }
+*/

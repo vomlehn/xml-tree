@@ -295,7 +295,7 @@ mod tests {
 
     use crate::banner::print_banner_file;
     use crate::element::{Element, ElementInfo, element_info_display};
-    use crate::misc::{nl_indent, owned_name_display, vec_display, XmlDisplay};
+    use crate::misc::{nl_indent, owned_name_display, vec_display/*, XmlDisplay*/};
     use crate::parse_item::ParseLoc;
     pub use crate::xml_document_error::XmlDocumentError;
     use crate::parse_xml::{Accumulator, LevelInfo, ParseXml};
@@ -822,6 +822,7 @@ mod tests {
         }
     }
 
+/*
     impl XmlDisplay for TestElement {
         fn print(&self, f: &mut fmt::Formatter<'_>, depth: usize) -> fmt::Result {
 
@@ -844,4 +845,5 @@ mod tests {
             write!(f, "{}vec!(", nl_indent(depth + 1))
         }
     }
+*/
 }

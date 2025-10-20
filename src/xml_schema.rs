@@ -37,11 +37,13 @@ impl<'a> XmlSchema<'a> {
     }
 }
 
+/*
 impl<'a> XmlDisplay for XmlSchema<'a> {
     fn print(&self, f: &mut fmt::Formatter, depth: usize) -> fmt::Result {
         write!(f, "{}{}", nl_indent(depth), self.inner)
     }
 }
+*/
 
 pub struct XmlSchemaPrint {
 }
@@ -98,11 +100,13 @@ impl fmt::Debug for XmlSchemaInner<'_> {
     }
 }
 
+/*
 impl XmlDisplay for XmlSchemaInner<'_> {
     fn print(&self, f: &mut fmt::Formatter, depth: usize) -> fmt::Result {
         write!(f, "{}{}", nl_indent(depth), self)
     }
 }
+*/
 
 fn front_matter_display(f: &mut fmt::Formatter, depth: usize) -> fmt::Result {
     let front_matter: Vec::<&str> = vec!(

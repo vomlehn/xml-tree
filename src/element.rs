@@ -5,6 +5,7 @@
 use dyn_clone::DynClone;
 //use std::convert::Infallible;
 use std::fmt;
+use std::io::Write;
 //use std::ops::{FromResidual, Try};
 use xml::attribute::OwnedAttribute;
 use xml::name::OwnedName;
@@ -28,8 +29,8 @@ use crate::parse_item::ParseLoc;
  * subelements_mut: Like subelements but returns a mutable value
  */
 pub trait Element: DynClone {
-    fn display(&self, f: &mut fmt::Formatter<'_>, depth: usize) -> fmt::Result;
-    fn debug(&self, f: &mut fmt::Formatter<'_>, depth: usize) -> fmt::Result;
+//    fn display(&self, depth: usize) -> fmt::Result;
+//    fn debug(&self, f: &mut fmt::Formatter<'_>, depth: usize) -> fmt::Result;
     fn get(&self, name: &str) -> Option<&dyn Element>;
     fn name(&self) -> &str;
     // This is actually available in XmlEvent. Use that.
@@ -58,23 +59,27 @@ impl ElementInfo {
     }
 }
 
-pub fn element_info_display(f: &mut fmt::Formatter<'_>, depth: usize, element_info: &ElementInfo) -> fmt::Result {
-    write!(f, "{}ElementInfo::new({}, vec!(),", nl_indent(depth), element_info.parse_loc)?;
-    write!(f, "{}Namespace(BTreeMap::<String, String>::new())),", nl_indent(depth + 1))
+pub fn element_info_display(output: &mut dyn Write, depth: usize, element_info: &ElementInfo) -> fmt::Result {
+    // FIXME: return error
+    let _ = write!(output, "{}ElementInfo::new({}, vec!(),", nl_indent(depth), element_info.parse_loc);
+    let _ = write!(output, "{}Namespace(BTreeMap::<String, String>::new())),", nl_indent(depth + 1));
+    Ok(())
 }
 
 dyn_clone::clone_trait_object!(Element);
 
+/*
 /* Check all Display impls to ensure status is passed back properly */
 impl fmt::Display for Box<dyn Element> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.display(f, 0)
+//        self.display(0)
     }
 }
 
 impl fmt::Debug for Box<dyn Element> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 // FIXME: do better
-        self.display(f, 0)
+        self.display(0)
     }
 }
+*/

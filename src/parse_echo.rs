@@ -204,7 +204,7 @@ mod tests {
     use xml::reader::XmlEvent;
 
     use crate::{DocumentInfo, Element, ElementInfo,
-        nl_indent, owned_name_display, ParseLoc, XmlDisplay};
+        nl_indent, owned_name_display, ParseLoc/*, XmlDisplay*/};
     use crate::misc::vec_display;
     use crate::element::element_info_display;
 
@@ -417,6 +417,7 @@ for x in self.subelements() {
     }
 }
 
+/*
 impl XmlDisplay for EchoElement {
     fn print(&self, f: &mut fmt::Formatter<'_>, depth: usize) -> fmt::Result {
 
@@ -439,4 +440,5 @@ impl XmlDisplay for EchoElement {
         write!(f, "{}vec!(", nl_indent(depth + 1))
     }
 }
+*/
 }
