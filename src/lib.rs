@@ -8,7 +8,7 @@ pub mod xml_schema;
 pub mod banner;
 pub mod document;
 pub mod element;
-mod misc;
+pub mod misc;
 pub mod multiterator; // FIXME: toss this
 pub mod parse_xml;
 pub mod parse_echo;

@@ -32,6 +32,7 @@ pub fn indent(n: usize) -> String {
 // FIXME: uses of this need to be cleaned up and consolidated
 pub fn vec_display<T: fmt::Debug>(output: &mut dyn Write, depth: usize, vec: &Vec<T>) -> fmt::Result
 {
+//let _ = write!(output, "Z+");
     // FIXME: check for errors
     if vec.is_empty() {
         let _ = write!(output, "vec!()");
@@ -40,11 +41,13 @@ pub fn vec_display<T: fmt::Debug>(output: &mut dyn Write, depth: usize, vec: &Ve
         for elem in vec {
 //            let e: String = format!("{}{}", indent(depth), elem);
 //                elem.print(output, depth);
+            // FIXME: switch to non-Debug format
             let e = format_args!("{:?}", elem);
             let _ = writeln!(output, "{}{}", indent(depth), e);
         }
         let _ = write!(output, "{})", nl_indent(depth));
     }
+//    let _ = write!(output, "Z-");
 
     Ok(())
 }
