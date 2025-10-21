@@ -24,7 +24,6 @@ const TREE_DEPTH: usize = 2;
 pub struct ParseSchema<'a> {
     pub document_info:  DocumentInfo,
     pub root:           Box<dyn Element>,
-//    pub output:         &'a mut String,
     pub output:         &'a mut dyn Write
 }
 
@@ -50,11 +49,14 @@ impl<'a> ParseSchema<'a> {
         element_level_info: &<ParseSchema<'a> as ParseXml<'a>>::LI,
     ) -> Result<(DocumentInfo, <<<ParseSchema<'_> as ParseXml<'_>>::LI as LevelInfo<'_>>::AccumulatorType as Accumulator>::Value), XmlDocumentError>
     {
-        let _ = writeln!(self.output, "<-- In parse_path -->");
         // FIXME: check for error
+//        let _ = writeln!(self.output, "<!-- in parse_path -->");
         let _ = self.display_start(&params);
+//println!("calling parse_path_base");
         let res = self.parse_path_base(path, element_level_info)?;
+//println!("calling display_end");
         self.display_end();
+//        let _ = writeln!(self.output, "<!-- exiting parse_path -->");
         Ok(res)
     }
 
@@ -67,7 +69,7 @@ impl<'a> ParseSchema<'a> {
     where
         R: Read,
     {
-        println!("<-- In parse -->");
+//        println!("<-- In parse -->");
         // FIXME: check for error
         let _ = self.display_start(&params);
         let res = self.parse_base(buf_reader, element_level_info)?;
@@ -302,7 +304,7 @@ impl SchemaElement {
     }
 
     fn display_start(&self, output: &mut dyn Write, depth: usize) -> fmt::Result {
-        let _ = writeln!(output, "<!-- in display start -->");
+//        let _ = writeln!(output, "<!-- in display start -->");
         let depth0 = TREE_DEPTH + 3 * depth;
         let depth1 = depth0 + 1;
 
@@ -331,11 +333,12 @@ impl SchemaElement {
         let _ = vec_display::<XmlEvent>(output, depth1, &self.after_element);
         let _ = write!(output, ",");
         let _ = write!(output, "{}vec!(", nl_indent(depth1 + 1));
+//        let _ = writeln!(output, "<!-- display start -->");
         Ok(())
     }
 
     fn display_end(&self, output: &mut dyn Write, depth: usize) -> fmt::Result {
-        let _ = println!("<!-- in display_end -->");
+//        let _ = println!("<!-- in display_end -->");
         let depth0 = TREE_DEPTH + 3 * depth;
         let depth1 = depth0 + 1;
         let depth2 = depth1 + 2;
@@ -347,6 +350,15 @@ impl SchemaElement {
             // FIXME: return error
         Ok(())
     }
+    
+/*
+    fn display(&self, depth: usize) -> fmt::Result {
+        let _ = writeln!(self.output, "<-- In Element for SchemaElement -->");
+        let _ = self.display_start(depth);
+        let _ = writeln!(self.output, "<-- In Element for SchemaElement, calling display_end -->");
+        self.display_end(depth)
+    }
+*/
 }
 
 impl Default for SchemaElement {
@@ -385,13 +397,6 @@ impl fmt::Debug for SchemaElement {
 
 impl Element for SchemaElement {
 /*
-    fn display(&self, depth: usize) -> fmt::Result {
-        let _ = writeln!(self.output, "<-- In Element for SchemaElement -->");
-        let _ = self.display_start(depth);
-        let _ = writeln!(self.output, "<-- In Element for SchemaElement, calling display_end -->");
-        self.display_end(depth)
-    }
-
     fn debug(&self, f: &mut fmt::Formatter<'_>, depth: usize) -> fmt::Result {
         self.display(f, depth)
     }

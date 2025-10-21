@@ -50,6 +50,7 @@ impl fmt::Debug for ParseLoc {
  * parse_loc:   Location of the start of this element
  * event:       XmlEvent returned by the XML low level parse_item
  */
+// FIXME: shouldn't this be in ParseTree?
 #[derive(Clone, Debug)]
 pub struct TreeElement {
     pub parse_loc:  ParseLoc,

@@ -33,9 +33,9 @@ where
         &'r mut self,
         path: &'b str,
         element_level_info: &Self::LI,
-//    ) -> Result<(DocumentInfo, <<Self::LI as LevelInfo<'a>>::AccumulatorType<'r> as Accumulator>::Value), XmlDocumentError>
     ) -> Result<(DocumentInfo, <<Self::LI as LevelInfo<'a>>::AccumulatorType as Accumulator>::Value), XmlDocumentError>
     {
+//println!("In parse_path_base");
         let file = match File::open(path) {
             Err(e) => {
                 panic!("FIXME: unable to open {}: {}", path, e);
@@ -43,7 +43,9 @@ where
             Ok(f) => f,
         };
         let reader = BufReader::new(file);
-        self.parse_base::<File>(reader, element_level_info)
+        let x = self.parse_base::<File>(reader, element_level_info);
+//println!("Exit parse_path_base: {}", x.is_ok());
+        x
     }
 
     /**
@@ -58,9 +60,12 @@ where
     where
         R: Read,
     {
+//println!("In parse_base");
         // Create the factory using the reader and XML definition
         let mut parse_item = Parser::new(buf_reader);
-        self.parse_document(&mut parse_item, &element_level_info)
+        let x = self.parse_document(&mut parse_item, &element_level_info);
+//println!("Exit parse_base: {:?}", x.as_ref().err());
+        x
     }
 
     fn _display_piece(&self, f: &mut fmt::Formatter<'_>, pieces: &Vec<XmlEvent>) -> fmt::Result {
