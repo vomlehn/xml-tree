@@ -14,7 +14,7 @@ pub use crate::xml_document_error::XmlDocumentError;
 use crate::parse_xml::{Accumulator, LevelInfo, ParseXml};
 use crate::document::DocumentInfo;
 
-const TREE_DEPTH: usize = 3;
+//const TREE_DEPTH: usize = 3;
 
 pub struct ParseEchoParams {
 }

@@ -7,7 +7,7 @@
 
 use std::fmt;
 use std::fs::File;
-use std::io::{BufReader, Read, Write};
+use std::io::{BufReader, Read};
 use xml::reader::XmlEvent;
 
 use crate::document::DocumentInfo;
