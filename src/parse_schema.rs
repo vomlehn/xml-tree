@@ -4,21 +4,21 @@
 use std::fmt;
 use std::io::{BufReader, Read, Write};
 use std::ops::{ControlFlow, FromResidual, Try};
-use xml::attribute::OwnedAttribute;
-use xml::name::OwnedName;
+//use xml::attribute::OwnedAttribute;
+//use xml::name::OwnedName;
 use xml::reader::XmlEvent;
 
 use crate::banner::write_banner_file;
-use crate::element::{Element, ElementInfo, display_element_info, display_element_start,
+use crate::element::{Element, ElementInfo,/*, display_element_info,*/ display_element_start,
     display_element_end};
-use crate::misc::{nl_indent, vec_display/*, XmlDisplay*/};
+use crate::misc::{nl_indent, /*vec_display, XmlDisplay*/};
 use crate::ParseLoc;
 pub use crate::xml_document_error::XmlDocumentError;
 use crate::parse_xml::{Accumulator, LevelInfo, ParseXml};
-use crate::element::display_owned_name;
+//use crate::element::display_owned_name;
 use crate::document::DocumentInfo;
 
-const TREE_DEPTH: usize = 2;
+//const TREE_DEPTH: usize = 2;
 
 /*
  * Parse an input stream of XSD code and generate Rust code. That code is

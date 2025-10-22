@@ -131,7 +131,8 @@ pub fn display_element_start(element: &SchemaElement, output: &mut dyn Write,
     Ok(())
 }
 
-pub fn display_element_end(element: &SchemaElement, output: &mut dyn Write,
+// FIXME: remove _element
+pub fn display_element_end(_element: &SchemaElement, output: &mut dyn Write,
     depth: usize) -> fmt::Result {
     let depth0 = TREE_DEPTH + 3 * depth;
     let depth1 = depth0 + 1;

@@ -4,7 +4,6 @@
 
 use std::fmt;
 use std::io::Write;
-use xml::name::OwnedName;
 
 const INDENT: &str = "    ";
 
