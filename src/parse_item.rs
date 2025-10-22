@@ -2,6 +2,7 @@
  * A layer built on top of Xml::EventReader to provide look-ahead and line
  * numbers.
  */
+// FIXME: should probably rename TreeElement to something like BaseElement.
 
 use std::fmt;
 use std::io::Read;
@@ -98,7 +99,7 @@ pub struct Parser<R: Read> {
 impl<R: Read> Parser<R> {
     pub fn new(reader: R) -> Self {
         let line_reader = LinenoReader::new(reader);
-        let parse_loc = ParseLoc::new("".to_string(), line_reader.lineno);
+        let parse_loc = ParseLoc::new("TBD".to_string(), line_reader.lineno);
         let event_reader = EventReader::new(line_reader);
 
         Parser {

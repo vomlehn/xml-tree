@@ -204,7 +204,7 @@ pub fn create_test_doc() -> XmlTree {
     let ns: Namespace = Namespace(BTreeMap::<String, String>::new());
 
     let ei: ElementInfo = ElementInfo {
-        parse_loc: ParseLoc::new("", 1),
+        parse_loc: ParseLoc::new("TBD", 1),
         attributes: Vec::<OwnedAttribute>::new(),
         namespace: ns,
     };

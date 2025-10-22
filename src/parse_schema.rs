@@ -4,6 +4,7 @@
 use std::fmt;
 use std::io::{BufReader, Read, Write};
 use std::ops::{ControlFlow, FromResidual, Try};
+use xml::attribute::OwnedAttribute;
 use xml::name::OwnedName;
 use xml::reader::XmlEvent;
 
@@ -77,6 +78,7 @@ impl<'a> ParseSchema<'a> {
         Ok(res)
     }
 
+    // FIXME: move at least some of the following printing things to element
     fn display_schema_start(&mut self, params: &ParseSchemaParams) -> fmt::Result {
         let depth = 0;
         self.front_matter_display(depth)?;
@@ -156,7 +158,6 @@ impl<'a> ParseXml<'a> for ParseSchema<'a> {
 
 impl<'a> Try for ParseSchema<'a> 
 {
-//    type Output<'b> = <<ParseSchema<'b> as ParseXml<'a>>::AC as Accumulator>::Value;
     type Output = <<ParseSchema<'a> as ParseXml<'a>>::AC as Accumulator>::Value;
     type Residual = XmlDocumentError;
     fn from_output(_: <Self as Try>::Output) -> Self
@@ -303,6 +304,7 @@ impl SchemaElement {
         }
     }
 
+    // FIXME: move at least some of the following printing things to element
     /*
      * Print the first part of the SchemaElement
      * self:    self
@@ -326,13 +328,24 @@ impl SchemaElement {
         };
         owned_name_display(output, depth1, &owned_name)?;
 
+        let attr_owned_name = OwnedName {
+            local_name: "attr1".to_string(),
+            namespace:  None,
+            prefix:     None,
+        };
+        let owned_attribute = OwnedAttribute{
+            name:   attr_owned_name,
+            value:  "value".to_string(),
+        };
         let element_info = ElementInfo {
-            parse_loc:     ParseLoc::new("".to_string(), 0),
+            parse_loc:  ParseLoc::new("TBD".to_string(), 0),
             owned_name: owned_name,
+            attributes: vec!(owned_attribute),
         };
         // FIXME: check for errors
         let _ = element_info_display(output, depth1, &element_info);
         let _ = write!(output, "{}", nl_indent(depth1));
+
         let _ = vec_display::<XmlEvent>(output, depth1, &self.before_element);
         let _ = write!(output, ", ");
         let _ = vec_display::<XmlEvent>(output, depth1, &self.content);
@@ -368,6 +381,7 @@ impl SchemaElement {
 */
 }
 
+/*
 impl Default for SchemaElement {
     fn default() -> SchemaElement {
         SchemaElement {
@@ -377,7 +391,7 @@ impl Default for SchemaElement {
                     namespace:  None,
                     prefix:     None
                 },
-                parse_loc:     ParseLoc::new("".to_string(), 0),
+                parse_loc:     ParseLoc::new("TBD".to_string(), 0),
             },
             depth: 0,
             subelements: vec!(),
@@ -387,6 +401,7 @@ impl Default for SchemaElement {
         }
     }
 }
+*/
 
 /*
 impl fmt::Display for SchemaElement {
@@ -468,7 +483,7 @@ impl XmlDisplay for SchemaElement {
             .expect("Unable to write Box::new");
 
         let element_info = ElementInfo {
-            parse_loc: ParseLoc::new("".to_string(), 0),
+            parse_loc: ParseLoc::new("TBD".to_string(), 0),
             owned_name: OwnedName {
                         local_name: self.name().to_string(),
                         namespace:  None,

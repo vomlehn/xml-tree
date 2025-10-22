@@ -13,7 +13,7 @@ use xml::namespace::Namespace;
 
 // FIXME: split into walk and parse sets of errors
 //use crate::xml_document_error::XmlDocumentError;
-use crate::misc::nl_indent;
+use crate::misc::{nl_indent, vec_display};
 use crate::parse_item::ParseLoc;
 
 /*
@@ -42,27 +42,32 @@ pub trait Element: DynClone {
 #[derive(Clone, Debug)]
 pub struct ElementInfo {
     pub owned_name: OwnedName,
-    pub parse_loc:     ParseLoc,
+    pub parse_loc:  ParseLoc,
+    pub attributes: Vec<OwnedAttribute>,
 }
 
 impl ElementInfo {
     pub fn new(
         owned_name:     OwnedName,
         parse_loc:      ParseLoc,
-        _attributes:    Vec<OwnedAttribute>,
+        attributes:     Vec<OwnedAttribute>,
         _namespace:     Namespace,
     ) -> ElementInfo {
         ElementInfo {
             owned_name,
             parse_loc,
+            attributes,
         }
     }
 }
 
 pub fn element_info_display(output: &mut dyn Write, depth: usize, element_info: &ElementInfo) -> fmt::Result {
     // FIXME: return error
-    let _ = write!(output, "{}ElementInfo::new({}, vec!(),", nl_indent(depth), element_info.parse_loc);
-    let _ = write!(output, "{}Namespace(BTreeMap::<String, String>::new())),", nl_indent(depth + 1));
+    let _ = write!(output, "{}ElementInfo::new({}, vec!(),", nl_indent(depth),
+        element_info.parse_loc);
+    let _ = vec_display::<OwnedAttribute>(output, depth, &element_info.attributes);
+    let _ = write!(output, "{}Namespace(BTreeMap::<String, String>::new())),",
+        nl_indent(depth + 1));
     Ok(())
 }
 

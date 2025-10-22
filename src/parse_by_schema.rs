@@ -387,7 +387,7 @@ impl SchemaElement {
         owned_name_display(f, depth1, &owned_name)?;
 
         let element_info = ElementInfo {
-            parse_loc:     ParseLoc::new("", 0),
+            parse_loc:     ParseLoc::new("TBD", 0),
             owned_name: owned_name,
         };
         element_info_display(f, depth1, &element_info)?;
@@ -423,7 +423,7 @@ impl Default for SchemaElement {
                     namespace:  None,
                     prefix:     None
                 },
-                parse_loc:     ParseLoc::new("", 0),
+                parse_loc:     ParseLoc::new("TBD", 0),
             },
             depth: 0,
             subelements: vec!(),
@@ -508,7 +508,7 @@ impl XmlDisplay for SchemaElement {
             .expect("Unable to write Box::new");
 
         let element_info = ElementInfo {
-            parse_loc: ParseLoc::new("", 0),
+            parse_loc: ParseLoc::new("TBD", 0),
             owned_name: OwnedName {
                         local_name: self.name().to_string(),
                         namespace:  None,

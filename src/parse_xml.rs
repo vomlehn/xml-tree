@@ -7,7 +7,7 @@
 
 use std::fmt;
 use std::fs::File;
-use std::io::{BufReader, Read};
+use std::io::{BufReader, Read, Write};
 use xml::reader::XmlEvent;
 
 use crate::document::DocumentInfo;
@@ -291,7 +291,7 @@ pub trait Accumulator {
 #[cfg(test)]
 mod tests {
     use std::fmt;
-    use std::io::{BufReader, Cursor, Read};
+    use std::io::{BufReader, Cursor, Read, Write};
     use std::ops::{ControlFlow, FromResidual, Try};
     use xml::common::XmlVersion;
     use xml::name::OwnedName;
@@ -428,15 +428,15 @@ mod tests {
         };
         let namespace = Namespace::empty();
         let element_info = ElementInfo::new(owned_name,
-            ParseLoc::new("".to_string(), 0), vec!(), namespace);
+            ParseLoc::new("TBD".to_string(), 0), vec!(), namespace);
         // FIXME: remove depth?
-        let element = TestElement::new(element_info, 0, vec!(), vec!(), vec!(), vec!());
+        let element = TestElement::new(element_info,/* 0, */vec!(), vec!(), vec!(), vec!());
         let root: Box<dyn Element> = Box::new(element);
         let xtce_level_info = TestLevelInfo::new(&root);
 
         let document_info = DocumentInfo::new(XmlVersion::Version10,
             "encoding".to_string(), None);
-        let mut output = String::new();
+        let mut output = Vec::<u8>::new();
 
         let mut parse_schema = ParseTest::new(document_info, root, &mut output);
         // FIXME: Handle returned error
@@ -451,17 +451,19 @@ mod tests {
      * Parse an input stream of XSD code and generate Rust code. That code is
      * then used to guide the parsing of XML code. The XSD is actually XML.
      */
-    pub struct ParseTest {
+    pub struct ParseTest<'a> {
 /*
         pub document_info:  DocumentInfo,
         pub root:           Box<dyn Element>,
-        pub output:         &'a mut String,
+        pub output:         &'a mut Vec<u8>,
 */
+        pub output:         &'a mut dyn Write,
     }
 
-    impl<'a> ParseTest {
-        pub fn new(_document_info: DocumentInfo, _root: Box<dyn Element>, _output: &'a mut String) -> ParseTest {
+    impl<'a> ParseTest<'_> {
+        pub fn new<T: Write>(_document_info: DocumentInfo, _root: Box<dyn Element>, output: &'a mut T) -> ParseTest<'a> {
             ParseTest {
+                output,
             }
         }
 
@@ -469,8 +471,8 @@ mod tests {
             &mut self,
             params:             &ParseTestParams,
             buf_reader:         BufReader<R>,
-            element_level_info: &<ParseTest as ParseXml<'b>>::LI,
-        ) -> Result<(DocumentInfo, <<<ParseTest as ParseXml<'b>>::LI as LevelInfo<'b>>::AccumulatorType as Accumulator>::Value), XmlDocumentError>
+            element_level_info: &<ParseTest<'b> as ParseXml<'b>>::LI,
+        ) -> Result<(DocumentInfo, <<<ParseTest<'b> as ParseXml<'b>>::LI as LevelInfo<'b>>::AccumulatorType as Accumulator>::Value), XmlDocumentError>
         where
             R: Read,
         {
@@ -536,17 +538,17 @@ mod tests {
         }
     }
 
-    impl<'a> ParseXml<'a> for ParseTest {
+    impl<'a> ParseXml<'a> for ParseTest<'a> {
         type LI = TestLevelInfo;
         type AC = TestAccumulator;
     }
 
-    impl Try for ParseTest 
-    where
-        for<'a> ParseTest: ParseXml<'a>,
+    impl<'a> Try for ParseTest<'a>
+//    where
+//        for<'a> ParseTest<'a>: ParseXml<'a>,
     {
     //    type Output<'b> = <<ParseTest as ParseXml<'a>>::AC as Accumulator>::Value;
-        type Output = <<ParseTest as ParseXml<'static>>::AC as Accumulator>::Value;
+        type Output = <<ParseTest<'a> as ParseXml<'a>>::AC as Accumulator>::Value;
         type Residual = XmlDocumentError;
 
         fn from_output(_: <Self as Try>::Output) -> Self
@@ -555,7 +557,7 @@ mod tests {
         { todo!() }
     }
 
-    impl<'a> FromResidual<XmlDocumentError> for ParseTest {
+    impl<'a> FromResidual<XmlDocumentError> for ParseTest<'_> {
         fn from_residual(_: XmlDocumentError) -> Self
         { todo!() }
     }
@@ -563,31 +565,33 @@ mod tests {
     /// LevelInfo<'_> that tracks depth for indented output
     #[derive(Debug, Clone)]
     pub struct TestLevelInfo {
-        depth: usize,
+//        depth: usize,
     }
 
     impl TestLevelInfo {
         pub fn new(_test: &Box<dyn Element>) -> Self {
-            TestLevelInfo { depth: 0 }
+            TestLevelInfo { /*depth: 0*/ }
         }
 
+/*
         pub fn depth(&self) -> usize {
             self.depth
         }
+*/
     }
 
     impl<'a> LevelInfo<'a> for TestLevelInfo {
-        type ParseXmlType = ParseTest;
+        type ParseXmlType = ParseTest<'a>;
         type AccumulatorType = TestAccumulator;
 
         fn next_level(&self) -> Self {
-            TestLevelInfo { depth: self.depth + 1 }
+            TestLevelInfo { /* depth: self.depth + 1 */ }
         }
 
         fn create_accumulator(&self, parse_xml: &mut Self::ParseXmlType, element_info: ElementInfo) ->
             Result<TestAccumulator, XmlDocumentError>
         {
-            Ok(TestAccumulator::new(element_info, self.depth, parse_xml))
+            Ok(TestAccumulator::new(element_info,/* self.depth, */parse_xml))
         }
     }
 
@@ -596,50 +600,52 @@ mod tests {
         element: TestElement,
         element_name: String,
         parse_loc: ParseLoc,
-        depth: usize,
+//        depth: usize,
         current_subelement_name: Option<String>,
     }
 
     impl TestAccumulator {
-        pub fn new(element_info: ElementInfo, depth: usize, _parse_xml: &mut ParseTest) -> Self {
+        pub fn new(element_info: ElementInfo/*, depth: usize*/, _parse_xml: &mut ParseTest) -> Self {
             let ei = element_info.clone();
-            let element = TestElement::new(ei, depth, vec![], vec![], vec![], vec![]);
-            print!("{}", element);
+            print!("{}", ei.clone().owned_name.local_name);
+            let element = TestElement::new(ei,/* depth, */vec![], vec![], vec![], vec![]);
 
             TestAccumulator {
                 element,
                 // FIXME: should use element.name()
                 element_name: element_info.owned_name.local_name.clone(),
                 parse_loc: element_info.parse_loc,
-                depth: depth,
+//                depth: depth,
                 current_subelement_name: None,
             }
         }
 
+/*
         pub fn depth(&self) -> usize {
             self.depth
         }
+*/
     }
 
     impl Accumulator for TestAccumulator {
         type Value = ();  // Test doesn't return meaningful data
-        type DocType<'a> = ParseTest;
+        type DocType<'a> = ParseTest<'a>;
 
         /*
          * Note that we have started a sublement
          */
-        fn start_subelement(&mut self, _parse_xml: &mut ParseTest, element_info: &ElementInfo) {
+        fn start_subelement(&mut self, _parse_test: &mut ParseTest, element_info: &ElementInfo) {
             // FIXME: probably needs to be fully qualified
             // FIXME: propagate to other parse_.*() code
             self.current_subelement_name = Some(element_info.owned_name.local_name.clone());
         }
         
-        fn add_subelement(&mut self, _parse_xml: &mut ParseTest, _subelement: ()) {
+        fn add_subelement(&mut self, _parse_test: &mut ParseTest, _subelement: ()) {
             // For echo, subelements have already been printed
             // We don't need to do anything with the () value
         }
         
-        fn end_subelement(&mut self, _parse_xml: &mut ParseTest) {
+        fn end_subelement(&mut self, _parse_test: &mut ParseTest) {
             // FIXME: what's this for?
             if let Some(_name) = &self.current_subelement_name {
             }
@@ -647,9 +653,9 @@ mod tests {
             print!(",");
         }
         
-        fn finish(self, _parse_xml: &mut ParseTest) -> Self::Value {
+        fn finish(self, parse_test: &mut ParseTest) -> Self::Value {
             // FIXME: return error
-            let _ = self.element.display_end(self.depth);
+            let _ = self.element.display_element_end(parse_test.output/*, self.depth*/);
         }
         
         fn has_open_subelement(&self) -> bool {
@@ -674,23 +680,23 @@ mod tests {
     #[derive(Clone)]
     pub struct TestElement {
         pub element_info:   ElementInfo,
-        pub depth:          usize,
+//        pub depth:          usize,
+        pub subelements:    Vec<Box<dyn Element>>,
         pub before_element: Vec<XmlEvent>,
         pub content:        Vec<XmlEvent>,
         pub after_element:  Vec<XmlEvent>,
-        pub subelements:    Vec<Box<dyn Element>>,
     }
 
     impl TestElement {
         pub fn new(element_info: ElementInfo,
-            depth:          usize,
+//            depth:          usize,
             before_element: Vec::<XmlEvent>,
             content: Vec::<XmlEvent>,
             after_element: Vec::<XmlEvent>,
             subelements: Vec<Box<dyn Element>>) -> TestElement {
             TestElement {
                 element_info,
-                depth,
+//                depth,
                 subelements,
                 before_element,
                 content,
@@ -698,12 +704,12 @@ mod tests {
             }
         }
 
-        fn display_start(&self, f: &mut fmt::Formatter::<'_>, depth: usize) -> fmt::Result {
+        fn display_element_start(&self, output: &mut dyn Write, depth: usize) -> fmt::Result {
             let depth0 = TREE_DEPTH + 3 * depth;
             let depth1 = depth0 + 1;
 
             // FIXME: return error code
-            let _ = write!(f, "{}vec!(Box::new(TestElement::new(",
+            let _ = write!(output, "{}vec!(Box::new(TestElement::new(",
                 nl_indent(depth0));
 
             let owned_name = OwnedName {
@@ -711,31 +717,36 @@ mod tests {
                 namespace:  None,
                 prefix:     None,
             };
-            owned_name_display(f, depth1, &owned_name)?;
+            let _ = owned_name_display(output, depth1, &owned_name);
 
             let element_info = ElementInfo {
-                parse_loc:     ParseLoc::new("".to_string(), 0),
+                parse_loc:  ParseLoc::new("TBD".to_string(), 0),
                 owned_name: owned_name,
+                attributes: vec!(),
             };
-            element_info_display(f, depth1, &element_info)?;
-            write!(f, "{}", nl_indent(depth1))?;
-            vec_display::<XmlEvent>(f, depth1, &self.before_element)?;
-            write!(f, ", ")?;
-            vec_display::<XmlEvent>(f, depth1, &self.content)?;
-            write!(f, ", ")?;
-            vec_display::<XmlEvent>(f, depth1, &self.after_element)?;
-            write!(f, ",")?;
-            write!(f, "{}vec!(", nl_indent(depth1 + 1))
+            let _ = element_info_display(output,  depth1, &element_info);
+            let _ = write!(output,  "{}", nl_indent(depth1));
+            let _ = vec_display::<XmlEvent>(output,  depth1, &self.before_element);
+            let _ = write!(output,  ", ");
+            let _ = vec_display::<XmlEvent>(output,  depth1, &self.content);
+            let _ = write!(output,  ", ");
+            let _ = vec_display::<XmlEvent>(output,  depth1, &self.after_element);
+            let _ = write!(output,  ",");
+            let _ = write!(output,  "{}vec!(", nl_indent(depth1 + 1));
+            Ok(())
         }
 
-        fn display_end(&self, depth: usize) -> fmt::Result {
+        fn display_element_end(&self, output: &mut dyn Write,/* depth: usize*/) ->
+            fmt::Result {
+// FIXME: define depth
+let depth = 0usize;
             let depth0 = TREE_DEPTH + 3 * depth;
             let depth1 = depth0 + 1;
             let depth2 = depth1 + 2;
 
-            print!("{})", nl_indent(depth2));
-            print!("{})", nl_indent(depth1));
-            print!("{})", nl_indent(depth0));
+            let _ = write!(output, "{})", nl_indent(depth2));
+            let _ = write!(output, "{})", nl_indent(depth1));
+            let _ = write!(output, "{})", nl_indent(depth0));
                 // FIXME: return error
             Ok(())
         }
@@ -750,9 +761,10 @@ mod tests {
                         namespace:  None,
                         prefix:     None
                     },
-                    parse_loc:     ParseLoc::new("".to_string(), 0),
+                    parse_loc:     ParseLoc::new("TBD".to_string(), 0),
+                    attributes: vec!(),
                 },
-                depth: 0,
+//                depth: 0,
                 subelements: vec!(),
                 before_element: vec!(),
                 content: vec!(),
@@ -761,6 +773,7 @@ mod tests {
         }
     }
 
+/*
     impl fmt::Display for TestElement {
         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
             self.display(f, self.depth)
@@ -772,8 +785,10 @@ mod tests {
             self.debug(f, self.depth)
         }
     }
+*/
 
     impl Element for TestElement {
+/*
         fn display(&self, f: &mut fmt::Formatter<'_>, depth: usize) -> fmt::Result {
             self.display_start(f, depth)
         }
@@ -781,16 +796,19 @@ mod tests {
         fn debug(&self, f: &mut fmt::Formatter<'_>, depth: usize) -> fmt::Result {
             self.display(f, depth)
         }
+*/
 
         /**
          * Find a subelement (one level deeper) with the given name
          */
         fn get(&self, name: &str) -> Option<&dyn Element> {
+/*
     println!("get: looking for {} in {}", name, self.name());
     println!("...");
     for x in self.subelements() {
         println!(" {}", x);
     }
+*/
             self.subelements()
                 .iter()
                 .find(|&x| {
@@ -835,7 +853,7 @@ mod tests {
                 .expect("Unable to write Box::new");
 
             let element_info = ElementInfo {
-                parse_loc: ParseLoc::new("".to_string(), 0),
+                parse_loc: ParseLoc::new("TBD".to_string(), 0),
                 owned_name: OwnedName {
                             local_name: self.name().to_string(),
                             namespace:  None,
