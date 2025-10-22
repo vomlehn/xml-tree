@@ -9,7 +9,7 @@ use std::ops::{ControlFlow, FromResidual, Try};
 
 use crate::{Element, ElementInfo};
 use crate::misc::nl_indent;
-use crate::parse_item::ParseLoc;
+use crate::ParseLoc;
 pub use crate::xml_document_error::XmlDocumentError;
 use crate::parse_xml::{Accumulator, LevelInfo, ParseXml};
 use crate::document::DocumentInfo;
@@ -214,6 +214,8 @@ mod tests {
     use super::{EchoLevelInfo, ParseEcho};
 
     const TREE_DEPTH: usize = 3;
+
+//    const TREE_DEPTH: usize = 3;
 
     #[test]
     fn testit() {

@@ -11,7 +11,7 @@ use xml::reader::XmlEvent;
 use crate::banner::write_banner_file;
 use crate::element::{Element, ElementInfo, element_info_display};
 use crate::misc::{nl_indent, owned_name_display, vec_display/*, XmlDisplay*/};
-use crate::parse_item::ParseLoc;
+use crate::ParseLoc;
 pub use crate::xml_document_error::XmlDocumentError;
 use crate::parse_xml::{Accumulator, LevelInfo, ParseXml};
 use crate::document::DocumentInfo;

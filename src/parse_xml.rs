@@ -12,7 +12,8 @@ use xml::reader::XmlEvent;
 
 use crate::document::DocumentInfo;
 use crate::element::{ElementInfo};
-use crate::parse_item::{ParseLoc, Parser};
+use crate::{ParseLoc};
+use crate::parser::Parser;
 pub use crate::xml_document_error::XmlDocumentError;
 
 /**
@@ -301,7 +302,7 @@ mod tests {
     use crate::banner::print_banner_file;
     use crate::element::{Element, ElementInfo, element_info_display};
     use crate::misc::{nl_indent, owned_name_display, vec_display/*, XmlDisplay*/};
-    use crate::parse_item::ParseLoc;
+    use crate::ParseLoc;
     pub use crate::xml_document_error::XmlDocumentError;
     use crate::parse_xml::{Accumulator, LevelInfo, ParseXml};
     use crate::document::DocumentInfo;
@@ -682,9 +683,9 @@ mod tests {
         pub element_info:   ElementInfo,
 //        pub depth:          usize,
         pub subelements:    Vec<Box<dyn Element>>,
-        pub before_element: Vec<XmlEvent>,
-        pub content:        Vec<XmlEvent>,
-        pub after_element:  Vec<XmlEvent>,
+//        pub before_element: Vec<XmlEvent>,
+//        pub content:        Vec<XmlEvent>,
+//        pub after_element:  Vec<XmlEvent>,
     }
 
     impl TestElement {
@@ -698,9 +699,9 @@ mod tests {
                 element_info,
 //                depth,
                 subelements,
-                before_element,
-                content,
-                after_element,
+//                before_element,
+//                content,
+//                after_element,
             }
         }
 

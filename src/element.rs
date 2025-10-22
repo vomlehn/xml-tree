@@ -14,7 +14,7 @@ use xml::namespace::Namespace;
 // FIXME: split into walk and parse sets of errors
 //use crate::xml_document_error::XmlDocumentError;
 use crate::misc::{nl_indent, vec_display};
-use crate::parse_item::ParseLoc;
+use crate::ParseLoc;
 
 /*
  * trait making TreeElement and IndirectElement work well together

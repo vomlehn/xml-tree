@@ -4,6 +4,7 @@ TEST = test_walk_tree_names
 TEST = test_full
 TEST =
 TEST = parse_xml_test
+TEST = parser_test_lookahead
 
 RUN_FILE = test/test5.xtce
 #RUN_FILE = schema/SpaceSystem-patched.xtce

@@ -3,7 +3,7 @@ use std::sync::Arc;
 use thiserror::Error;
 use xml::reader::XmlEvent;
 
-use crate::parse_item::ParseLoc;
+use crate::ParseLoc;
 
 #[derive(Clone, Debug, Error)]
 pub enum XmlDocumentError {
