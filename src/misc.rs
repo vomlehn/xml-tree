@@ -6,13 +6,6 @@ use std::fmt;
 use std::io::Write;
 use xml::name::OwnedName;
 
-pub fn owned_name_display(output: &mut dyn Write, depth: usize, owned_name: &OwnedName) -> fmt::Result {
-    // FIXME: check for errors
-    let _ = write!(output, "{}OwnedName{{local_name: \"{}\".to_string(),", nl_indent(depth), owned_name.local_name);
-    let _ = write!(output, "{}namespace: {:?}, prefix: {:?}}},", nl_indent(depth + 1), owned_name.namespace, owned_name.prefix);
-    Ok(())
-}
-
 const INDENT: &str = "    ";
 
 pub fn nl_indent(n: usize) -> String {

@@ -207,9 +207,9 @@ mod tests {
     use xml::reader::XmlEvent;
 
     use crate::{DocumentInfo, Element, ElementInfo,
-        nl_indent, owned_name_display, ParseLoc/*, XmlDisplay*/};
+        nl_indent, display_owned_name, ParseLoc/*, XmlDisplay*/};
     use crate::misc::vec_display;
-    use crate::element::element_info_display;
+    use crate::element::display_element_info;
 
     use super::{EchoLevelInfo, ParseEcho};
 
@@ -304,14 +304,14 @@ impl EchoElement {
             namespace:  None,
             prefix:     None,
         };
-        let _ = owned_name_display(output, depth1, &owned_name);
+        let _ = display_owned_name(output, depth1, &owned_name);
 
         let element_info = ElementInfo {
             parse_loc:  ParseLoc::new("TBD".to_string(), 0),
             owned_name: owned_name,
             attributes: vec!(),
         };
-        let _ = element_info_display(output, depth1, &element_info);
+        let _ = display_element_info(output, depth1, &element_info);
         let _ = write!(output, "{}", nl_indent(depth1));
         let _ = vec_display::<XmlEvent>(output, depth1, &self.before_element);
         let _ = write!(output, ", ");
@@ -449,8 +449,8 @@ impl XmlDisplay for EchoElement {
             },
         };
 
-        owned_name_display(f, depth + 1, &element_info.owned_name)?;
-        element_info_display(f, depth + 1, &element_info)?;
+        display_owned_name(f, depth + 1, &element_info.owned_name)?;
+        display_element_info(f, depth + 1, &element_info)?;
         write!(f, "{}vec!(), vec!(), vec!(),", nl_indent(depth + 1))?;
 
         write!(f, "{}vec!(", nl_indent(depth + 1))

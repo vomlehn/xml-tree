@@ -300,11 +300,12 @@ mod tests {
     use xml::reader::XmlEvent;
 
     use crate::banner::print_banner_file;
-    use crate::element::{Element, ElementInfo, element_info_display};
-    use crate::misc::{nl_indent, owned_name_display, vec_display/*, XmlDisplay*/};
+    use crate::element::{Element, ElementInfo, display_element_info};
+    use crate::misc::{nl_indent, vec_display/*, XmlDisplay*/};
     use crate::ParseLoc;
     pub use crate::xml_document_error::XmlDocumentError;
     use crate::parse_xml::{Accumulator, LevelInfo, ParseXml};
+    use crate::element::display_owned_name;
     use crate::document::DocumentInfo;
 
     const TREE_DEPTH: usize = 2;
@@ -683,9 +684,9 @@ mod tests {
         pub element_info:   ElementInfo,
 //        pub depth:          usize,
         pub subelements:    Vec<Box<dyn Element>>,
-//        pub before_element: Vec<XmlEvent>,
-//        pub content:        Vec<XmlEvent>,
-//        pub after_element:  Vec<XmlEvent>,
+        pub before_element: Vec<XmlEvent>,
+        pub content:        Vec<XmlEvent>,
+        pub after_element:  Vec<XmlEvent>,
     }
 
     impl TestElement {
@@ -699,9 +700,9 @@ mod tests {
                 element_info,
 //                depth,
                 subelements,
-//                before_element,
-//                content,
-//                after_element,
+                before_element,
+                content,
+                after_element,
             }
         }
 
@@ -718,14 +719,14 @@ mod tests {
                 namespace:  None,
                 prefix:     None,
             };
-            let _ = owned_name_display(output, depth1, &owned_name);
+            let _ = display_owned_name(output, depth1, &owned_name);
 
             let element_info = ElementInfo {
                 parse_loc:  ParseLoc::new("TBD".to_string(), 0),
                 owned_name: owned_name,
                 attributes: vec!(),
             };
-            let _ = element_info_display(output,  depth1, &element_info);
+            let _ = display_element_info(output,  depth1, &element_info);
             let _ = write!(output,  "{}", nl_indent(depth1));
             let _ = vec_display::<XmlEvent>(output,  depth1, &self.before_element);
             let _ = write!(output,  ", ");
@@ -862,8 +863,8 @@ let depth = 0usize;
                 },
             };
 
-            owned_name_display(f, depth + 1, &element_info.owned_name)?;
-            element_info_display(f, depth + 1, &element_info)?;
+            display_owned_name(f, depth + 1, &element_info.owned_name)?;
+            display_element_info(f, depth + 1, &element_info)?;
             write!(f, "{}vec!(), vec!(), vec!(),", nl_indent(depth + 1))?;
 
             write!(f, "{}vec!(", nl_indent(depth + 1))

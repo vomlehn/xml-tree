@@ -8,11 +8,12 @@ use std::ops::{ControlFlow, FromResidual, Try};
 use xml::name::OwnedName;
 use xml::reader::XmlEvent;
 
-use crate::element::{element_info_display, Element, ElementInfo};
-use crate::misc::{nl_indent, owned_name_display, vec_display/*, XmlDisplay*/};
+use crate::element::{display_element_info, Element, ElementInfo};
+use crate::misc::{nl_indent, vec_display/*, XmlDisplay*/};
 use crate::parse_item::ParseLoc;
 pub use crate::xml_document_error::XmlDocumentError;
 use crate::parse_xml::{Accumulator, LevelInfo, ParseXml};
+use crate::element::display_owned_name;
 use crate::document::DocumentInfo;
 
 pub struct ParseTree {
@@ -231,13 +232,13 @@ impl Element for TreeElement {
             namespace:  None,
             prefix:     None,
         };
-        owned_name_display(f, depth + 1, &owned_name)?;
+        display_owned_name(f, depth + 1, &owned_name)?;
 
         let element_info = ElementInfo {
             parse_loc:     ParseLoc("", 0),
             owned_name: owned_name,
         };
-        element_info_display(f, depth + 1, &element_info)?;
+        display_element_info(f, depth + 1, &element_info)?;
         write!(f, "{}", nl_indent(depth + 1))?;
         vec_display::<XmlEvent>(f, depth, &self.before_element)?;
         write!(f, ", ")?;
@@ -313,8 +314,8 @@ impl XmlDisplay for TreeElement {
             },
         };
 
-        owned_name_display(f, depth + 1, &element_info.owned_name)?;
-        element_info_display(f, depth + 1, &element_info)?;
+        display_owned_name(f, depth + 1, &element_info.owned_name)?;
+        display_element_info(f, depth + 1, &element_info)?;
         write!(f, "{}vec!(), vec!(), vec!(),", nl_indent(depth + 1))?;
 
         write!(f, "{}vec!(", nl_indent(depth + 1))

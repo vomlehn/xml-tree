@@ -9,11 +9,13 @@ use xml::name::OwnedName;
 use xml::reader::XmlEvent;
 
 use crate::banner::write_banner_file;
-use crate::element::{Element, ElementInfo, element_info_display};
-use crate::misc::{nl_indent, owned_name_display, vec_display/*, XmlDisplay*/};
+use crate::element::{Element, ElementInfo, display_element_info, display_element_start,
+    display_element_end};
+use crate::misc::{nl_indent, vec_display/*, XmlDisplay*/};
 use crate::ParseLoc;
 pub use crate::xml_document_error::XmlDocumentError;
 use crate::parse_xml::{Accumulator, LevelInfo, ParseXml};
+use crate::element::display_owned_name;
 use crate::document::DocumentInfo;
 
 const TREE_DEPTH: usize = 2;
@@ -212,9 +214,8 @@ impl SchemaAccumulator {
         let ei = element_info.clone();
         let element = SchemaElement::new(ei, depth, vec![], vec![], vec![], vec![]);
         // FIXME: check for errors
-        let _ = element.display_element_start(parse_schema.output, depth);
-//        parse_schema.display_schema_start(depth);
-//        write!(parse_schema.output, "{}", element);
+        let _ = display_element_start(&element, parse_schema.output, depth,
+            "SchemaElement".to_string());
 
         SchemaAccumulator {
             element,
@@ -255,7 +256,7 @@ impl Accumulator for SchemaAccumulator {
     
     fn finish(self, parse_schema: &mut ParseSchema<'_>) -> Self::Value {
         // FIXME: return error
-        let _ = self.element.display_element_end(parse_schema.output, self.depth);
+        let _ = display_element_end(&self.element, parse_schema.output, self.depth);
     }
     
     fn has_open_subelement(&self) -> bool {
@@ -302,73 +303,6 @@ impl SchemaElement {
             content,
             after_element,
         }
-    }
-
-    // FIXME: move at least some of the following printing things to element
-    /*
-     * Print the first part of the SchemaElement
-     * self:    self
-     * output:  Where to write the text
-     * depth:   Number of nested SchemaElement
-     */
-    fn display_element_start(&self, output: &mut dyn Write, depth: usize) -> fmt::Result {
-//        let _ = writeln!(output, "<!-- in display start -->");
-        let depth0 = TREE_DEPTH + 3 * depth;
-        let depth1 = depth0 + 1;
-        let depth2 = depth0 + 2;
-
-        // FIXME: return error code
-        let _ = write!(output, "{}vec!(Box::new(SchemaElement::new(",
-            nl_indent(depth0));
-
-        let owned_name = OwnedName {
-            local_name: self.name().to_string(),
-            namespace:  None,
-            prefix:     None,
-        };
-        owned_name_display(output, depth1, &owned_name)?;
-
-        let attr_owned_name = OwnedName {
-            local_name: "attr1".to_string(),
-            namespace:  None,
-            prefix:     None,
-        };
-        let owned_attribute = OwnedAttribute{
-            name:   attr_owned_name,
-            value:  "value".to_string(),
-        };
-        let element_info = ElementInfo {
-            parse_loc:  ParseLoc::new("TBD".to_string(), 0),
-            owned_name: owned_name,
-            attributes: vec!(owned_attribute),
-        };
-        // FIXME: check for errors
-        let _ = element_info_display(output, depth1, &element_info);
-        let _ = write!(output, "{}", nl_indent(depth1));
-
-        let _ = vec_display::<XmlEvent>(output, depth1, &self.before_element);
-        let _ = write!(output, ", ");
-        let _ = vec_display::<XmlEvent>(output, depth1, &self.content);
-        let _ = write!(output, ", ");
-        let _ = vec_display::<XmlEvent>(output, depth1, &self.after_element);
-        let _ = write!(output, ",");
-        let _ = write!(output, "{}vec!(", nl_indent(depth2));
-//        let _ = writeln!(output, "<!-- display start -->");
-        Ok(())
-    }
-
-    fn display_element_end(&self, output: &mut dyn Write, depth: usize) -> fmt::Result {
-//        let _ = println!("<!-- in display_end -->");
-        let depth0 = TREE_DEPTH + 3 * depth;
-        let depth1 = depth0 + 1;
-        let depth2 = depth0 + 2;
-
-        // FIXME: check for errors
-        let _ = write!(output, "{})", nl_indent(depth2));
-        let _ = write!(output, "{})", nl_indent(depth1));
-        let _ = write!(output, "{}),", nl_indent(depth0));
-            // FIXME: return error
-        Ok(())
     }
     
 /*
@@ -491,8 +425,8 @@ impl XmlDisplay for SchemaElement {
             },
         };
 
-        let _ = owned_name_display(output, depth + 1, &element_info.owned_name);
-        let _ = element_info_display(output, depth + 1, &element_info);
+        let _ = display_owned_name(output, depth + 1, &element_info.owned_name);
+        let _ = display_element_info(output, depth + 1, &element_info);
         let _ = write!(output, "{}vec!(), vec!(), vec!(),", nl_indent(depth + 1));
 
         let _ = write!(output, "{}vec!(", nl_indent(depth + 1));

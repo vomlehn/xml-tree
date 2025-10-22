@@ -9,11 +9,12 @@ use xml::name::OwnedName;
 use xml::reader::XmlEvent;
 
 use crate::banner::print_banner_file;
-use crate::element::{Element, ElementInfo, element_info_display};
-use crate::misc::{nl_indent, owned_name_display, vec_display/*, XmlDisplay*/};
+use crate::element::{Element, ElementInfo, display_element_info};
+use crate::misc::{nl_indent, vec_display/*, XmlDisplay*/};
 use crate::parse_item::ParseLoc;
 pub use crate::xml_document_error::XmlDocumentError;
 use crate::parse_xml::{Accumulator, LevelInfo, ParseXml};
+use crate::element::display_owned_name;
 use crate::document::DocumentInfo;
 
 const TREE_DEPTH: usize = 2;
@@ -384,13 +385,13 @@ impl SchemaElement {
             namespace:  None,
             prefix:     None,
         };
-        owned_name_display(f, depth1, &owned_name)?;
+        display_owned_name(f, depth1, &owned_name)?;
 
         let element_info = ElementInfo {
             parse_loc:     ParseLoc::new("TBD", 0),
             owned_name: owned_name,
         };
-        element_info_display(f, depth1, &element_info)?;
+        display_element_info(f, depth1, &element_info)?;
         write!(f, "{}", nl_indent(depth1))?;
         vec_display::<XmlEvent>(f, depth1, &self.before_element)?;
         write!(f, ", ")?;
@@ -516,8 +517,8 @@ impl XmlDisplay for SchemaElement {
             },
         };
 
-        owned_name_display(f, depth + 1, &element_info.owned_name)?;
-        element_info_display(f, depth + 1, &element_info)?;
+        display_owned_name(f, depth + 1, &element_info.owned_name)?;
+        display_element_info(f, depth + 1, &element_info)?;
         write!(f, "{}vec!(), vec!(), vec!(),", nl_indent(depth + 1))?;
 
         write!(f, "{}vec!(", nl_indent(depth + 1))

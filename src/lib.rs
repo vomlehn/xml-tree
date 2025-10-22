@@ -22,7 +22,7 @@ pub mod walk_tree;
 
 pub use crate::banner::set_banner_file_name;
 pub use crate::document::DocumentInfo;
-pub use crate::element::{Element, ElementInfo};
+pub use crate::element::{display_owned_name, Element, ElementInfo};
 pub use crate::parse_xml::{Accumulator, ParseXml};
 pub use crate::parse_echo::{EchoAccumulator, EchoLevelInfo, ParseEcho, ParseEchoParams};
 pub use crate::parse_schema::{ParseSchema, ParseSchemaParams, SchemaElement, SchemaAccumulator, SchemaLevelInfo};
@@ -31,4 +31,4 @@ pub use crate::parse_schema::{ParseSchema, ParseSchemaParams, SchemaElement, Sch
 pub use crate::parser::ParseLoc;
 pub use crate::xml_document_error::XmlDocumentError;
 //pub use crate::xsd_schema::XSD_SCHEMA;
-pub use crate::misc::{nl_indent, owned_name_display/*, XmlDisplay*/};
+pub use crate::misc::{nl_indent/*, XmlDisplay*/};
