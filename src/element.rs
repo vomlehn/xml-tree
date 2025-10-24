@@ -14,7 +14,7 @@ use xml::reader::XmlEvent;
 
 // FIXME: split into walk and parse sets of errors
 //use crate::xml_document_error::XmlDocumentError;
-use crate::misc::{nl_indent, vec_display};
+use crate::misc::{DisplayXmlEvent, nl_indent, vec_display};
 use crate::ParseLoc;
 
 // FIXME: need to move to BaseElement or something
@@ -69,15 +69,30 @@ impl ElementInfo {
 
 pub fn display_element_info(output: &mut dyn Write, depth: usize, element_info: &ElementInfo) -> fmt::Result {
     // FIXME: return error
-    let _ = write!(output, "{}ElementInfo::new({}, vec!(),", nl_indent(depth),
-        element_info.parse_loc);
+    let depth1 = depth + 1;
+
+    let _ = write!(output, "{}ElementInfo::new(", nl_indent(depth));
+    display_owned_name(output, depth1, &element_info.owned_name)?;
+    let _ = writeln!(output, "{}ParseLoc::new(\"{}\", {}), ", nl_indent(depth1),
+        element_info.parse_loc.path, element_info.parse_loc.lineno);
+write!(output, "XXX");
     let _ = vec_display::<OwnedAttribute>(output, depth, &element_info.attributes);
+write!(output, "YYY");
+
+    let _ = write!(output, ",");
     let _ = write!(output, "{}Namespace(BTreeMap::<String, String>::new())),",
         nl_indent(depth + 1));
     Ok(())
 }
 
 dyn_clone::clone_trait_object!(Element);
+
+fn xml_event_vec_to_display_xml_event_vec<'a>(vec: &'a Vec<XmlEvent>) -> Vec<DisplayXmlEvent<'a>> {
+    vec
+        .iter()
+        .map(|xml_event| { DisplayXmlEvent(xml_event) })
+        .collect()
+}
 
 // FIXME: move at least some of the following printing things to element
 /*
@@ -86,8 +101,7 @@ dyn_clone::clone_trait_object!(Element);
  * output:  Where to write the text
  * depth:   Number of nested SchemaElement
  */
-pub fn display_element_start(element: &SchemaElement, output: &mut dyn Write,
-    depth: usize, name: String) -> fmt::Result {
+pub fn display_element_start(element: &SchemaElement, output: &mut dyn Write, depth: usize, name: String) -> fmt::Result {
     let depth0 = TREE_DEPTH + 3 * depth;
     let depth1 = depth0 + 1;
     let depth2 = depth0 + 2;
@@ -96,37 +110,33 @@ pub fn display_element_start(element: &SchemaElement, output: &mut dyn Write,
     let _ = write!(output, "{}vec!(Box::new({}::new(",
         nl_indent(depth0), name);
 
+/*
     let owned_name = OwnedName {
         local_name: element.name().to_string(),
         namespace:  None,
         prefix:     None,
     };
     display_owned_name(output, depth1, &owned_name)?;
+*/
 
-    let attr_owned_name = OwnedName {
-        local_name: "attr1".to_string(),
-        namespace:  None,
-        prefix:     None,
-    };
-    let owned_attribute = OwnedAttribute{
-        name:   attr_owned_name,
-        value:  "value".to_string(),
-    };
-    let element_info = ElementInfo {
-        parse_loc:  ParseLoc::new("TBD".to_string(), 0),
-        owned_name: owned_name,
-        attributes: vec!(owned_attribute),
-    };
     // FIXME: check for errors
-    let _ = display_element_info(output, depth1, &element_info);
+//let _ = writeln!(output, "display_element_start: element_info {:?}", element_info);
+//    let _ = display_element_info(output, depth1, &element_info);
+    let _ = display_element_info(output, depth1, &element.element_info);
     let _ = write!(output, "{}", nl_indent(depth1));
 
-    let _ = vec_display::<XmlEvent>(output, depth1, &element.before_element);
+    let before = xml_event_vec_to_display_xml_event_vec(&element.before_element);
+    let _ = vec_display::<DisplayXmlEvent>(output, depth1, &before);
     let _ = write!(output, ", ");
-    let _ = vec_display::<XmlEvent>(output, depth1, &element.content);
+
+    let content = xml_event_vec_to_display_xml_event_vec(&element.content);
+    let _ = vec_display::<DisplayXmlEvent>(output, depth1, &content);
     let _ = write!(output, ", ");
-    let _ = vec_display::<XmlEvent>(output, depth1, &element.after_element);
+
+    let after = xml_event_vec_to_display_xml_event_vec(&element.after_element);
+    let _ = vec_display::<DisplayXmlEvent>(output, depth1, &after);
     let _ = write!(output, ",");
+
     let _ = write!(output, "{}vec!(", nl_indent(depth2));
     Ok(())
 }

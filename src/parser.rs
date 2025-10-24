@@ -186,8 +186,8 @@ pub type LineNumber = usize;
 
 #[derive(Clone)]
 pub struct ParseLoc {
-    path:   String,
-    lineno: LineNumber,
+    pub path:   String,
+    pub lineno: LineNumber,
 }
 
 impl ParseLoc {
@@ -228,6 +228,11 @@ pub struct BaseElement {
 
 impl BaseElement {
     fn new(parse_loc: ParseLoc, event: XmlEvent) -> BaseElement {
+/*
+if let XmlEvent::StartElement{name, attributes, ..} = &event {
+    println!("BaseElement.event {}: {:?}", name.local_name, attributes);
+}
+*/
         BaseElement {
             parse_loc,
             event,

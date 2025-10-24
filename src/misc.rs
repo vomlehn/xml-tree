@@ -4,6 +4,7 @@
 
 use std::fmt;
 use std::io::Write;
+use xml::reader::XmlEvent;
 
 const INDENT: &str = "    ";
 
@@ -22,26 +23,63 @@ pub fn indent(n: usize) -> String {
  * depth:   Indentation
  */
 // FIXME: uses of this need to be cleaned up and consolidated
-pub fn vec_display<T: fmt::Debug>(output: &mut dyn Write, depth: usize, vec: &Vec<T>) -> fmt::Result
+pub fn vec_display<T: fmt::Display>(output: &mut dyn Write, depth: usize, vec: &Vec<T>) -> fmt::Result
 {
 //let _ = write!(output, "Z+");
+    let depth1 = depth + 1;
+    let depth2 = depth + 2;
     // FIXME: check for errors
     if vec.is_empty() {
         let _ = write!(output, "vec!()");
     } else {
-        let _ = write!(output, "{}vec!(", nl_indent(depth + 1));
+        let _ = write!(output, "{}vec!(", nl_indent(depth1));
+        let mut this_indent = "".to_string();
         for elem in vec {
 //            let e: String = format!("{}{}", indent(depth), elem);
 //                elem.print(output, depth);
             // FIXME: switch to non-Debug format
-            let e = format_args!("{:?}", elem);
-            let _ = writeln!(output, "{}{}", indent(depth), e);
+            let e = format_args!("{}", elem);
+            let _ = writeln!(output, "{}{}", this_indent, e);
+            this_indent = indent(depth2);
         }
-        let _ = write!(output, "{})", nl_indent(depth));
+        let _ = write!(output, "{})", indent(depth1));
     }
 //    let _ = write!(output, "Z-");
 
     Ok(())
+}
+
+pub struct DisplayXmlEvent<'a>(pub &'a XmlEvent);
+
+impl<'a> fmt::Display for DisplayXmlEvent<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // Use a match statement to handle each variant of XmlEvent
+        match self.0 {
+            XmlEvent::StartDocument { version, encoding, standalone } => {
+                write!(f, "StartDocument(version: {:?}, encoding: {:?}, standalone: {:?})", version, encoding, standalone)
+            }
+            XmlEvent::EndDocument => {
+                write!(f, "EndDocument")
+            }
+            XmlEvent::StartElement { name, attributes, namespace } => {
+                write!(f, "StartElement(name: {}, attrs: {} total)", name.local_name, attributes.len())
+            }
+            XmlEvent::EndElement { name } => {
+                write!(f, "EndElement(name: {})", name.local_name)
+            }
+            XmlEvent::Characters(s) => {
+                // Truncate long strings for cleaner display
+                let s_display = format!("{}...", &s[..20].trim());
+                write!(f, "Characters(\"{}\")", s_display)
+            }
+            XmlEvent::Comment(s) => {
+                write!(f, "Comment(\"{}\")", s.trim())
+            }
+            // FIXME: do this right
+            // Use Debug format ({:?}) for all other variants for a full representation
+            _ => write!(f, "{:?}", self.0),
+        }
+    }
 }
 
 /*
