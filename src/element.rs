@@ -3,10 +3,8 @@
  */
 
 use dyn_clone::DynClone;
-//use std::convert::Infallible;
 use std::fmt;
 use std::io::Write;
-//use std::ops::{FromResidual, Try};
 use xml::attribute::OwnedAttribute;
 use xml::name::OwnedName;
 use xml::namespace::Namespace;
@@ -14,13 +12,23 @@ use xml::reader::XmlEvent;
 
 // FIXME: split into walk and parse sets of errors
 //use crate::xml_document_error::XmlDocumentError;
-use crate::misc::{DisplayXmlEvent, nl_indent, vec_display};
+use crate::misc::{nl_indent, display_vec, owned_attribute_to_string,
+    xml_event_to_string};
 use crate::ParseLoc;
 
 // FIXME: need to move to BaseElement or something
 use crate::parse_schema::SchemaElement;
 
+/*
+ * Both indent() and nl_indent() produce strings used for indentation whose lengths
+ * are a multiple of their arguments. Rust outputs have a header, which is followed
+ * by the XML schema tree.
+ * TREE_DEPTH       The minimum indentation of the schema tree
+ * ELEMENT_INDENTS  The indentation from on ElementSchema to the next nested
+ *                  ElementSchema.
+ */
 const TREE_DEPTH: usize = 2;
+const ELEMENT_INDENTS: usize = 2;
 
 /*
  * trait making TreeElement and IndirectElement work well together
@@ -35,8 +43,6 @@ const TREE_DEPTH: usize = 2;
  * subelements_mut: Like subelements but returns a mutable value
  */
 pub trait Element: DynClone {
-//    fn display(&self, depth: usize) -> fmt::Result;
-//    fn debug(&self, f: &mut fmt::Formatter<'_>, depth: usize) -> fmt::Result;
     fn get(&self, name: &str) -> Option<&dyn Element>;
     fn name(&self) -> &str;
     // This is actually available in XmlEvent. Use that.
@@ -75,26 +81,18 @@ pub fn display_element_info(output: &mut dyn Write, depth: usize, element_info: 
     display_owned_name(output, depth1, &element_info.owned_name)?;
     let _ = writeln!(output, "{}ParseLoc::new(\"{}\", {}), ", nl_indent(depth1),
         element_info.parse_loc.path, element_info.parse_loc.lineno);
-write!(output, "XXX");
-    let _ = vec_display::<OwnedAttribute>(output, depth, &element_info.attributes);
-write!(output, "YYY");
+    let _ = display_vec::<OwnedAttribute, _>(output, depth, &element_info.attributes,
+        owned_attribute_to_string);
 
     let _ = write!(output, ",");
-    let _ = write!(output, "{}Namespace(BTreeMap::<String, String>::new())),",
-        nl_indent(depth + 1));
+    let _ = write!(output, "{}Namespace(BTreeMap::<String, String>::new()),",
+        nl_indent(depth1));
+    let _ = write!(output, "{}),", nl_indent(depth));
     Ok(())
 }
 
 dyn_clone::clone_trait_object!(Element);
 
-fn xml_event_vec_to_display_xml_event_vec<'a>(vec: &'a Vec<XmlEvent>) -> Vec<DisplayXmlEvent<'a>> {
-    vec
-        .iter()
-        .map(|xml_event| { DisplayXmlEvent(xml_event) })
-        .collect()
-}
-
-// FIXME: move at least some of the following printing things to element
 /*
  * Print the first part of the SchemaElement
  * self:    self
@@ -102,63 +100,63 @@ fn xml_event_vec_to_display_xml_event_vec<'a>(vec: &'a Vec<XmlEvent>) -> Vec<Dis
  * depth:   Number of nested SchemaElement
  */
 pub fn display_element_start(element: &SchemaElement, output: &mut dyn Write, depth: usize, name: String) -> fmt::Result {
-    let depth0 = TREE_DEPTH + 3 * depth;
+    let depth0 = TREE_DEPTH + ELEMENT_INDENTS * depth;
     let depth1 = depth0 + 1;
-    let depth2 = depth0 + 2;
 
     // FIXME: return error code
     let _ = write!(output, "{}vec!(Box::new({}::new(",
         nl_indent(depth0), name);
 
-/*
-    let owned_name = OwnedName {
-        local_name: element.name().to_string(),
-        namespace:  None,
-        prefix:     None,
-    };
-    display_owned_name(output, depth1, &owned_name)?;
-*/
-
     // FIXME: check for errors
-//let _ = writeln!(output, "display_element_start: element_info {:?}", element_info);
-//    let _ = display_element_info(output, depth1, &element_info);
     let _ = display_element_info(output, depth1, &element.element_info);
     let _ = write!(output, "{}", nl_indent(depth1));
 
-    let before = xml_event_vec_to_display_xml_event_vec(&element.before_element);
-    let _ = vec_display::<DisplayXmlEvent>(output, depth1, &before);
+    let _ = display_vec::<XmlEvent, _>(output, depth1, &element.before_element,
+        xml_event_to_string);
     let _ = write!(output, ", ");
 
-    let content = xml_event_vec_to_display_xml_event_vec(&element.content);
-    let _ = vec_display::<DisplayXmlEvent>(output, depth1, &content);
+    let _ = display_vec::<XmlEvent, _>(output, depth1, &element.content,
+        xml_event_to_string);
     let _ = write!(output, ", ");
 
-    let after = xml_event_vec_to_display_xml_event_vec(&element.after_element);
-    let _ = vec_display::<DisplayXmlEvent>(output, depth1, &after);
+    let _ = display_vec::<XmlEvent, _>(output, depth1, &element.after_element,
+        xml_event_to_string);
     let _ = write!(output, ",");
 
-    let _ = write!(output, "{}vec!(", nl_indent(depth2));
+    // This defines the start of the SchemaElement subelements
+    let _ = write!(output, " vec!(");
     Ok(())
 }
 
 // FIXME: remove _element
-pub fn display_element_end(_element: &SchemaElement, output: &mut dyn Write,
+pub fn display_element_end(element: &SchemaElement, output: &mut dyn Write,
     depth: usize) -> fmt::Result {
-    let depth0 = TREE_DEPTH + 3 * depth;
+    let depth0 = TREE_DEPTH + ELEMENT_INDENTS * depth;
     let depth1 = depth0 + 1;
     let depth2 = depth0 + 2;
 
     // FIXME: check for errors
-    let _ = write!(output, "{})", nl_indent(depth2));
-    let _ = write!(output, "{})", nl_indent(depth1));
-    let _ = write!(output, "{}),", nl_indent(depth0));
-        // FIXME: return error
+    // Close off the list of subelements
+    if !element.has_subelements {
+        let _ = write!(output, ") /* Close subelement list 0 */");
+    } else {
+        let _ = write!(output, "{}) /* Close subelement list 1 */", nl_indent(depth1));
+    }
+
+    let _ = write!(output, "{}))), /* Close vec!(Box::new(SchemaElement::new( */",
+        nl_indent(depth0));
+
     Ok(())
 }
 
 pub fn display_owned_name(output: &mut dyn Write, depth: usize, owned_name: &OwnedName) -> fmt::Result {
+    let depth1 = depth + 1;
+
     // FIXME: check for errors
-    let _ = write!(output, "{}OwnedName{{local_name: \"{}\".to_string(),", nl_indent(depth), owned_name.local_name);
-    let _ = write!(output, "{}namespace: {:?}, prefix: {:?}}},", nl_indent(depth + 1), owned_name.namespace, owned_name.prefix);
+    let _ = write!(output, "{}OwnedName{{local_name: \"{}\".to_string(),",
+        nl_indent(depth), owned_name.local_name);
+    let _ = write!(output, "{}namespace: {:?},", nl_indent(depth1),
+        owned_name.namespace);
+    let _ = write!(output, "{}prefix: {:?}}},", nl_indent(depth1), owned_name.prefix);
     Ok(())
 }

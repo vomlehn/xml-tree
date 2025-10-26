@@ -4,6 +4,7 @@
 
 use std::fmt;
 use std::io::Write;
+use xml::attribute::OwnedAttribute;
 use xml::reader::XmlEvent;
 
 const INDENT: &str = "    ";
@@ -23,9 +24,11 @@ pub fn indent(n: usize) -> String {
  * depth:   Indentation
  */
 // FIXME: uses of this need to be cleaned up and consolidated
-pub fn vec_display<T: fmt::Display>(output: &mut dyn Write, depth: usize, vec: &Vec<T>) -> fmt::Result
+pub fn display_vec<T, F>(output: &mut dyn Write, depth: usize, vec: &Vec<T>,
+    to_string: F) -> fmt::Result
+    where
+        F: for<'a> Fn(&'a T) -> String,
 {
-//let _ = write!(output, "Z+");
     let depth1 = depth + 1;
     let depth2 = depth + 2;
     // FIXME: check for errors
@@ -35,16 +38,12 @@ pub fn vec_display<T: fmt::Display>(output: &mut dyn Write, depth: usize, vec: &
         let _ = write!(output, "{}vec!(", nl_indent(depth1));
         let mut this_indent = "".to_string();
         for elem in vec {
-//            let e: String = format!("{}{}", indent(depth), elem);
-//                elem.print(output, depth);
-            // FIXME: switch to non-Debug format
-            let e = format_args!("{}", elem);
+            let e = to_string(elem);
             let _ = writeln!(output, "{}{}", this_indent, e);
             this_indent = indent(depth2);
         }
         let _ = write!(output, "{})", indent(depth1));
     }
-//    let _ = write!(output, "Z-");
 
     Ok(())
 }
@@ -61,8 +60,9 @@ impl<'a> fmt::Display for DisplayXmlEvent<'a> {
             XmlEvent::EndDocument => {
                 write!(f, "EndDocument")
             }
-            XmlEvent::StartElement { name, attributes, namespace } => {
-                write!(f, "StartElement(name: {}, attrs: {} total)", name.local_name, attributes.len())
+            XmlEvent::StartElement { name, attributes, .. /*namespace*/ } => {
+                write!(f, "StartElement(name: {}, attrs: {} total)",
+                    name.local_name, attributes.len())
             }
             XmlEvent::EndElement { name } => {
                 write!(f, "EndElement(name: {})", name.local_name)
@@ -82,9 +82,10 @@ impl<'a> fmt::Display for DisplayXmlEvent<'a> {
     }
 }
 
-/*
-pub trait XmlDisplay
-{
-    fn print(&self, output: &mut dyn Write, depth: usize) -> fmt::Result;
+pub fn xml_event_to_string<'a>(xml_event: &'a XmlEvent) -> String {
+    format!("{}", DisplayXmlEvent(xml_event))
 }
-*/
+
+pub fn owned_attribute_to_string<'a>(attribute: &'a OwnedAttribute) -> String {
+    format!("{:?}", attribute)
+}

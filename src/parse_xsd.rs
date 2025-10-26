@@ -91,7 +91,7 @@ impl LevelInfo for XsdLevelInfo {
     fn create_accumulator(&self, element_info: ElementInfo) ->
         Result<XsdAccumulator, XmlDocumentError>
     {
-        println!("{}<{}>", "  ".repeat(self.depth), element_info.owned_name.local_name);
+//        println!("{}<{}>", "  ".repeat(self.depth), element_info.owned_name.local_name);
         Ok(XsdAccumulator::new(element_info, self.depth))
     }
 }
@@ -129,7 +129,7 @@ impl Accumulator for XsdAccumulator {
     
     fn end_subelement(&mut self) {
         if let Some(name) = &self.current_subelement_name {
-            println!("{}</{}>", "  ".repeat(self.depth + 1), name);
+//            println!("{}</{}>", "  ".repeat(self.depth + 1), name);
         }
         self.current_subelement_name = None;
     }
@@ -145,7 +145,7 @@ impl Accumulator for XsdAccumulator {
     }
     
     fn finish(self) -> () {
-        println!("{}</{}>", "  ".repeat(self.depth), self.element_name);
+//        println!("{}</{}>", "  ".repeat(self.depth), self.element_name);
         ()
     }
     

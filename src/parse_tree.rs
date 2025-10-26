@@ -9,7 +9,7 @@ use xml::name::OwnedName;
 use xml::reader::XmlEvent;
 
 use crate::element::{display_element_info, Element, ElementInfo};
-use crate::misc::{nl_indent, vec_display/*, XmlDisplay*/};
+use crate::misc::{nl_indent, display_vec/*, XmlDisplay*/};
 use crate::parse_item::ParseLoc;
 pub use crate::xml_document_error::XmlDocumentError;
 use crate::parse_xml::{Accumulator, LevelInfo, ParseXml};
@@ -240,11 +240,11 @@ impl Element for TreeElement {
         };
         display_element_info(f, depth + 1, &element_info)?;
         write!(f, "{}", nl_indent(depth + 1))?;
-        vec_display::<XmlEvent>(f, depth, &self.before_element)?;
+        display_vec::<XmlEvent>(f, depth, &self.before_element)?;
         write!(f, ", ")?;
-        vec_display::<XmlEvent>(f, depth, &self.content)?;
+        display_vec::<XmlEvent>(f, depth, &self.content)?;
         write!(f, ", ")?;
-        vec_display::<XmlEvent>(f, depth, &self.after_element)?;
+        display_vec::<XmlEvent>(f, depth, &self.after_element)?;
         write!(f, ",")?;
         write!(f, "{}vec!(", nl_indent(depth + 1))
     }

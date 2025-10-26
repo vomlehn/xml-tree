@@ -10,7 +10,7 @@ use xml::reader::XmlEvent;
 
 use crate::banner::print_banner_file;
 use crate::element::{Element, ElementInfo, display_element_info};
-use crate::misc::{nl_indent, vec_display/*, XmlDisplay*/};
+use crate::misc::{nl_indent, display_vec/*, XmlDisplay*/};
 use crate::parse_item::ParseLoc;
 pub use crate::xml_document_error::XmlDocumentError;
 use crate::parse_xml::{Accumulator, LevelInfo, ParseXml};
@@ -393,11 +393,11 @@ impl SchemaElement {
         };
         display_element_info(f, depth1, &element_info)?;
         write!(f, "{}", nl_indent(depth1))?;
-        vec_display::<XmlEvent>(f, depth1, &self.before_element)?;
+        display_vec::<XmlEvent>(f, depth1, &self.before_element)?;
         write!(f, ", ")?;
-        vec_display::<XmlEvent>(f, depth1, &self.content)?;
+        display_vec::<XmlEvent>(f, depth1, &self.content)?;
         write!(f, ", ")?;
-        vec_display::<XmlEvent>(f, depth1, &self.after_element)?;
+        display_vec::<XmlEvent>(f, depth1, &self.after_element)?;
         write!(f, ",")?;
         write!(f, "{}vec!(", nl_indent(depth1 + 1))
     }

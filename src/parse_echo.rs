@@ -118,17 +118,17 @@ impl<'a> LevelInfo<'a> for EchoLevelInfo<'a> {
 //    where
 //        Self: 'c;
 
-    fn next_level(&self) -> Self {
+    fn next_level(&self, _element_info: &ElementInfo) -> Self {
         EchoLevelInfo {
             depth: self.depth + 1,
             marker: PhantomData,
         }
     }
 
-    fn create_accumulator(&self, _parse_xml: &mut Self::ParseXmlType, element_info: ElementInfo) ->
+    fn create_accumulator(&self, _parse_xml: &mut Self::ParseXmlType, element_info: ElementInfo, _level_info: &Self) ->
         Result<EchoAccumulator, XmlDocumentError>
     {
-        print!("{}<{}>", nl_indent(self.depth), element_info.owned_name.local_name);
+        print!("XXX{}<{}>", nl_indent(self.depth), element_info.owned_name.local_name);
         Ok(EchoAccumulator::new(element_info, self.depth))
     }
 }
@@ -167,13 +167,13 @@ impl Accumulator for EchoAccumulator {
     
     fn end_subelement(&mut self, _parse_xml: &mut ParseEcho) {
         if let Some(name) = &self.current_subelement_name {
-            print!("{}</{}>", nl_indent(self.depth + 1), name);
+            print!("XXX{}</{}>", nl_indent(self.depth + 1), name);
         }
         self.current_subelement_name = None;
     }
     
     fn finish(self, _parse_xml: &mut ParseEcho) -> () {
-        print!("{}</{}>", nl_indent(self.depth), self.element_name);
+        print!("XXX{}</{}>", nl_indent(self.depth), self.element_name);
         ()
     }
     
@@ -208,7 +208,7 @@ mod tests {
 
     use crate::{DocumentInfo, Element, ElementInfo,
         nl_indent, display_owned_name, ParseLoc/*, XmlDisplay*/};
-    use crate::misc::vec_display;
+    use crate::misc::display_vec;
     use crate::element::display_element_info;
 
     use super::{EchoLevelInfo, ParseEcho};
@@ -313,11 +313,11 @@ impl EchoElement {
         };
         let _ = display_element_info(output, depth1, &element_info);
         let _ = write!(output, "{}", nl_indent(depth1));
-        let _ = vec_display::<XmlEvent>(output, depth1, &self.before_element);
+        let _ = display_vec::<XmlEvent>(output, depth1, &self.before_element);
         let _ = write!(output, ", ");
-        let _ = vec_display::<XmlEvent>(output, depth1, &self.content);
+        let _ = display_vec::<XmlEvent>(output, depth1, &self.content);
         let _ = write!(output, ", ");
-        let _ = vec_display::<XmlEvent>(output, depth1, &self.after_element);
+        let _ = display_vec::<XmlEvent>(output, depth1, &self.after_element);
         let _ = write!(output, ",");
         let _ = write!(output, "{}vec!(", nl_indent(depth1 + 1));
         Ok(())

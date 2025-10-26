@@ -158,13 +158,13 @@ where
     where
         R: Read,
     {
+        // Get level info for subelements
+        let subelement_level_info = element_level_info.next_level(&element_info);
+        
         // Create accumulator for this element
         let element_name = element_info.owned_name.clone();
         let mut accumulator = element_level_info.create_accumulator(self,
-            element_info)?;
-        
-        // Get level info for subelements
-        let subelement_level_info = element_level_info.next_level();
+            element_info, &element_level_info)?;
 
         // Parse all subelements until we hit the EndElement
         loop {
@@ -248,11 +248,12 @@ pub trait LevelInfo<'a> {
     type AccumulatorType: Accumulator<DocType<'a> = Self::ParseXmlType>;
 
     /// Create the next level info for subelements
-    fn next_level(&self) -> Self;
+    fn next_level(&self, element_info: &ElementInfo) -> Self;
     
     /// Create an accumulator for processing an element at this level. This is called
     /// when we start the processing.
-    fn create_accumulator(&self, parse_xml: &mut Self::ParseXmlType, element_info: ElementInfo) -> 
+    fn create_accumulator(&self, parse_xml: &mut Self::ParseXmlType,
+        element_info: ElementInfo, level_info: &Self) ->
         Result<Self::AccumulatorType, XmlDocumentError>;
 }
 
@@ -301,7 +302,7 @@ mod tests {
 
     use crate::banner::print_banner_file;
     use crate::element::{Element, ElementInfo, display_element_info};
-    use crate::misc::{nl_indent, vec_display/*, XmlDisplay*/};
+    use crate::misc::{nl_indent, display_vec/*, XmlDisplay*/};
     use crate::ParseLoc;
     pub use crate::xml_document_error::XmlDocumentError;
     use crate::parse_xml::{Accumulator, LevelInfo, ParseXml};
@@ -431,8 +432,7 @@ mod tests {
         let namespace = Namespace::empty();
         let element_info = ElementInfo::new(owned_name,
             ParseLoc::new("TBD".to_string(), 0), vec!(), namespace);
-        // FIXME: remove depth?
-        let element = TestElement::new(element_info,/* 0, */vec!(), vec!(), vec!(), vec!());
+        let element = TestElement::new(element_info, vec!(), vec!(), vec!(), vec!());
         let root: Box<dyn Element> = Box::new(element);
         let xtce_level_info = TestLevelInfo::new(&root);
 
@@ -546,10 +546,7 @@ mod tests {
     }
 
     impl<'a> Try for ParseTest<'a>
-//    where
-//        for<'a> ParseTest<'a>: ParseXml<'a>,
     {
-    //    type Output<'b> = <<ParseTest as ParseXml<'a>>::AC as Accumulator>::Value;
         type Output = <<ParseTest<'a> as ParseXml<'a>>::AC as Accumulator>::Value;
         type Residual = XmlDocumentError;
 
@@ -567,7 +564,6 @@ mod tests {
     /// LevelInfo<'_> that tracks depth for indented output
     #[derive(Debug, Clone)]
     pub struct TestLevelInfo {
-//        depth: usize,
     }
 
     impl TestLevelInfo {
@@ -586,11 +582,12 @@ mod tests {
         type ParseXmlType = ParseTest<'a>;
         type AccumulatorType = TestAccumulator;
 
-        fn next_level(&self) -> Self {
+        fn next_level(&self, _element_info: &ElementInfo) -> Self {
             TestLevelInfo { /* depth: self.depth + 1 */ }
         }
 
-        fn create_accumulator(&self, parse_xml: &mut Self::ParseXmlType, element_info: ElementInfo) ->
+        fn create_accumulator(&self, parse_xml: &mut Self::ParseXmlType,
+            element_info: ElementInfo, level_info: &Self) ->
             Result<TestAccumulator, XmlDocumentError>
         {
             Ok(TestAccumulator::new(element_info,/* self.depth, */parse_xml))
@@ -691,14 +688,12 @@ mod tests {
 
     impl TestElement {
         pub fn new(element_info: ElementInfo,
-//            depth:          usize,
             before_element: Vec::<XmlEvent>,
             content: Vec::<XmlEvent>,
             after_element: Vec::<XmlEvent>,
             subelements: Vec<Box<dyn Element>>) -> TestElement {
             TestElement {
                 element_info,
-//                depth,
                 subelements,
                 before_element,
                 content,
@@ -728,11 +723,11 @@ mod tests {
             };
             let _ = display_element_info(output,  depth1, &element_info);
             let _ = write!(output,  "{}", nl_indent(depth1));
-            let _ = vec_display::<XmlEvent>(output,  depth1, &self.before_element);
+            let _ = display_vec::<XmlEvent>(output,  depth1, &self.before_element);
             let _ = write!(output,  ", ");
-            let _ = vec_display::<XmlEvent>(output,  depth1, &self.content);
+            let _ = display_vec::<XmlEvent>(output,  depth1, &self.content);
             let _ = write!(output,  ", ");
-            let _ = vec_display::<XmlEvent>(output,  depth1, &self.after_element);
+            let _ = display_vec::<XmlEvent>(output,  depth1, &self.after_element);
             let _ = write!(output,  ",");
             let _ = write!(output,  "{}vec!(", nl_indent(depth1 + 1));
             Ok(())
@@ -766,7 +761,6 @@ let depth = 0usize;
                     parse_loc:     ParseLoc::new("TBD".to_string(), 0),
                     attributes: vec!(),
                 },
-//                depth: 0,
                 subelements: vec!(),
                 before_element: vec!(),
                 content: vec!(),
@@ -775,31 +769,7 @@ let depth = 0usize;
         }
     }
 
-/*
-    impl fmt::Display for TestElement {
-        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-            self.display(f, self.depth)
-        }
-    }
-
-    impl fmt::Debug for TestElement {
-        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-            self.debug(f, self.depth)
-        }
-    }
-*/
-
     impl Element for TestElement {
-/*
-        fn display(&self, f: &mut fmt::Formatter<'_>, depth: usize) -> fmt::Result {
-            self.display_start(f, depth)
-        }
-
-        fn debug(&self, f: &mut fmt::Formatter<'_>, depth: usize) -> fmt::Result {
-            self.display(f, depth)
-        }
-*/
-
         /**
          * Find a subelement (one level deeper) with the given name
          */

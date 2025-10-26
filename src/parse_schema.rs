@@ -11,14 +11,12 @@ use xml::reader::XmlEvent;
 use crate::banner::write_banner_file;
 use crate::element::{Element, ElementInfo,/*, display_element_info,*/ display_element_start,
     display_element_end};
-use crate::misc::{nl_indent, /*vec_display, XmlDisplay*/};
+use crate::misc::{nl_indent, /*display_vec, XmlDisplay*/};
 use crate::ParseLoc;
 pub use crate::xml_document_error::XmlDocumentError;
 use crate::parse_xml::{Accumulator, LevelInfo, ParseXml};
 //use crate::element::display_owned_name;
 use crate::document::DocumentInfo;
-
-//const TREE_DEPTH: usize = 2;
 
 /*
  * Parse an input stream of XSD code and generate Rust code. That code is
@@ -37,7 +35,8 @@ pub struct ParseSchemaParams<'a> {
 }
 
 impl<'a> ParseSchema<'a> {
-    pub fn new(document_info: DocumentInfo, root: Box<dyn Element>, output: &'a mut (dyn Write + 'a)) -> ParseSchema<'a> {
+    pub fn new(document_info: DocumentInfo, root: Box<dyn Element>,
+        output: &'a mut (dyn Write + 'a)) -> ParseSchema<'a> {
         ParseSchema {
             document_info,
             root,
@@ -94,6 +93,9 @@ impl<'a> ParseSchema<'a> {
         Ok(())
     }
 
+    /*
+     * Generate one-time content for the beginning of the output file
+     */
     fn front_matter_display(&mut self, depth: usize) -> fmt::Result {
         let front_matter: Vec::<&str> = vec!(
             "// FIXME: insert banner",
@@ -124,6 +126,9 @@ impl<'a> ParseSchema<'a> {
         Ok(())
     }
 
+    /*
+     * Generate the constant first part of the schema structure
+     */
     pub fn static_parse_schema_display(&mut self, depth: usize, const_name: &str, schema_type: &str, schema_name: &str) -> fmt::Result {
         let indent_str = nl_indent(depth);
         // FIXME: check for error
@@ -138,6 +143,9 @@ impl<'a> ParseSchema<'a> {
         Ok(())
     }
 
+    /*
+     * Generate the constant end of schema structure
+     */
     pub fn display_schema_end(&mut self, ) {
         // FIXME: check for error
         let _ = self.back_matter_display(1);
@@ -173,15 +181,20 @@ impl<'a> FromResidual for ParseSchema<'a> {
     { todo!() }
 }
 
-/// LevelInfo<'_> that tracks depth for indented output
+// LevelInfo<'_> that tracks depth for indented output
+// depth:  The number of nested SchemaElements
 #[derive(Debug, Clone)]
 pub struct SchemaLevelInfo {
-    depth: usize,
+    depth:  usize,
+//    path:   Vec<String>,
 }
 
 impl SchemaLevelInfo {
     pub fn new(_schema: &Box<dyn Element>) -> Self {
-        SchemaLevelInfo { depth: 0 }
+        SchemaLevelInfo {
+            depth:  0,
+//            path:   vec!(),
+        }
     }
 }
 
@@ -189,30 +202,35 @@ impl<'a> LevelInfo<'a> for SchemaLevelInfo {
     type ParseXmlType = ParseSchema<'a>;
     type AccumulatorType = SchemaAccumulator;
 
-    fn next_level(&self) -> Self {
-        SchemaLevelInfo { depth: self.depth + 1 }
+    fn next_level(&self, _element_info: &ElementInfo) -> Self {
+        SchemaLevelInfo {
+            depth:  self.depth + 1,
+//            path:   vec!(),
+        }
     }
 
-    fn create_accumulator(&self, parse_xml: &mut Self::ParseXmlType, element_info: ElementInfo) ->
-        Result<SchemaAccumulator, XmlDocumentError>
+    fn create_accumulator(&self, parse_xml: &mut Self::ParseXmlType,
+        element_info: ElementInfo, level_info: &Self) -> Result<SchemaAccumulator, XmlDocumentError>
     {
-        Ok(SchemaAccumulator::new(element_info, self.depth, parse_xml))
+        Ok(SchemaAccumulator::new(element_info, level_info.depth, parse_xml))
     }
 }
 
 /// Accumulator that just echoes structure (doesn't build elements)
 pub struct SchemaAccumulator {
-    element: SchemaElement,
-    element_name: String,
-    parse_loc: ParseLoc,
-    depth: usize,
-    current_subelement_name: Option<String>,
+    element:                    SchemaElement,
+    element_name:               String,
+    parse_loc:                  ParseLoc,
+    depth:                      usize,
+    current_subelement_name:    Option<String>,
 }
 
 impl SchemaAccumulator {
     pub fn new(element_info: ElementInfo, depth: usize, parse_schema: &mut ParseSchema<'_>) -> Self {
         let ei = element_info.clone();
-        let element = SchemaElement::new(ei, depth, vec![], vec![], vec![], vec![]);
+        let depth1 = depth + 1;
+//        let depth2 = depth + 2;
+        let element = SchemaElement::new(ei, depth1, vec![], vec![], vec![], vec![]);
         // FIXME: check for errors
         let _ = display_element_start(&element, parse_schema.output, depth,
             "SchemaElement".to_string());
@@ -220,10 +238,10 @@ impl SchemaAccumulator {
         SchemaAccumulator {
             element,
             // FIXME: should use element.name()
-            element_name: element_info.owned_name.local_name.clone(),
-            parse_loc: element_info.parse_loc,
-            depth: depth,
-            current_subelement_name: None,
+            element_name:               element_info.owned_name.local_name.clone(),
+            parse_loc:                  element_info.parse_loc,
+            depth:                      depth,
+            current_subelement_name:    None,
         }
     }
 }
@@ -242,21 +260,21 @@ impl Accumulator for SchemaAccumulator {
     }
     
     fn add_subelement(&mut self, _parse_schema: &mut ParseSchema<'_>, _subelement: ()) {
-        // For echo, subelements have already been printed
         // We don't need to do anything with the () value
+        self.element.has_subelements = true;
     }
     
     fn end_subelement(&mut self, _parse_schema: &mut ParseSchema<'_>) {
-        // FIXME: what's this for?
+        // FIXME: what's this for? I think I should be verifying the names are the same
         if let Some(_name) = &self.current_subelement_name {
         }
         self.current_subelement_name = None;
-//        let _ = write!(parse_schema.output, "W,");
     }
     
     fn finish(self, parse_schema: &mut ParseSchema<'_>) -> Self::Value {
         // FIXME: return error
         let _ = display_element_end(&self.element, parse_schema.output, self.depth);
+        ()
     }
     
     fn has_open_subelement(&self) -> bool {
@@ -280,12 +298,13 @@ impl Accumulator for SchemaAccumulator {
 
 #[derive(Clone)]
 pub struct SchemaElement {
-    pub element_info:   ElementInfo,
-    pub depth:          usize,
-    pub before_element: Vec<XmlEvent>,
-    pub content:        Vec<XmlEvent>,
-    pub after_element:  Vec<XmlEvent>,
-    pub subelements:    Vec<Box<dyn Element>>,
+    pub element_info:       ElementInfo,
+    pub depth:              usize,
+    pub before_element:     Vec<XmlEvent>,
+    pub content:            Vec<XmlEvent>,
+    pub after_element:      Vec<XmlEvent>,
+    pub subelements:        Vec<Box<dyn Element>>,
+    pub has_subelements:    bool,
 }
 
 impl SchemaElement {
@@ -302,54 +321,10 @@ impl SchemaElement {
             before_element,
             content,
             after_element,
-        }
-    }
-    
-/*
-    fn display(&self, depth: usize) -> fmt::Result {
-        let _ = writeln!(self.output, "<-- In Element for SchemaElement -->");
-        let _ = self.display_element_start(depth);
-        let _ = writeln!(self.output, "<-- In Element for SchemaElement, calling display_end -->");
-        self.display_element_end(depth)
-    }
-*/
-}
-
-/*
-impl Default for SchemaElement {
-    fn default() -> SchemaElement {
-        SchemaElement {
-            element_info: ElementInfo {
-                owned_name: OwnedName {
-                    local_name: "".to_string(),
-                    namespace:  None,
-                    prefix:     None
-                },
-                parse_loc:     ParseLoc::new("TBD".to_string(), 0),
-            },
-            depth: 0,
-            subelements: vec!(),
-            before_element: vec!(),
-            content: vec!(),
-            after_element: vec!(),
+            has_subelements:    false,
         }
     }
 }
-*/
-
-/*
-impl fmt::Display for SchemaElement {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.display(self.depth)
-    }
-}
-
-impl fmt::Debug for SchemaElement {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.debug(f, self.depth)
-    }
-}
-*/
 
 impl Element for SchemaElement {
 /*
@@ -393,7 +368,6 @@ for x in self.subelements() {
     /**
      * Return a vector of all subelements.
      */
-//    fn subelements<'b>(&'b self) -> &'b Vec<Box<dyn Element + 'b>> {
     fn subelements(&self) -> &Vec<Box<dyn Element>> {
         &self.subelements
     }
@@ -401,36 +375,7 @@ for x in self.subelements() {
     /**
      * Return a mutable vector of all subelements.
      */
-//    fn subelements_mut<'b>(&'b mut self) -> &'b mut Vec<Box<dyn Element + '_>> {
     fn subelements_mut(&mut self) -> &mut Vec<Box<dyn Element>> {
         &mut self.subelements
     }
 }
-
-/*
-impl XmlDisplay for SchemaElement {
-    fn print(&self, output: &mut dyn Write, depth: usize) -> fmt::Result {
-        // FIXME: check for errors
-        let _ = writeln!(output, "<!-- in XmlDisplay for SchemaElement start -->");
-
-        let _ = write!(output, "{}Box::new(SchemaElement::new(", nl_indent(depth))
-            .expect("Unable to write Box::new");
-
-        let element_info = ElementInfo {
-            parse_loc: ParseLoc::new("TBD".to_string(), 0),
-            owned_name: OwnedName {
-                        local_name: self.name().to_string(),
-                        namespace:  None,
-                        prefix:     None,
-            },
-        };
-
-        let _ = display_owned_name(output, depth + 1, &element_info.owned_name);
-        let _ = display_element_info(output, depth + 1, &element_info);
-        let _ = write!(output, "{}vec!(), vec!(), vec!(),", nl_indent(depth + 1));
-
-        let _ = write!(output, "{}vec!(", nl_indent(depth + 1));
-        Ok(())
-    }
-}
-*/
