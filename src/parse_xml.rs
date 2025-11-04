@@ -302,7 +302,7 @@ mod tests {
 
     use crate::banner::print_banner_file;
     use crate::element::{Element, ElementInfo, display_element_info};
-    use crate::misc::{nl_indent, display_vec/*, XmlDisplay*/};
+    use crate::misc::{nl_indent, write_vec/*, XmlDisplay*/};
     use crate::ParseLoc;
     pub use crate::xml_document_error::XmlDocumentError;
     use crate::parse_xml::{Accumulator, LevelInfo, ParseXml};
@@ -723,11 +723,11 @@ mod tests {
             };
             let _ = display_element_info(output,  depth1, &element_info);
             let _ = write!(output,  "{}", nl_indent(depth1));
-            let _ = display_vec::<XmlEvent>(output,  depth1, &self.before_element);
+            let _ = write_vec::<XmlEvent>(output,  depth1, &self.before_element);
             let _ = write!(output,  ", ");
-            let _ = display_vec::<XmlEvent>(output,  depth1, &self.content);
+            let _ = write_vec::<XmlEvent>(output,  depth1, &self.content);
             let _ = write!(output,  ", ");
-            let _ = display_vec::<XmlEvent>(output,  depth1, &self.after_element);
+            let _ = write_vec::<XmlEvent>(output,  depth1, &self.after_element);
             let _ = write!(output,  ",");
             let _ = write!(output,  "{}vec!(", nl_indent(depth1 + 1));
             Ok(())

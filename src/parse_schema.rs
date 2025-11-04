@@ -9,14 +9,14 @@ use std::ops::{ControlFlow, FromResidual, Try};
 use xml::reader::XmlEvent;
 
 use crate::banner::write_banner_file;
-use crate::element::{Element, ElementInfo,/*, display_element_info,*/ display_element_start,
-    display_element_end};
-use crate::misc::{nl_indent, /*display_vec, XmlDisplay*/};
+use crate::element::{Element, ElementInfo};
+use crate::misc::{nl_indent, write_vec, rust_xml_event};
 use crate::ParseLoc;
 pub use crate::xml_document_error::XmlDocumentError;
 use crate::parse_xml::{Accumulator, LevelInfo, ParseXml};
-//use crate::element::display_owned_name;
 use crate::document::DocumentInfo;
+
+use crate::{ELEMENT_INDENTS, TREE_DEPTH};
 
 /*
  * Parse an input stream of XSD code and generate Rust code. That code is
@@ -26,12 +26,6 @@ pub struct ParseSchema<'a> {
     pub document_info:  DocumentInfo,
     pub root:           Box<dyn Element>,
     pub output:         &'a mut dyn Write
-}
-
-pub struct ParseSchemaParams<'a> {
-    pub const_name:     &'a str,
-    pub schema_type:    &'a str,
-    pub schema_name:    &'a str,
 }
 
 impl<'a> ParseSchema<'a> {
@@ -53,11 +47,11 @@ impl<'a> ParseSchema<'a> {
     {
         // FIXME: check for error
 //        let _ = writeln!(self.output, "<!-- in parse_path -->");
-        let _ = self.display_schema_start(&params);
+        let _ = self.write_start(&params);
 //println!("calling parse_path_base");
         let res = self.parse_path_base(path, element_level_info)?;
-//println!("calling display_end");
-        self.display_schema_end();
+//println!("calling write_end");
+        self.write_end();
 //        let _ = writeln!(self.output, "<!-- exiting parse_path -->");
         Ok(res)
     }
@@ -73,16 +67,16 @@ impl<'a> ParseSchema<'a> {
     {
 //        println!("<-- In parse -->");
         // FIXME: check for error
-        let _ = self.display_schema_start(&params);
+        let _ = self.write_start(&params);
         let res = self.parse_base(buf_reader, element_level_info)?;
-        self.display_schema_end();
+        self.write_end();
         Ok(res)
     }
 
     // FIXME: move at least some of the following printing things to element
-    fn display_schema_start(&mut self, params: &ParseSchemaParams) -> fmt::Result {
+    fn write_start(&mut self, params: &ParseSchemaParams) -> fmt::Result {
         let depth = 0;
-        self.front_matter_display(depth)?;
+        self.write_front_matter(depth)?;
 
         let indent_str = nl_indent(depth);
         // FIXME: check for error
@@ -96,21 +90,28 @@ impl<'a> ParseSchema<'a> {
     /*
      * Generate one-time content for the beginning of the output file
      */
-    fn front_matter_display(&mut self, depth: usize) -> fmt::Result {
+    fn write_front_matter(&mut self, depth: usize) -> fmt::Result {
         let front_matter: Vec::<&str> = vec!(
             "// FIXME: insert banner",
             "// Auto-generated file",
             "use lazy_static::lazy_static;", 
             "use std::collections::BTreeMap;",
             "", 
-            "use xml::common::XmlVersion;",
+            "use xml::attribute::OwnedAttribute;",
+//            "use xml::common::XmlVersion;",
             "use xml::name::OwnedName;",
             "use xml::namespace::Namespace;",
             "",
-            "use crate::xml_document::TreeElement;", 
-            "use crate::parse_tree::{DocumentInfo, ElementInfo};",
-            "use crate::parse_schema::ParseSchema;", 
-            "use crate::XmlTree;",
+//            "use crate::xml_document::TreeElement;", 
+// FIXME: clean this up
+//            "use xml_tree::{DocumentInfo, ElementInfo};",
+            "use xml_tree::{ElementInfo};",
+//            "use xml_tree::ParseSchema;", 
+//            "use xml_tree::XmlTree;",
+            "use xml_tree::SchemaElement;",
+            "use xml_tree::ParseLoc;",
+            "",
+            "use crate::xtce_data::XtceSchema;",
             "", 
         );
 
@@ -129,16 +130,20 @@ impl<'a> ParseSchema<'a> {
     /*
      * Generate the constant first part of the schema structure
      */
-    pub fn static_parse_schema_display(&mut self, depth: usize, const_name: &str, schema_type: &str, schema_name: &str) -> fmt::Result {
+    pub fn static_parse_schema_display(&mut self, depth: usize, const_name: &str,
+        schema_type: &str, schema_name: &str) -> fmt::Result {
+
         let indent_str = nl_indent(depth);
         // FIXME: check for error
-        let _ = write!(self.output, "{}pub static ref {const_name}: {schema_type}<'_> = {schema_name}::new(", indent_str);
+        let _ = write!(self.output, "{}pub static ref {const_name}: {schema_type}<'static> = {schema_name}::new(", indent_str);
 
+/*
         let indent_str = nl_indent(depth + 1);
         for name in [const_name, schema_type, schema_name] {
         // FIXME: check for error
-            let _ = write!(self.output, "{}\"{}\",", indent_str, name);
+            let _ = write!(self.output, "{}{:?},", indent_str, name);
         }
+*/
 
         Ok(())
     }
@@ -146,19 +151,25 @@ impl<'a> ParseSchema<'a> {
     /*
      * Generate the constant end of schema structure
      */
-    pub fn display_schema_end(&mut self, ) {
+    pub fn write_end(&mut self) {
         // FIXME: check for error
-        let _ = self.back_matter_display(1);
+        let _ = self.write_back_matter(1);
     }
 
-    fn back_matter_display(&mut self, depth: usize) -> fmt::Result {
+    fn write_back_matter(&mut self, depth: usize) -> fmt::Result {
         // FIXME: check for error
         let _ = write!(self.output, "{});", nl_indent(depth));
         let _ = write!(self.output, "{}}}", nl_indent(depth - 1));
         let _ = write!(self.output, "\n");
-//        let _ = writeln!(self.output, "<!-- back matter display");
+//        let _ = writeln!(self.output, "<!-- write back matter");
         Ok(())
     }
+}
+
+pub struct ParseSchemaParams<'a> {
+    pub const_name:     &'a str,
+    pub schema_type:    &'a str,
+    pub schema_name:    &'a str,
 }
 
 impl<'a> ParseXml<'a> for ParseSchema<'a> {
@@ -232,7 +243,7 @@ impl SchemaAccumulator {
 //        let depth2 = depth + 2;
         let element = SchemaElement::new(ei, depth1, vec![], vec![], vec![], vec![]);
         // FIXME: check for errors
-        let _ = display_element_start(&element, parse_schema.output, depth,
+        let _ = element.write_start(parse_schema.output, depth,
             "SchemaElement".to_string());
 
         SchemaAccumulator {
@@ -273,7 +284,7 @@ impl Accumulator for SchemaAccumulator {
     
     fn finish(self, parse_schema: &mut ParseSchema<'_>) -> Self::Value {
         // FIXME: return error
-        let _ = display_element_end(&self.element, parse_schema.output, self.depth);
+        let _ = self.element.write_end(parse_schema.output, self.depth);
         ()
     }
     
@@ -324,14 +335,67 @@ impl SchemaElement {
             has_subelements:    false,
         }
     }
+
+    /*
+     * Print the first part of the SchemaElement
+     * self:    self
+     * output:  Where to write the text
+     * depth:   Number of nested SchemaElement
+     */
+    pub fn write_start(&self, output: &mut dyn Write, depth: usize, name: String) ->
+        fmt::Result {
+        let depth0 = TREE_DEPTH + ELEMENT_INDENTS * depth;
+        let depth1 = depth0 + 1;
+
+        // FIXME: return error code
+        let _ = write!(output, "{}Box::new({}::new(",
+            nl_indent(depth0), name);
+
+        // FIXME: check for errors
+        let _ = self.element_info.write(output, depth1);
+        let _ = write!(output, "{}", nl_indent(depth1));
+
+        let _ = write!(output, "{}, ", depth);
+
+        let _ = write_vec::<XmlEvent, fn (&XmlEvent, usize) -> String>(output, depth1,
+            &self.before_element, rust_xml_event as fn(&XmlEvent, usize) -> String);
+        let _ = write!(output, ", ");
+
+        let _ = write_vec::<XmlEvent, fn (&XmlEvent, usize) -> String>(output, depth1,
+            &self.content, rust_xml_event as fn(&XmlEvent, usize) -> String);
+        let _ = write!(output, ", ");
+
+        let _ = write_vec::<XmlEvent, fn (&XmlEvent, usize) -> String>(output, depth1,
+            &self.after_element, rust_xml_event as fn(&XmlEvent, usize) -> String);
+        let _ = write!(output, ",");
+
+        // This defines the start of the SchemaElement subelements
+        let _ = write!(output, " vec!(");
+        Ok(())
+    }
+
+    // FIXME: remove _element
+    pub fn write_end(&self, output: &mut dyn Write, depth: usize) -> fmt::Result {
+        let depth0 = TREE_DEPTH + ELEMENT_INDENTS * depth;
+        let depth1 = depth0 + 1;
+        let _depth2 = depth0 + 2;
+
+        // FIXME: check for errors
+        // Close off the list of subelements
+        if !self.has_subelements {
+            let _ = write!(output, ") /* Close subelement list 0 */");
+        } else {
+            let _ = write!(output, "{}) /* Close subelement list 1 */", nl_indent(depth1));
+        }
+
+        let _ = write!(output, "{})), /* Close vec!>Box::new>SchemaElement::new> */",
+            nl_indent(depth0));
+
+        Ok(())
+    }
 }
 
 impl Element for SchemaElement {
-/*
-    fn debug(&self, f: &mut fmt::Formatter<'_>, depth: usize) -> fmt::Result {
-        self.display(f, depth)
-    }
-*/
 
     /**
      * Find a subelement (one level deeper) with the given name

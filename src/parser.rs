@@ -9,6 +9,7 @@ use std::io::Read;
 use xml::reader::{EventReader, XmlEvent};
 
 use crate::xml_document_error::XmlDocumentError;
+use crate::misc::{rust_str, rust_to_string};
 
 const VERBOSE: bool = false;
 
@@ -29,7 +30,7 @@ pub struct Parser<R: Read> {
 impl<R: Read> Parser<R> {
     pub fn new(reader: R) -> Self {
         let line_reader = LinenoReader::new(reader);
-        let parse_loc = ParseLoc::new("TBD".to_string(), line_reader.lineno);
+        let parse_loc = ParseLoc::new(rust_str("TBD").to_string(), line_reader.lineno);
         let event_reader = EventReader::new(line_reader);
 
         Parser {
@@ -200,6 +201,12 @@ impl ParseLoc {
 
     pub fn display(&self) -> String {
         self.path.clone() + ":" + &self.lineno.to_string()
+    }
+
+    // FIXME: return correct error
+    pub fn rust(&self) -> String {
+        format!("ParseLoc::new({}, {})", rust_to_string(&self.path),
+            self.lineno.to_string())
     }
 }
 

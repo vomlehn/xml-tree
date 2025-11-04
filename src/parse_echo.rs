@@ -208,7 +208,7 @@ mod tests {
 
     use crate::{DocumentInfo, Element, ElementInfo,
         nl_indent, display_owned_name, ParseLoc/*, XmlDisplay*/};
-    use crate::misc::display_vec;
+    use crate::misc::write_vec;
     use crate::element::display_element_info;
 
     use super::{EchoLevelInfo, ParseEcho};
@@ -313,11 +313,11 @@ impl EchoElement {
         };
         let _ = display_element_info(output, depth1, &element_info);
         let _ = write!(output, "{}", nl_indent(depth1));
-        let _ = display_vec::<XmlEvent>(output, depth1, &self.before_element);
+        let _ = write_vec::<XmlEvent>(output, depth1, &self.before_element);
         let _ = write!(output, ", ");
-        let _ = display_vec::<XmlEvent>(output, depth1, &self.content);
+        let _ = write_vec::<XmlEvent>(output, depth1, &self.content);
         let _ = write!(output, ", ");
-        let _ = display_vec::<XmlEvent>(output, depth1, &self.after_element);
+        let _ = write_vec::<XmlEvent>(output, depth1, &self.after_element);
         let _ = write!(output, ",");
         let _ = write!(output, "{}vec!(", nl_indent(depth1 + 1));
         Ok(())
