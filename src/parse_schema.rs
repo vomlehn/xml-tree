@@ -24,12 +24,12 @@ use crate::{ELEMENT_INDENTS, TREE_DEPTH};
  */
 pub struct ParseSchema<'a> {
     pub document_info:  DocumentInfo,
-    pub root:           Box<dyn Element>,
+    pub root:           Box<dyn Element + Send + Sync>,
     pub output:         &'a mut dyn Write
 }
 
 impl<'a> ParseSchema<'a> {
-    pub fn new(document_info: DocumentInfo, root: Box<dyn Element>,
+    pub fn new(document_info: DocumentInfo, root: Box<dyn Element + Send + Sync>,
         output: &'a mut (dyn Write + 'a)) -> ParseSchema<'a> {
         ParseSchema {
             document_info,
@@ -201,7 +201,7 @@ pub struct SchemaLevelInfo {
 }
 
 impl SchemaLevelInfo {
-    pub fn new(_schema: &Box<dyn Element>) -> Self {
+    pub fn new(_schema: &Box<dyn Element + Send + Sync>) -> Self {
         SchemaLevelInfo {
             depth:  0,
 //            path:   vec!(),
@@ -314,7 +314,7 @@ pub struct SchemaElement {
     pub before_element:     Vec<XmlEvent>,
     pub content:            Vec<XmlEvent>,
     pub after_element:      Vec<XmlEvent>,
-    pub subelements:        Vec<Box<dyn Element>>,
+    pub subelements:        Vec<Box<dyn Element + Send + Sync>>,
     pub has_subelements:    bool,
 }
 
@@ -324,7 +324,7 @@ impl SchemaElement {
         before_element: Vec::<XmlEvent>,
         content: Vec::<XmlEvent>,
         after_element: Vec::<XmlEvent>,
-        subelements: Vec<Box<dyn Element>>) -> SchemaElement {
+        subelements: Vec<Box<dyn Element + Send + Sync>>) -> SchemaElement {
         SchemaElement {
             element_info,
             depth,
@@ -400,7 +400,7 @@ impl Element for SchemaElement {
     /**
      * Find a subelement (one level deeper) with the given name
      */
-    fn get(&self, name: &str) -> Option<&dyn Element> {
+    fn get(&self, name: &str) -> Option<&(dyn Element + Send + Sync)> {
 /*
 println!("get: looking for {} in {}", name, self.name());
 println!("...");
@@ -432,14 +432,14 @@ for x in self.subelements() {
     /**
      * Return a vector of all subelements.
      */
-    fn subelements(&self) -> &Vec<Box<dyn Element>> {
+    fn subelements(&self) -> &Vec<Box<dyn Element + Send + Sync>> {
         &self.subelements
     }
 
     /**
      * Return a mutable vector of all subelements.
      */
-    fn subelements_mut(&mut self) -> &mut Vec<Box<dyn Element>> {
+    fn subelements_mut(&mut self) -> &mut Vec<Box<dyn Element + Send + Sync>> {
         &mut self.subelements
     }
 }
