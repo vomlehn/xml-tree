@@ -76,7 +76,7 @@ impl<'a> ParseSchema<'a> {
     // FIXME: move at least some of the following printing things to element
     fn write_start(&mut self, params: &ParseSchemaParams) -> fmt::Result {
         let depth = 0;
-        self.write_front_matter(depth)?;
+        self.write_front_matter(params.schema_crate, depth)?;
 
         let indent_str = nl_indent(depth);
         // FIXME: check for error
@@ -90,7 +90,7 @@ impl<'a> ParseSchema<'a> {
     /*
      * Generate one-time content for the beginning of the output file
      */
-    fn write_front_matter(&mut self, depth: usize) -> fmt::Result {
+    fn write_front_matter(&mut self, schema_crate: &str, depth: usize) -> fmt::Result {
         let front_matter: Vec::<&str> = vec!(
             "// FIXME: insert banner",
             "// Auto-generated file",
@@ -98,20 +98,14 @@ impl<'a> ParseSchema<'a> {
             "use std::collections::BTreeMap;",
             "", 
             "use xml::attribute::OwnedAttribute;",
-//            "use xml::common::XmlVersion;",
             "use xml::name::OwnedName;",
             "use xml::namespace::Namespace;",
             "",
-//            "use crate::xml_document::TreeElement;", 
-// FIXME: clean this up
-//            "use xml_tree::{DocumentInfo, ElementInfo};",
             "use xml_tree::{ElementInfo};",
-//            "use xml_tree::ParseSchema;", 
-//            "use xml_tree::XmlTree;",
             "use xml_tree::SchemaElement;",
             "use xml_tree::ParseLoc;",
             "",
-            "use crate::xtce_data::XtceSchema;",
+            "use ", schema_crate, ";",
             "", 
         );
 
@@ -170,6 +164,7 @@ pub struct ParseSchemaParams<'a> {
     pub const_name:     &'a str,
     pub schema_type:    &'a str,
     pub schema_name:    &'a str,
+    pub schema_crate:   &'a str,
 }
 
 impl<'a> ParseXml<'a> for ParseSchema<'a> {
