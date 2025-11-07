@@ -24,12 +24,12 @@ use crate::{ELEMENT_INDENTS, TREE_DEPTH};
  */
 pub struct ParseSchema<'a> {
     pub document_info:  DocumentInfo,
-    pub root:           Box<dyn Element + Send + Sync>,
+    pub root:           Box<dyn Element>,
     pub output:         &'a mut dyn Write
 }
 
 impl<'a> ParseSchema<'a> {
-    pub fn new(document_info: DocumentInfo, root: Box<dyn Element + Send + Sync>,
+    pub fn new(document_info: DocumentInfo, root: Box<dyn Element>,
         output: &'a mut (dyn Write + 'a)) -> ParseSchema<'a> {
         ParseSchema {
             document_info,
@@ -80,9 +80,10 @@ impl<'a> ParseSchema<'a> {
 
         let indent_str = nl_indent(depth);
         // FIXME: check for error
-        let _ = write!(self.output, "{}lazy_static! {{", indent_str);
+//        let _ = write!(self.output, "{}lazy_static! {{", indent_str);
 
-        self.static_parse_schema_display(depth + 1, params.const_name, params.schema_type, params.schema_name)?;
+//        self.static_parse_schema_display(depth + 1, params.const_name, params.schema_type, params.schema_name)?;
+        self.static_parse_schema_display(depth, params.const_name, params.schema_type, params.schema_name)?;
 
         Ok(())
     }
@@ -127,17 +128,22 @@ impl<'a> ParseSchema<'a> {
     pub fn static_parse_schema_display(&mut self, depth: usize, const_name: &str,
         schema_type: &str, schema_name: &str) -> fmt::Result {
 
+/* FIXME: remove this
         let indent_str = nl_indent(depth);
         // FIXME: check for error
-        let _ = write!(self.output, "{}pub static ref {const_name}: {schema_type}<'static> = {schema_name}::new(", indent_str);
+//        let _ = write!(self.output, "{}pub static ref {const_name}: {schema_type}<'static> = {schema_name}::new(", indent_str);
 
-/*
         let indent_str = nl_indent(depth + 1);
         for name in [const_name, schema_type, schema_name] {
         // FIXME: check for error
             let _ = write!(self.output, "{}{:?},", indent_str, name);
         }
 */
+        let depth1 = depth + 1;
+        // FIXME: generate function name properly
+        let _ = write!(self.output, "{}pub fn get_xtce_schema<'a>() -> XtceSchema<'a> {{",
+            nl_indent(depth));
+        let _ = write!(self.output, "{}XtceSchema::new(", nl_indent(depth1));
 
         Ok(())
     }
@@ -152,7 +158,7 @@ impl<'a> ParseSchema<'a> {
 
     fn write_back_matter(&mut self, depth: usize) -> fmt::Result {
         // FIXME: check for error
-        let _ = write!(self.output, "{});", nl_indent(depth));
+        let _ = write!(self.output, "{})", nl_indent(depth));
         let _ = write!(self.output, "{}}}", nl_indent(depth - 1));
         let _ = write!(self.output, "\n");
 //        let _ = writeln!(self.output, "<!-- write back matter");
@@ -196,7 +202,7 @@ pub struct SchemaLevelInfo {
 }
 
 impl SchemaLevelInfo {
-    pub fn new(_schema: &Box<dyn Element + Send + Sync>) -> Self {
+    pub fn new(_schema: &Box<dyn Element>) -> Self {
         SchemaLevelInfo {
             depth:  0,
 //            path:   vec!(),
@@ -309,7 +315,7 @@ pub struct SchemaElement {
     pub before_element:     Vec<XmlEvent>,
     pub content:            Vec<XmlEvent>,
     pub after_element:      Vec<XmlEvent>,
-    pub subelements:        Vec<Box<dyn Element + Send + Sync>>,
+    pub subelements:        Vec<Box<dyn Element>>,
     pub has_subelements:    bool,
 }
 
@@ -319,7 +325,7 @@ impl SchemaElement {
         before_element: Vec::<XmlEvent>,
         content: Vec::<XmlEvent>,
         after_element: Vec::<XmlEvent>,
-        subelements: Vec<Box<dyn Element + Send + Sync>>) -> SchemaElement {
+        subelements: Vec<Box<dyn Element>>) -> SchemaElement {
         SchemaElement {
             element_info,
             depth,
@@ -395,7 +401,7 @@ impl Element for SchemaElement {
     /**
      * Find a subelement (one level deeper) with the given name
      */
-    fn get(&self, name: &str) -> Option<&(dyn Element + Send + Sync)> {
+    fn get(&self, name: &str) -> Option<&dyn Element> {
 /*
 println!("get: looking for {} in {}", name, self.name());
 println!("...");
@@ -427,14 +433,14 @@ for x in self.subelements() {
     /**
      * Return a vector of all subelements.
      */
-    fn subelements(&self) -> &Vec<Box<dyn Element + Send + Sync>> {
+    fn subelements(&self) -> &Vec<Box<dyn Element>> {
         &self.subelements
     }
 
     /**
      * Return a mutable vector of all subelements.
      */
-    fn subelements_mut(&mut self) -> &mut Vec<Box<dyn Element + Send + Sync>> {
+    fn subelements_mut(&mut self) -> &mut Vec<Box<dyn Element>> {
         &mut self.subelements
     }
 }

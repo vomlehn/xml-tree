@@ -28,12 +28,12 @@ use crate::{ParseLoc, rust_owned_name};
  * subelements_mut: Like subelements but returns a mutable value
  */
 pub trait Element: DynClone {
-    fn get(&self, name: &str) -> Option<&(dyn Element + Send + Sync)>;
+    fn get(&self, name: &str) -> Option<&dyn Element>;
     fn name(&self) -> &str;
     // This is actually available in XmlEvent. Use that.
     fn parse_loc(&self) -> ParseLoc;
-    fn subelements(&self) -> &Vec<Box<dyn Element + Send + Sync>>;
-    fn subelements_mut(&mut self) -> &mut Vec<Box<dyn Element + Send + Sync>>;
+    fn subelements(&self) -> &Vec<Box<dyn Element>>;
+    fn subelements_mut(&mut self) -> &mut Vec<Box<dyn Element>>;
 }
 
 #[derive(Clone, Debug)]

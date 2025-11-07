@@ -680,7 +680,7 @@ mod tests {
     pub struct TestElement {
         pub element_info:   ElementInfo,
 //        pub depth:          usize,
-        pub subelements:    Vec<Box<dyn Element + Send + Sync>>,
+        pub subelements:    Vec<Box<dyn Element>>,
         pub before_element: Vec<XmlEvent>,
         pub content:        Vec<XmlEvent>,
         pub after_element:  Vec<XmlEvent>,
@@ -691,7 +691,7 @@ mod tests {
             before_element: Vec::<XmlEvent>,
             content: Vec::<XmlEvent>,
             after_element: Vec::<XmlEvent>,
-            subelements: Vec<Box<dyn Element + Send + Sync>>) -> TestElement {
+            subelements: Vec<Box<dyn Element>>) -> TestElement {
             TestElement {
                 element_info,
                 subelements,
