@@ -163,8 +163,8 @@ where
         
         // Create accumulator for this element
         let element_name = element_info.owned_name.clone();
-        let mut accumulator = element_level_info.create_accumulator(self,
-            element_info, &element_level_info)?;
+        let mut accumulator = subelement_level_info.create_accumulator(self,
+            element_info)?;
 
         // Parse all subelements until we hit the EndElement
         loop {
@@ -253,7 +253,7 @@ pub trait LevelInfo<'a> {
     /// Create an accumulator for processing an element at this level. This is called
     /// when we start the processing.
     fn create_accumulator(&self, parse_xml: &mut Self::ParseXmlType,
-        element_info: ElementInfo, level_info: &Self) ->
+        element_info: ElementInfo) ->
         Result<Self::AccumulatorType, XmlDocumentError>;
 }
 
@@ -587,7 +587,7 @@ mod tests {
         }
 
         fn create_accumulator(&self, parse_xml: &mut Self::ParseXmlType,
-            element_info: ElementInfo, level_info: &Self) ->
+            element_info: ElementInfo) ->
             Result<TestAccumulator, XmlDocumentError>
         {
             Ok(TestAccumulator::new(element_info,/* self.depth, */parse_xml))

@@ -125,7 +125,7 @@ impl<'a> LevelInfo<'a> for EchoLevelInfo<'a> {
         }
     }
 
-    fn create_accumulator(&self, _parse_xml: &mut Self::ParseXmlType, element_info: ElementInfo, _level_info: &Self) ->
+    fn create_accumulator(&self, _parse_xml: &mut Self::ParseXmlType, element_info: ElementInfo) ->
         Result<EchoAccumulator, XmlDocumentError>
     {
         print!("XXX{}<{}>", nl_indent(self.depth), element_info.owned_name.local_name);

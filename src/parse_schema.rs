@@ -1,6 +1,8 @@
 /**
  * Parse XML text input and produce Rust Schema code.
  */
+
+//use std::fs::File;
 use std::fmt;
 use std::io::{BufReader, Read, Write};
 use std::ops::{ControlFlow, FromResidual, Try};
@@ -25,46 +27,58 @@ use crate::{ELEMENT_INDENTS, TREE_DEPTH};
 pub struct ParseSchema<'a> {
     pub document_info:  DocumentInfo,
     pub root:           Box<dyn Element>,
-    pub output:         &'a mut dyn Write
+    pub output:         Option<&'a mut dyn Write>,
+    pub template_file:  Option<&'a mut dyn Write>,
 }
 
 impl<'a> ParseSchema<'a> {
-    pub fn new(document_info: DocumentInfo, root: Box<dyn Element>,
-        output: &'a mut (dyn Write + 'a)) -> ParseSchema<'a> {
+    pub fn new(document_info: DocumentInfo, root: Box<dyn Element>) -> ParseSchema<'a> {
         ParseSchema {
             document_info,
             root,
-            output,
+            output:         None,
+            template_file:  None,
         }
     }
 
-    pub fn parse_path<'b> (
+    pub fn parse_path (
         &mut self,
         params:             &ParseSchemaParams,
-        path:               &'b str,
+        path:               &'a str,
         element_level_info: &<ParseSchema<'a> as ParseXml<'a>>::LI,
+        output:             &'a mut dyn Write,
+        template_file:      Option<&'a mut dyn Write>,
     ) -> Result<(DocumentInfo, <<<ParseSchema<'_> as ParseXml<'_>>::LI as LevelInfo<'_>>::AccumulatorType as Accumulator>::Value), XmlDocumentError>
     {
+//        let output = self.template_file.as_mut().expect("template_file should be Some");
+eprintln!("ParseSchema::parse_path: output is Some");
+        self.output = Some(output);
+        self.template_file = template_file;
         // FIXME: check for error
-//        let _ = writeln!(self.output, "<!-- in parse_path -->");
+//        let _ = writeln!(output, "<!-- in parse_path -->");
         let _ = self.write_start(&params);
 //println!("calling parse_path_base");
         let res = self.parse_path_base(path, element_level_info)?;
 //println!("calling write_end");
         self.write_end();
-//        let _ = writeln!(self.output, "<!-- exiting parse_path -->");
+//        let _ = writeln!(output, "<!-- exiting parse_path -->");
         Ok(res)
     }
 
-    pub fn parse<'b, R>(
+    pub fn parse<R>(
         &mut self,
         params:             &ParseSchemaParams,
         buf_reader:         BufReader<R>,
-        element_level_info: &<ParseSchema<'b> as ParseXml<'b>>::LI,
-    ) -> Result<(DocumentInfo, <<<ParseSchema<'b> as ParseXml<'b>>::LI as LevelInfo<'b>>::AccumulatorType as Accumulator>::Value), XmlDocumentError>
+        element_level_info: &<ParseSchema<'a> as ParseXml<'a>>::LI,
+        output:             &'a mut dyn Write,
+        template_file:      Option<&'a mut dyn Write>,
+    ) -> Result<(DocumentInfo, <<<ParseSchema<'a> as ParseXml<'a>>::LI as LevelInfo<'a>>::AccumulatorType as Accumulator>::Value), XmlDocumentError>
     where
         R: Read,
     {
+eprintln!("ParseSchema::parse: output is Some");
+        self.output = Some(output);
+        self.template_file = template_file;
 //        println!("<-- In parse -->");
         // FIXME: check for error
         let _ = self.write_start(&params);
@@ -73,17 +87,12 @@ impl<'a> ParseSchema<'a> {
         Ok(res)
     }
 
-    // FIXME: move at least some of the following printing things to element
     fn write_start(&mut self, params: &ParseSchemaParams) -> fmt::Result {
         let depth = 0;
         self.write_front_matter(params.schema_crate, depth)?;
 
-        let indent_str = nl_indent(depth);
-        // FIXME: check for error
-//        let _ = write!(self.output, "{}lazy_static! {{", indent_str);
-
-//        self.static_parse_schema_display(depth + 1, params.const_name, params.schema_type, params.schema_name)?;
-        self.static_parse_schema_display(depth, params.const_name, params.schema_type, params.schema_name)?;
+        self.static_parse_schema_display(depth, params.const_name, params.schema_type,
+            params.schema_name)?;
 
         Ok(())
     }
@@ -95,7 +104,7 @@ impl<'a> ParseSchema<'a> {
         let front_matter: Vec::<&str> = vec!(
             "// FIXME: insert banner",
             "// Auto-generated file",
-            "use lazy_static::lazy_static;", 
+//            "use lazy_static::lazy_static;", 
             "use std::collections::BTreeMap;",
             "", 
             "use xml::attribute::OwnedAttribute;",
@@ -110,13 +119,20 @@ impl<'a> ParseSchema<'a> {
             "", 
         );
 
-        write_banner_file(self.output)?;
+        match self.template_file.as_mut() {
+            None => eprintln!("template_file is None"),
+            Some(_) => eprintln!("template_file is Some"),
+        }
+
+        let output = self.output.as_mut().expect("output should be Some");
+
+        write_banner_file(output)?;
 
         let indent_str = nl_indent(depth);
 
         for front in front_matter {
             // FIXME: check for error
-            let _ = write!(self.output, "{}{}", indent_str, front);
+            let _ = write!(output, "{}{}", indent_str, front);
         }
 
         Ok(())
@@ -125,25 +141,27 @@ impl<'a> ParseSchema<'a> {
     /*
      * Generate the constant first part of the schema structure
      */
-    pub fn static_parse_schema_display(&mut self, depth: usize, const_name: &str,
-        schema_type: &str, schema_name: &str) -> fmt::Result {
+//FIXME: clean this up
+    pub fn static_parse_schema_display(&mut self, depth: usize, _const_name: &str,
+        _schema_type: &str, _schema_name: &str) -> fmt::Result {
+        let output = self.output.as_mut().expect("output should be Some");
 
 /* FIXME: remove this
         let indent_str = nl_indent(depth);
         // FIXME: check for error
-//        let _ = write!(self.output, "{}pub static ref {const_name}: {schema_type}<'static> = {schema_name}::new(", indent_str);
+//        let _ = write!(output, "{}pub static ref {const_name}: {schema_type}<'static> = {schema_name}::new(", indent_str);
 
         let indent_str = nl_indent(depth + 1);
         for name in [const_name, schema_type, schema_name] {
         // FIXME: check for error
-            let _ = write!(self.output, "{}{:?},", indent_str, name);
+            let _ = write!(output, "{}{:?},", indent_str, name);
         }
 */
         let depth1 = depth + 1;
         // FIXME: generate function name properly
-        let _ = write!(self.output, "{}pub fn get_xtce_schema<'a>() -> XtceSchema<'a> {{",
+        let _ = write!(output, "{}pub fn get_xtce_schema<'a>() -> XtceSchema<'a> {{",
             nl_indent(depth));
-        let _ = write!(self.output, "{}XtceSchema::new(", nl_indent(depth1));
+        let _ = write!(output, "{}XtceSchema::new(", nl_indent(depth1));
 
         Ok(())
     }
@@ -157,11 +175,12 @@ impl<'a> ParseSchema<'a> {
     }
 
     fn write_back_matter(&mut self, depth: usize) -> fmt::Result {
+        let output = self.output.as_mut().expect("output should be Some");
         // FIXME: check for error
-        let _ = write!(self.output, "{})", nl_indent(depth));
-        let _ = write!(self.output, "{}}}", nl_indent(depth - 1));
-        let _ = write!(self.output, "\n");
-//        let _ = writeln!(self.output, "<!-- write back matter");
+        let _ = write!(output, "{})", nl_indent(depth));
+        let _ = write!(output, "{}}}", nl_indent(depth - 1));
+        let _ = write!(output, "\n");
+//        let _ = writeln!(output, "<!-- write back matter");
         Ok(())
     }
 }
@@ -222,9 +241,9 @@ impl<'a> LevelInfo<'a> for SchemaLevelInfo {
     }
 
     fn create_accumulator(&self, parse_xml: &mut Self::ParseXmlType,
-        element_info: ElementInfo, level_info: &Self) -> Result<SchemaAccumulator, XmlDocumentError>
+        element_info: ElementInfo) -> Result<SchemaAccumulator, XmlDocumentError>
     {
-        Ok(SchemaAccumulator::new(element_info, level_info.depth, parse_xml))
+        Ok(SchemaAccumulator::new(element_info, self.depth, parse_xml))
     }
 }
 
@@ -239,12 +258,13 @@ pub struct SchemaAccumulator {
 
 impl SchemaAccumulator {
     pub fn new(element_info: ElementInfo, depth: usize, parse_schema: &mut ParseSchema<'_>) -> Self {
+        let output = parse_schema.output.as_mut().expect("output should be Some");
         let ei = element_info.clone();
         let depth1 = depth + 1;
 //        let depth2 = depth + 2;
         let element = SchemaElement::new(ei, depth1, vec![], vec![], vec![], vec![]);
         // FIXME: check for errors
-        let _ = element.write_start(parse_schema.output, depth,
+        let _ = element.write_start(output, depth,
             "SchemaElement".to_string());
 
         SchemaAccumulator {
@@ -284,8 +304,10 @@ impl Accumulator for SchemaAccumulator {
     }
     
     fn finish(self, parse_schema: &mut ParseSchema<'_>) -> Self::Value {
+        let output = parse_schema.output.as_mut().expect("output should be Some");
+
         // FIXME: return error
-        let _ = self.element.write_end(parse_schema.output, self.depth);
+        let _ = self.element.write_end(output, self.depth);
         ()
     }
     
