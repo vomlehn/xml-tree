@@ -28,7 +28,6 @@ pub struct ParseSchema<'a> {
     pub document_info:  DocumentInfo,
     pub root:           Box<dyn Element>,
     pub output:         Option<&'a mut dyn Write>,
-    pub template_file:  Option<&'a mut dyn Write>,
 }
 
 impl<'a> ParseSchema<'a> {
@@ -37,7 +36,6 @@ impl<'a> ParseSchema<'a> {
             document_info,
             root,
             output:         None,
-            template_file:  None,
         }
     }
 
@@ -47,19 +45,15 @@ impl<'a> ParseSchema<'a> {
         path:               &'a str,
         element_level_info: &<ParseSchema<'a> as ParseXml<'a>>::LI,
         output:             &'a mut dyn Write,
-        template_file:      Option<&'a mut dyn Write>,
     ) -> Result<(DocumentInfo, <<<ParseSchema<'_> as ParseXml<'_>>::LI as LevelInfo<'_>>::AccumulatorType as Accumulator>::Value), XmlDocumentError>
     {
-//        let output = self.template_file.as_mut().expect("template_file should be Some");
 eprintln!("ParseSchema::parse_path: output is Some");
         self.output = Some(output);
-        self.template_file = template_file;
+
         // FIXME: check for error
 //        let _ = writeln!(output, "<!-- in parse_path -->");
         let _ = self.write_start(&params);
-//println!("calling parse_path_base");
         let res = self.parse_path_base(path, element_level_info)?;
-//println!("calling write_end");
         self.write_end();
 //        let _ = writeln!(output, "<!-- exiting parse_path -->");
         Ok(res)
@@ -71,19 +65,22 @@ eprintln!("ParseSchema::parse_path: output is Some");
         buf_reader:         BufReader<R>,
         element_level_info: &<ParseSchema<'a> as ParseXml<'a>>::LI,
         output:             &'a mut dyn Write,
-        template_file:      Option<&'a mut dyn Write>,
     ) -> Result<(DocumentInfo, <<<ParseSchema<'a> as ParseXml<'a>>::LI as LevelInfo<'a>>::AccumulatorType as Accumulator>::Value), XmlDocumentError>
     where
         R: Read,
     {
 eprintln!("ParseSchema::parse: output is Some");
         self.output = Some(output);
-        self.template_file = template_file;
+        // Be sure to restore before returning
 //        println!("<-- In parse -->");
         // FIXME: check for error
         let _ = self.write_start(&params);
-        let res = self.parse_base(buf_reader, element_level_info)?;
+
+        let res = self.parse_base(buf_reader, element_level_info);
+        let res = res?;
+
         self.write_end();
+
         Ok(res)
     }
 
@@ -118,11 +115,6 @@ eprintln!("ParseSchema::parse: output is Some");
             "use ", schema_crate, ";",
             "", 
         );
-
-        match self.template_file.as_mut() {
-            None => eprintln!("template_file is None"),
-            Some(_) => eprintln!("template_file is Some"),
-        }
 
         let output = self.output.as_mut().expect("output should be Some");
 
