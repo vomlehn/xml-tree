@@ -12,7 +12,7 @@ use xml::reader::XmlEvent;
 
 use crate::banner::write_banner_file;
 use crate::element::{Element, ElementInfo};
-use crate::misc::{nl_indent, write_vec, rust_xml_event};
+use crate::misc::{nl_indent, path_string, write_vec, rust_xml_event};
 use crate::ParseLoc;
 pub use crate::xml_document_error::XmlDocumentError;
 use crate::parse_xml::{Accumulator, LevelInfo, ParseXml};
@@ -28,6 +28,7 @@ pub struct ParseSchema<'a> {
     pub document_info:  DocumentInfo,
     pub root:           Box<dyn Element>,
     pub output:         Option<&'a mut dyn Write>,
+    pub identifiers:    Vec<Vec<String>>,
 }
 
 impl<'a> ParseSchema<'a> {
@@ -36,6 +37,7 @@ impl<'a> ParseSchema<'a> {
             document_info,
             root,
             output:         None,
+            identifiers: vec!(),
         }
     }
 
@@ -209,14 +211,14 @@ impl<'a> FromResidual for ParseSchema<'a> {
 #[derive(Debug, Clone)]
 pub struct SchemaLevelInfo {
     depth:  usize,
-//    path:   Vec<String>,
+    path:   Vec<String>,
 }
 
 impl SchemaLevelInfo {
     pub fn new(_schema: &Box<dyn Element>) -> Self {
         SchemaLevelInfo {
             depth:  0,
-//            path:   vec!(),
+            path:   vec!(),
         }
     }
 }
@@ -225,17 +227,21 @@ impl<'a> LevelInfo<'a> for SchemaLevelInfo {
     type ParseXmlType = ParseSchema<'a>;
     type AccumulatorType = SchemaAccumulator;
 
-    fn next_level(&self, _element_info: &ElementInfo) -> Self {
+    fn next_level(&self, element_info: &ElementInfo) -> Self {
+        let mut path = self.path.clone();
+//        path.push(element_info.owned_name.local_name.clone());
+        path.push(element_info.owned_name.local_name.clone());
+eprintln!("next_level name {} path {:?}", element_info.owned_name.local_name, &path);
         SchemaLevelInfo {
             depth:  self.depth + 1,
-//            path:   vec!(),
+            path:   path,
         }
     }
 
     fn create_accumulator(&self, parse_xml: &mut Self::ParseXmlType,
         element_info: ElementInfo) -> Result<SchemaAccumulator, XmlDocumentError>
     {
-        Ok(SchemaAccumulator::new(element_info, self.depth, parse_xml))
+        Ok(SchemaAccumulator::new(element_info, self.depth, parse_xml, &self.path))
     }
 }
 
@@ -246,10 +252,12 @@ pub struct SchemaAccumulator {
     parse_loc:                  ParseLoc,
     depth:                      usize,
     current_subelement_name:    Option<String>,
+    path:                       Vec<String>,
 }
 
 impl SchemaAccumulator {
-    pub fn new(element_info: ElementInfo, depth: usize, parse_schema: &mut ParseSchema<'_>) -> Self {
+    pub fn new(element_info: ElementInfo, depth: usize,
+            parse_schema: &mut ParseSchema<'_>, path: &Vec<String>) -> Self {
         let output = parse_schema.output.as_mut().expect("output should be Some");
         let ei = element_info.clone();
         let depth1 = depth + 1;
@@ -258,6 +266,8 @@ impl SchemaAccumulator {
         // FIXME: check for errors
         let _ = element.write_start(output, depth,
             "SchemaElement".to_string());
+eprintln!("SchemaAccumulator::new: path {:?}", path);
+        parse_schema.identifiers.push(path.clone());
 
         SchemaAccumulator {
             element,
@@ -266,6 +276,7 @@ impl SchemaAccumulator {
             parse_loc:                  element_info.parse_loc,
             depth:                      depth,
             current_subelement_name:    None,
+            path:                       path.clone(),
         }
     }
 }
@@ -277,10 +288,16 @@ impl Accumulator for SchemaAccumulator {
     /*
      * Note that we have started a sublement
      */
-    fn start_subelement(&mut self, _parse_schema: &mut ParseSchema<'_>, element_info: &ElementInfo) {
+    fn start_subelement(&mut self, parse_schema: &mut ParseSchema<'_>, element_info: &ElementInfo) {
+eprintln!("start_subelement name {}", element_info.owned_name.local_name);
+/*
         // FIXME: probably needs to be fully qualified
         // FIXME: propagate to other parse_.*() code
         self.current_subelement_name = Some(element_info.owned_name.local_name.clone());
+
+        parse_schema.identifiers.push(path);
+eprintln!("start_subelement identifiers {:?}", parse_schema.identifiers);
+*/
     }
     
     fn add_subelement(&mut self, _parse_schema: &mut ParseSchema<'_>, _subelement: ()) {

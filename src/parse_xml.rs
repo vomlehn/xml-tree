@@ -158,6 +158,7 @@ where
     where
         R: Read,
     {
+eprintln!("parse_element name {}", element_info.owned_name.local_name);
         // Get level info for subelements
         let subelement_level_info = element_level_info.next_level(&element_info);
         

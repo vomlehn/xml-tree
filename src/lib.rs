@@ -31,6 +31,6 @@ pub use crate::parse_schema::{ParseSchema, ParseSchemaParams, SchemaElement, Sch
 pub use crate::parser::ParseLoc;
 pub use crate::xml_document_error::XmlDocumentError;
 //pub use crate::xsd_schema::XSD_SCHEMA;
-pub use crate::misc::{nl_indent, rust_owned_name};
+pub use crate::misc::{indent, nl_indent, path_string, rust_owned_name, string_path};
 
 use crate::misc::{ELEMENT_INDENTS, TREE_DEPTH};
