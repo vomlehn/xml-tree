@@ -20,6 +20,8 @@ use crate::document::DocumentInfo;
 
 use crate::{ELEMENT_INDENTS, TREE_DEPTH};
 
+const DEBUG: bool = false;
+
 /*
  * Parse an input stream of XSD code and generate Rust code. That code is
  * then used to guide the parsing of XML code. The XSD is actually XML.
@@ -70,7 +72,9 @@ impl<'a> ParseSchema<'a> {
     where
         R: Read,
     {
+if DEBUG {
 eprintln!("ParseSchema::parse: output is Some");
+}
         self.output = Some(output);
         // Be sure to restore before returning
 //        println!("<-- In parse -->");
@@ -220,6 +224,16 @@ impl SchemaLevelInfo {
             path:   vec!(),
         }
     }
+
+    // Create an Accumulator as an associated function
+    fn create_accumulator_assoc(parse_schema: &mut <SchemaLevelInfo as LevelInfo>::ParseXmlType,
+        element_info: ElementInfo, depth: usize, path: &Vec<String>) ->
+        Result<SchemaAccumulator, XmlDocumentError> {
+if DEBUG {
+eprintln!("create_accumulator_assoc: {}", element_info.owned_name.local_name);
+}
+        Ok(SchemaAccumulator::new(element_info, depth, parse_schema, path))
+    }
 }
 
 impl<'a> LevelInfo<'a> for SchemaLevelInfo {
@@ -228,18 +242,20 @@ impl<'a> LevelInfo<'a> for SchemaLevelInfo {
 
     fn next_level(&self, element_info: &ElementInfo) -> Self {
         let mut path = self.path.clone();
-//        path.push(element_info.owned_name.local_name.clone());
         path.push(element_info.owned_name.local_name.clone());
+if DEBUG {
+eprintln!("next_level: {:?}", path);
+}
         SchemaLevelInfo {
             depth:  self.depth + 1,
             path:   path,
         }
     }
 
-    fn create_accumulator(&self, parse_xml: &mut Self::ParseXmlType,
+    fn create_accumulator(&self, parse_schema: &mut Self::ParseXmlType,
         element_info: ElementInfo) -> Result<SchemaAccumulator, XmlDocumentError>
     {
-        Ok(SchemaAccumulator::new(element_info, self.depth, parse_xml, &self.path))
+        Self::create_accumulator_assoc(parse_schema, element_info, self.depth, &self.path)
     }
 }
 
@@ -255,7 +271,7 @@ pub struct SchemaAccumulator {
 
 impl SchemaAccumulator {
     pub fn new(element_info: ElementInfo, depth: usize,
-            parse_schema: &mut ParseSchema<'_>, _path: &Vec<String>) -> Self {
+            parse_schema: &mut ParseSchema<'_>, path: &Vec<String>) -> Self {
         let output = parse_schema.output.as_mut().expect("output should be Some");
         let ei = element_info.clone();
         let depth1 = depth + 1;
@@ -264,7 +280,10 @@ impl SchemaAccumulator {
         // FIXME: check for errors
         let _ = element.write_start(output, depth,
             "SchemaElement".to_string());
-//        parse_schema.identifiers.push(path.clone());
+if DEBUG {
+eprintln!("SchemaAccumulator::new: {:?}", parse_schema.identifiers);
+}
+        parse_schema.identifiers.push(path.clone());
 
         SchemaAccumulator {
             element,
@@ -287,13 +306,17 @@ impl Accumulator for SchemaAccumulator {
      */
     fn start_subelement(&mut self, _parse_schema: &mut ParseSchema<'_>, _element_info: &ElementInfo) {
 /*
+if DEBUG {
 eprintln!("start_subelement name {}", element_info.owned_name.local_name);
+}
         // FIXME: probably needs to be fully qualified
         // FIXME: propagate to other parse_.*() code
         self.current_subelement_name = Some(element_info.owned_name.local_name.clone());
 
         parse_schema.identifiers.push(path);
+if DEBUG {
 eprintln!("start_subelement identifiers {:?}", parse_schema.identifiers);
+}
 */
     }
     
