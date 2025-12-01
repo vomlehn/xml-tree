@@ -98,8 +98,10 @@ pub fn rust_owned_name(owned_name: &OwnedName, depth: usize) -> String {
     let depth1 = depth + 1;
 
     // FIXME: check for errors
-    let mut result = format!("{}OwnedName{{local_name: {},",
-        nl_indent(depth), rust_to_string(&owned_name.local_name)).to_string();
+    let mut result = format!("OwnedName {{");
+    result += &format!("{}local_name: {},", nl_indent(depth1),
+        &rust_to_string(&owned_name.local_name));
+
     result += &match &owned_name.namespace {
         None => format!("{}namespace: None,", nl_indent(depth1)),
         Some(namespace) => format!("{}namespace: Some({}),",
@@ -107,10 +109,10 @@ pub fn rust_owned_name(owned_name: &OwnedName, depth: usize) -> String {
     };
     result += &match &owned_name.prefix {
         None => format!("{}prefix: None", nl_indent(depth1)),
-        Some(prefix) => format!("{}prefix: Some({})}}",
+        Some(prefix) => format!("{}prefix: Some({})",
             nl_indent(depth1), rust_to_string(prefix)),
     };
-    result += "}";
+    result += &format!("{}}}", nl_indent(depth));
 
     result
 }
@@ -122,12 +124,12 @@ pub fn rust_xml_event<'a>(xml_event: &'a XmlEvent, _depth: usize) -> String {
 pub fn rust_owned_attribute<'a>(attribute: &'a OwnedAttribute, depth: usize) -> String {
     // FIXME: have to print element by element
     let _depth1 = depth + 1;
-    let _depth2 = depth + 2;
+    let depth2 = depth + 2;
     let depth3 = depth + 3;
     "OwnedAttribute {".to_string() +
-        "name: " + &rust_owned_name(&attribute.name, depth3) + ", " +
-        &nl_indent(depth3) +
-        "value: " + &rust_to_string(&attribute.value) +
+        &nl_indent(depth3) + "name: " + &rust_owned_name(&attribute.name, depth3) + ", " +
+        &nl_indent(depth3) + "value: " + &rust_to_string(&attribute.value) +
+        &nl_indent(depth2) +
     "}"
 }
 
