@@ -169,6 +169,7 @@ pub fn rust_str(s: &str) -> String {
     format!("{:?}", s)
 }
 
+// Fix this
 pub fn path_string(strings: &[String]) -> Option<String> {
     for s in strings {
         if s.len() == 0 {
@@ -181,7 +182,8 @@ pub fn path_string(strings: &[String]) -> Option<String> {
             s.replace("_", "__")
         })
         .collect::<Vec<String>>()
-        .join("_"))
+//        .join("_"))
+        .join(""))
 }
 
 pub fn string_path(s: &str) -> Vec<String> {
