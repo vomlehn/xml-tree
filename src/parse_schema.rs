@@ -266,7 +266,6 @@ pub struct SchemaAccumulator {
     parse_loc:                  ParseLoc,
     depth:                      usize,
     current_subelement_name:    Option<String>,
-//    path:                       Vec<String>,
 }
 
 impl SchemaAccumulator {
@@ -276,7 +275,8 @@ impl SchemaAccumulator {
         let ei = element_info.clone();
         let depth1 = depth + 1;
 //        let depth2 = depth + 2;
-        let element = SchemaElement::new(ei, depth1, vec![], vec![], vec![], vec![]);
+        let element = SchemaElement::new(ei, depth1, vec![], vec![], vec![], vec![],
+            parse_schema.identifiers.len() + 1);
         // FIXME: check for errors
         let _ = element.write_start(output, depth,
             "SchemaElement".to_string());
@@ -368,6 +368,7 @@ pub struct SchemaElement {
     pub after_element:      Vec<XmlEvent>,
     pub subelements:        Vec<Box<dyn Element>>,
     pub has_subelements:    bool,
+    pub i:                  usize,
 }
 
 impl SchemaElement {
@@ -376,7 +377,9 @@ impl SchemaElement {
         before_element: Vec::<XmlEvent>,
         content: Vec::<XmlEvent>,
         after_element: Vec::<XmlEvent>,
-        subelements: Vec<Box<dyn Element>>) -> SchemaElement {
+        subelements: Vec<Box<dyn Element>>,
+        i: usize) -> SchemaElement {
+eprintln!("SchemaElement::new: {} i {}", element_info.owned_name.local_name, i);
         SchemaElement {
             element_info,
             depth,
@@ -385,6 +388,7 @@ impl SchemaElement {
             content,
             after_element,
             has_subelements:    false,
+            i,
         }
     }
 
@@ -400,6 +404,7 @@ impl SchemaElement {
         let depth1 = depth0 + 1;
 
         // FIXME: return error code
+        // Write code to call the <Element>::new() function
         let _ = write!(output, "{}Box::new({}::new(",
             nl_indent(depth0), name);
 
@@ -409,20 +414,24 @@ impl SchemaElement {
 
         let _ = write!(output, "{}, ", depth);
 
+        // Write parse items before the element
         let _ = write_vec::<XmlEvent, fn (&XmlEvent, usize) -> String>(output, depth1,
             &self.before_element, rust_xml_event as fn(&XmlEvent, usize) -> String);
         let _ = write!(output, ", ");
 
+        // Write parse items on the same line as the element
         let _ = write_vec::<XmlEvent, fn (&XmlEvent, usize) -> String>(output, depth1,
             &self.content, rust_xml_event as fn(&XmlEvent, usize) -> String);
         let _ = write!(output, ", ");
 
+        // Write parse items following the element
         let _ = write_vec::<XmlEvent, fn (&XmlEvent, usize) -> String>(output, depth1,
             &self.after_element, rust_xml_event as fn(&XmlEvent, usize) -> String);
         let _ = write!(output, ",");
 
-        // This defines the start of the SchemaElement subelements
+        // Write the start of the SchemaElement subelements
         let _ = write!(output, " vec!(");
+
         Ok(())
     }
 
@@ -435,10 +444,12 @@ impl SchemaElement {
         // FIXME: check for errors
         // Close off the list of subelements
         if !self.has_subelements {
-            let _ = write!(output, ") /* Close subelement list 0 */");
+            let _ = write!(output, "), /* Close subelement list 0 */");
         } else {
-            let _ = write!(output, "{}) /* Close subelement list 1 */", nl_indent(depth1));
+            let _ = write!(output, "{}), /* Close subelement list 1 */", nl_indent(depth1));
         }
+
+        let _ = write!(output, "{}0", nl_indent(depth1));
 
         let _ = write!(output, "{})), /* Close vec!>Box::new>SchemaElement::new> */",
             nl_indent(depth0));
