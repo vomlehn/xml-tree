@@ -47,3 +47,5 @@ clippy:
 .PHONY: clean
 clean:
 	cargo clean
+
+include ../tools/git.mk
