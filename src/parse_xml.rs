@@ -16,6 +16,8 @@ use crate::{ParseLoc};
 use crate::parser::Parser;
 pub use crate::xml_document_error::XmlDocumentError;
 
+const DEBUG: bool = false;
+
 /**
  * ParseXml - Parses an entire XML document
  * LI   Information passed top down during the parse which is specific to each
@@ -158,7 +160,10 @@ where
     where
         R: Read,
     {
-eprintln!("parse_element enter: {}", element_info.owned_name.local_name);
+        if DEBUG {
+            eprintln!("parse_element enter: {}", element_info.owned_name.local_name);
+        }
+
         // Get level info for subelements
         let subelement_level_info = element_level_info.next_level(&element_info);
         

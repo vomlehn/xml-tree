@@ -37,14 +37,6 @@ impl<'a> XmlSchema<'a> {
     }
 }
 
-/*
-impl<'a> XmlDisplay for XmlSchema<'a> {
-    fn print(&self, f: &mut fmt::Formatter, depth: usize) -> fmt::Result {
-        write!(f, "{}{}", nl_indent(depth), self.inner)
-    }
-}
-*/
-
 pub struct XmlSchemaPrint {
 }
 

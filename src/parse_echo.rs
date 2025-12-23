@@ -111,12 +111,7 @@ impl<'a> EchoLevelInfo<'a> {
 
 impl<'a> LevelInfo<'a> for EchoLevelInfo<'a> {
     type ParseXmlType = ParseEcho<'a>;
-//    type ParseXmlType = <ParseEcho<'a> as ParseXml<'a>>::ParseXml;
-//    type AccumulatorType<'c>: Accumulator<DocType<'c>> = Self::ParseXmlType;
-//    type AccumulatorType: Accumulator<DocType<'a> = Self::ParseXmlType> = ParseAccumulator;
     type AccumulatorType = EchoAccumulator;
-//    where
-//        Self: 'c;
 
     fn next_level(&self, _element_info: &ElementInfo) -> Self {
         EchoLevelInfo {
