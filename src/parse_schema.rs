@@ -298,7 +298,7 @@ eprintln!("SchemaAccumulator::new: {:?}", parse_schema.identifiers);
 }
 
 impl Accumulator for SchemaAccumulator {
-    type Value = ();  // Schema doesn't return meaningful data
+    type Value = SchemaElement;
     type DocType<'a> = ParseSchema<'a>;
 
     /*
@@ -320,7 +320,7 @@ eprintln!("start_subelement identifiers {:?}", parse_schema.identifiers);
 */
     }
     
-    fn add_subelement(&mut self, _parse_schema: &mut ParseSchema<'_>, _subelement: ()) {
+    fn add_subelement(&mut self, _parse_schema: &mut ParseSchema<'_>, _subelement: Self::Value) {
         // We don't need to do anything with the () value
         self.element.has_subelements = true;
     }
@@ -337,7 +337,7 @@ eprintln!("start_subelement identifiers {:?}", parse_schema.identifiers);
 
         // FIXME: return error
         let _ = self.element.write_end(output, self.depth);
-        ()
+        self.element
     }
     
     fn has_open_subelement(&self) -> bool {
@@ -379,7 +379,7 @@ impl SchemaElement {
         after_element: Vec::<XmlEvent>,
         subelements: Vec<Box<dyn Element>>,
         i: usize) -> SchemaElement {
-eprintln!("SchemaElement::new: {} i {}", element_info.owned_name.local_name, i);
+//eprintln!("SchemaElement::new: {} i {}", element_info.owned_name.local_name, i);
         SchemaElement {
             element_info,
             depth,
